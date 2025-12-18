@@ -1,7 +1,7 @@
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
-import { Staff, StaffCategory, STAFF_CATEGORIES, EDUCATION_LEVELS, ACADEMIC_RANKS } from '@/types/staff';
+import { Staff, StaffCategory, STAFF_CATEGORIES, EDUCATION_LEVELS, ACADEMIC_RANKS, STAFF_STATUSES } from '@/types/staff';
 import { useDepartments, useCreateStaff, useUpdateStaff } from '@/hooks/useStaff';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -37,7 +37,7 @@ const formSchema = z.object({
   education_level: z.enum(['Bsc', 'BSc', 'Msc', 'MSc', 'PHD', 'Dip']),
   academic_rank: z.string().optional(),
   current_status: z.string().default('On Duty'),
-  category: z.enum(['Local Instructors', 'Not On Duty', 'On Study', 'Not Reporting', 'ARA', 'Not On Duty ARA', 'ASTU Sponsor']),
+  category: z.enum(['Local Instructors', 'ARA', 'ASTU Sponsor']),
   remark: z.string().optional(),
 });
 
@@ -45,9 +45,10 @@ interface StaffFormProps {
   open: boolean;
   onClose: () => void;
   staff?: Staff | null;
+  defaultDepartmentId?: string;
 }
 
-const StaffForm = ({ open, onClose, staff }: StaffFormProps) => {
+const StaffForm = ({ open, onClose, staff, defaultDepartmentId }: StaffFormProps) => {
   const { data: departments } = useDepartments();
   const createStaff = useCreateStaff();
   const updateStaff = useUpdateStaff();
@@ -59,12 +60,12 @@ const StaffForm = ({ open, onClose, staff }: StaffFormProps) => {
       full_name: staff?.full_name || '',
       sex: staff?.sex || 'M',
       college_name: staff?.college_name || 'CoEEC',
-      department_id: staff?.department_id || '',
+      department_id: staff?.department_id || defaultDepartmentId || '',
       specialization: staff?.specialization || '',
       education_level: staff?.education_level || 'Msc',
       academic_rank: staff?.academic_rank || '',
       current_status: staff?.current_status || 'On Duty',
-      category: staff?.category || 'Local Instructors',
+      category: (staff?.category as StaffCategory) || 'Local Instructors',
       remark: staff?.remark || '',
     },
   });
@@ -74,7 +75,7 @@ const StaffForm = ({ open, onClose, staff }: StaffFormProps) => {
       const data = {
         ...values,
         staff_id: values.staff_id || null,
-        department_id: values.department_id || null,
+        department_id: values.department_id || defaultDepartmentId || null,
         specialization: values.specialization || null,
         academic_rank: values.academic_rank || null,
         remark: values.remark || null,
@@ -274,9 +275,20 @@ const StaffForm = ({ open, onClose, staff }: StaffFormProps) => {
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Current Status *</FormLabel>
-                    <FormControl>
-                      <Input placeholder="Enter current status" {...field} />
-                    </FormControl>
+                    <Select onValueChange={field.onChange} defaultValue={field.value}>
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select status" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        {STAFF_STATUSES.map((status) => (
+                          <SelectItem key={status} value={status}>
+                            {status}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
                     <FormMessage />
                   </FormItem>
                 )}
