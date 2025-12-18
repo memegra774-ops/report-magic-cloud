@@ -1,11 +1,8 @@
-export type StaffCategory = 
-  | 'Local Instructors'
-  | 'Not On Duty'
-  | 'On Study'
-  | 'Not Reporting'
-  | 'ARA'
-  | 'Not On Duty ARA'
-  | 'ASTU Sponsor';
+// Staff categories for the dropdown (as per user requirement)
+export type StaffCategory = 'Local Instructors' | 'ARA' | 'ASTU Sponsor';
+
+// Status types for the report
+export type StaffStatus = 'On Duty' | 'On Study' | 'Not On Duty' | 'Sick' | 'On Study Leave';
 
 export type SexType = 'M' | 'F';
 
@@ -41,8 +38,10 @@ export interface MonthlyReport {
   id: string;
   report_month: number;
   report_year: number;
+  department_id: string | null;
   created_at: string;
   created_by: string | null;
+  departments?: Department;
 }
 
 export interface ReportEntry {
@@ -61,14 +60,20 @@ export const MONTHS = [
   'July', 'August', 'September', 'October', 'November', 'December'
 ];
 
+// Updated categories as per user requirement
 export const STAFF_CATEGORIES: StaffCategory[] = [
   'Local Instructors',
-  'Not On Duty',
-  'On Study',
-  'Not Reporting',
   'ARA',
-  'Not On Duty ARA',
   'ASTU Sponsor'
+];
+
+// Status options for the monthly reports
+export const STAFF_STATUSES: StaffStatus[] = [
+  'On Duty',
+  'On Study',
+  'Not On Duty',
+  'Sick',
+  'On Study Leave'
 ];
 
 export const EDUCATION_LEVELS: EducationLevel[] = ['Bsc', 'BSc', 'Msc', 'MSc', 'PHD', 'Dip'];
@@ -76,7 +81,7 @@ export const EDUCATION_LEVELS: EducationLevel[] = ['Bsc', 'BSc', 'Msc', 'MSc', '
 export const ACADEMIC_RANKS = [
   'Lecturer',
   'S.Lecturer',
-  'Senior Lecture',
+  'Senior Lecturer',
   'Asst.Prof',
   'Asst.Prof.',
   'Asst. Prof.',
@@ -91,4 +96,17 @@ export const ACADEMIC_RANKS = [
   'ARA I',
   'Ass. Lecturer',
   'Ass.Lecturer'
+];
+
+// CSV template headers
+export const CSV_TEMPLATE_HEADERS = [
+  'staff_id',
+  'full_name',
+  'sex',
+  'specialization',
+  'education_level',
+  'academic_rank',
+  'current_status',
+  'category',
+  'remark'
 ];

@@ -1,8 +1,8 @@
 import { useRef } from 'react';
-import { MonthlyReport, MONTHS, STAFF_CATEGORIES, StaffCategory } from '@/types/staff';
+import { MonthlyReport, MONTHS, STAFF_CATEGORIES, StaffCategory, Staff } from '@/types/staff';
 import { useReportEntries } from '@/hooks/useReports';
 import { Button } from '@/components/ui/button';
-import { Download, Printer } from 'lucide-react';
+import { Printer } from 'lucide-react';
 import StatusBadge from './StatusBadge';
 import {
   Table,
@@ -148,11 +148,7 @@ const getCategoryTitle = (category: StaffCategory, month: number, year: number) 
   const monthName = MONTHS[month - 1];
   const titles: Record<StaffCategory, string> = {
     'Local Instructors': `On Duty Academic Staff Report of ${monthName}, ${year}`,
-    'Not On Duty': `Not On Duty Academic Staff Report of ${monthName}, ${year}`,
-    'On Study': `On Study Academic Staff Report of ${monthName}, ${year}`,
-    'Not Reporting': `Not Reporting On Study Academic Staff Report of ${monthName}, ${year}`,
-    'ARA': `On Duty Academic and Research Assistances Report of ${monthName}, ${year}`,
-    'Not On Duty ARA': `Not On Duty Academic and Research Assistances Report of ${monthName}, ${year}`,
+    'ARA': `On Duty Academic and Research Assistants Report of ${monthName}, ${year}`,
     'ASTU Sponsor': `ASTU Sponsors Report of ${monthName}, ${year}`,
   };
   return titles[category];
