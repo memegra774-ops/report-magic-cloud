@@ -1,15 +1,34 @@
-import { Users, UserCheck, UserX, GraduationCap, BookOpen, Award } from 'lucide-react';
+import { Users, UserCheck, BookOpen, Award, GraduationCap } from 'lucide-react';
 import Header from '@/components/Header';
 import StatsCard from '@/components/StatsCard';
 import { useStaffStats, useStaff } from '@/hooks/useStaff';
+import { useAuth } from '@/contexts/AuthContext';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
-import StaffTable from '@/components/StaffTable';
+import EditableStaffTable from '@/components/EditableStaffTable';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 
 const Index = () => {
-  const { data: stats, isLoading: statsLoading } = useStaffStats();
-  const { data: recentStaff, isLoading: staffLoading } = useStaff();
+  const { role, profile } = useAuth();
+  
+  // Department heads only see their department's stats
+  const departmentId = role === 'department_head' ? profile?.department_id || undefined : undefined;
+  
+  const { data: stats, isLoading: statsLoading } = useStaffStats(departmentId);
+  const { data: recentStaff, isLoading: staffLoading } = useStaff({
+    departmentId,
+  });
+
+  const getRoleDisplayName = () => {
+    switch (role) {
+      case 'system_admin': return 'System Administrator';
+      case 'department_head': return 'Department Head';
+      case 'avd': return 'Associate Vice Dean';
+      case 'management': return 'Management';
+      default: return 'User';
+    }
+  };
 
   return (
     <div className="min-h-screen bg-background">
@@ -22,7 +41,7 @@ const Index = () => {
             Staff Monthly Report System
           </h1>
           <p className="text-muted-foreground text-lg">
-            Manage academic staff records and generate monthly reports for CoEEC
+            Welcome, {profile?.full_name || 'User'}! You are logged in as <span className="font-semibold text-primary">{getRoleDisplayName()}</span>
           </p>
         </div>
 
@@ -44,18 +63,18 @@ const Index = () => {
                 description="All registered staff members"
               />
               <StatsCard
-                title="On Duty"
+                title="Instructors"
                 value={stats?.byCategory['Local Instructors'] || 0}
                 icon={UserCheck}
                 variant="success"
-                description="Active academic staff"
+                description="Local instructors"
               />
               <StatsCard
-                title="On Study"
-                value={(stats?.byCategory['On Study'] || 0) + (stats?.byCategory['Not Reporting'] || 0)}
+                title="ARAs"
+                value={stats?.byCategory['ARA'] || 0}
                 icon={BookOpen}
                 variant="info"
-                description="Staff on study leave"
+                description="Academic Research Assistants"
               />
               <StatsCard
                 title="PhD Holders"
@@ -68,57 +87,69 @@ const Index = () => {
           )}
         </div>
 
-        {/* Gender Distribution */}
+        {/* Gender Distribution & Quick Actions */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-          <div className="bg-card rounded-xl border p-6 shadow-card animate-fade-in">
-            <h3 className="font-semibold text-lg mb-4">Gender Distribution</h3>
-            <div className="flex gap-4">
-              <div className="flex-1 text-center p-4 bg-info/10 rounded-lg">
-                <p className="text-3xl font-serif font-bold text-info">{stats?.bySex.M || 0}</p>
-                <p className="text-sm text-muted-foreground">Male</p>
+          <Card className="animate-fade-in">
+            <CardHeader>
+              <CardTitle className="text-lg">Gender Distribution</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="flex gap-4">
+                <div className="flex-1 text-center p-4 bg-info/10 rounded-lg">
+                  <p className="text-3xl font-serif font-bold text-info">{stats?.bySex.M || 0}</p>
+                  <p className="text-sm text-muted-foreground">Male</p>
+                </div>
+                <div className="flex-1 text-center p-4 bg-accent/10 rounded-lg">
+                  <p className="text-3xl font-serif font-bold text-accent">{stats?.bySex.F || 0}</p>
+                  <p className="text-sm text-muted-foreground">Female</p>
+                </div>
               </div>
-              <div className="flex-1 text-center p-4 bg-accent/10 rounded-lg">
-                <p className="text-3xl font-serif font-bold text-accent">{stats?.bySex.F || 0}</p>
-                <p className="text-sm text-muted-foreground">Female</p>
-              </div>
-            </div>
-          </div>
+            </CardContent>
+          </Card>
 
-          <div className="bg-card rounded-xl border p-6 shadow-card animate-fade-in">
-            <h3 className="font-semibold text-lg mb-4">Staff Categories</h3>
-            <div className="space-y-2">
-              <div className="flex justify-between items-center">
-                <span className="text-sm text-muted-foreground">Academic Staff</span>
-                <span className="font-semibold">{(stats?.byCategory['Local Instructors'] || 0) + (stats?.byCategory['Not On Duty'] || 0)}</span>
+          <Card className="animate-fade-in">
+            <CardHeader>
+              <CardTitle className="text-lg">Staff Categories</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-2">
+                <div className="flex justify-between items-center">
+                  <span className="text-sm text-muted-foreground">Instructors</span>
+                  <span className="font-semibold">{stats?.byCategory['Local Instructors'] || 0}</span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-sm text-muted-foreground">Research Assistants</span>
+                  <span className="font-semibold">{stats?.byCategory['ARA'] || 0}</span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-sm text-muted-foreground">ASTU Sponsors</span>
+                  <span className="font-semibold">{stats?.byCategory['ASTU Sponsor'] || 0}</span>
+                </div>
               </div>
-              <div className="flex justify-between items-center">
-                <span className="text-sm text-muted-foreground">Research Assistants</span>
-                <span className="font-semibold">{(stats?.byCategory['ARA'] || 0) + (stats?.byCategory['Not On Duty ARA'] || 0)}</span>
-              </div>
-              <div className="flex justify-between items-center">
-                <span className="text-sm text-muted-foreground">Sponsors</span>
-                <span className="font-semibold">{stats?.byCategory['ASTU Sponsor'] || 0}</span>
-              </div>
-            </div>
-          </div>
+            </CardContent>
+          </Card>
 
-          <div className="bg-card rounded-xl border p-6 shadow-card animate-fade-in">
-            <h3 className="font-semibold text-lg mb-4">Quick Actions</h3>
-            <div className="space-y-2">
-              <Link to="/staff">
-                <Button variant="outline" className="w-full justify-start">
-                  <Users className="h-4 w-4 mr-2" />
-                  View All Staff
-                </Button>
-              </Link>
-              <Link to="/reports">
-                <Button variant="outline" className="w-full justify-start">
-                  <GraduationCap className="h-4 w-4 mr-2" />
-                  Generate Report
-                </Button>
-              </Link>
-            </div>
-          </div>
+          <Card className="animate-fade-in">
+            <CardHeader>
+              <CardTitle className="text-lg">Quick Actions</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-2">
+                <Link to="/staff">
+                  <Button variant="outline" className="w-full justify-start">
+                    <Users className="h-4 w-4 mr-2" />
+                    View Staff Directory
+                  </Button>
+                </Link>
+                <Link to="/reports">
+                  <Button variant="outline" className="w-full justify-start">
+                    <GraduationCap className="h-4 w-4 mr-2" />
+                    Generate Report
+                  </Button>
+                </Link>
+              </div>
+            </CardContent>
+          </Card>
         </div>
 
         {/* Recent Staff */}
@@ -132,7 +163,11 @@ const Index = () => {
           {staffLoading ? (
             <Skeleton className="h-64 w-full rounded-xl" />
           ) : (
-            <StaffTable staff={recentStaff?.slice(0, 10) || []} />
+            <EditableStaffTable 
+              staff={recentStaff?.slice(0, 10) || []} 
+              canEdit={false}
+              canDelete={false}
+            />
           )}
         </div>
       </main>
