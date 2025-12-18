@@ -1,8 +1,11 @@
 import { useState } from 'react';
-import { Plus, Calendar, Trash2, Eye } from 'lucide-react';
+import { Plus, Calendar, Trash2, Eye, FileText } from 'lucide-react';
 import Header from '@/components/Header';
 import ReportView from '@/components/ReportView';
+import ReportLetter from '@/components/ReportLetter';
 import { useMonthlyReports, useCreateReport, useDeleteReport } from '@/hooks/useReports';
+import { useAuth } from '@/contexts/AuthContext';
+import { useDepartments } from '@/hooks/useStaff';
 import { MonthlyReport, MONTHS } from '@/types/staff';
 import { Button } from '@/components/ui/button';
 import {
@@ -31,20 +34,28 @@ import {
 } from '@/components/ui/alert-dialog';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
 const Reports = () => {
+  const { role, profile } = useAuth();
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
   const [selectedMonth, setSelectedMonth] = useState<number>(new Date().getMonth() + 1);
   const [selectedYear, setSelectedYear] = useState<number>(new Date().getFullYear());
   const [viewReport, setViewReport] = useState<MonthlyReport | null>(null);
+  const [viewMode, setViewMode] = useState<'report' | 'letter'>('report');
   const [deleteId, setDeleteId] = useState<string | null>(null);
 
+  const { data: departments } = useDepartments();
   const { data: reports, isLoading } = useMonthlyReports();
   const createReport = useCreateReport();
   const deleteReport = useDeleteReport();
 
   const handleCreateReport = async () => {
-    await createReport.mutateAsync({ month: selectedMonth, year: selectedYear });
+    await createReport.mutateAsync({ 
+      month: selectedMonth, 
+      year: selectedYear,
+      departmentId: role === 'department_head' ? profile?.department_id : undefined
+    });
     setCreateDialogOpen(false);
   };
 
@@ -58,6 +69,18 @@ const Reports = () => {
   const currentYear = new Date().getFullYear();
   const years = Array.from({ length: 5 }, (_, i) => currentYear - 2 + i);
 
+  const canCreate = role === 'system_admin' || role === 'department_head' || role === 'avd';
+  const canDelete = role === 'system_admin' || role === 'avd';
+  const canViewLetter = role === 'avd' || role === 'system_admin';
+
+  // Filter reports based on role
+  const filteredReports = reports?.filter(report => {
+    if (role === 'department_head') {
+      return report.department_id === profile?.department_id;
+    }
+    return true;
+  });
+
   if (viewReport) {
     return (
       <div className="min-h-screen bg-background">
@@ -66,7 +89,26 @@ const Reports = () => {
           <Button variant="ghost" onClick={() => setViewReport(null)} className="mb-4">
             ← Back to Reports
           </Button>
-          <ReportView report={viewReport} />
+          
+          {canViewLetter ? (
+            <Tabs value={viewMode} onValueChange={(v) => setViewMode(v as 'report' | 'letter')}>
+              <TabsList className="mb-6">
+                <TabsTrigger value="report">Detailed Report</TabsTrigger>
+                <TabsTrigger value="letter">Official Letter</TabsTrigger>
+              </TabsList>
+              <TabsContent value="report">
+                <ReportView report={viewReport} />
+              </TabsContent>
+              <TabsContent value="letter">
+                <ReportLetter 
+                  report={viewReport} 
+                  department={departments?.find(d => d.id === viewReport.department_id)}
+                />
+              </TabsContent>
+            </Tabs>
+          ) : (
+            <ReportView report={viewReport} />
+          )}
         </main>
       </div>
     );
@@ -80,12 +122,18 @@ const Reports = () => {
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
           <div>
             <h1 className="font-serif text-3xl font-bold text-foreground">Monthly Reports</h1>
-            <p className="text-muted-foreground">Generate and view monthly staff reports</p>
+            <p className="text-muted-foreground">
+              {role === 'avd' 
+                ? 'View combined reports from all departments' 
+                : 'Generate and view monthly staff reports'}
+            </p>
           </div>
-          <Button onClick={() => setCreateDialogOpen(true)}>
-            <Plus className="h-4 w-4 mr-2" />
-            Generate New Report
-          </Button>
+          {canCreate && (
+            <Button onClick={() => setCreateDialogOpen(true)}>
+              <Plus className="h-4 w-4 mr-2" />
+              Generate New Report
+            </Button>
+          )}
         </div>
 
         {/* Reports Grid */}
@@ -95,9 +143,9 @@ const Reports = () => {
               <Skeleton key={i} className="h-40 rounded-xl" />
             ))}
           </div>
-        ) : reports && reports.length > 0 ? (
+        ) : filteredReports && filteredReports.length > 0 ? (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {reports.map((report) => (
+            {filteredReports.map((report) => (
               <Card key={report.id} className="shadow-card hover:shadow-card-hover transition-shadow animate-fade-in">
                 <CardHeader className="pb-2">
                   <CardTitle className="flex items-center justify-between">
@@ -108,9 +156,14 @@ const Reports = () => {
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <p className="text-sm text-muted-foreground mb-4">
+                  <p className="text-sm text-muted-foreground mb-1">
                     Created: {new Date(report.created_at).toLocaleDateString()}
                   </p>
+                  {report.department_id && (
+                    <p className="text-sm text-muted-foreground mb-4">
+                      Dept: {departments?.find(d => d.id === report.department_id)?.code || '-'}
+                    </p>
+                  )}
                   <div className="flex gap-2">
                     <Button
                       variant="default"
@@ -121,13 +174,27 @@ const Reports = () => {
                       <Eye className="h-4 w-4 mr-1" />
                       View
                     </Button>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => setDeleteId(report.id)}
-                    >
-                      <Trash2 className="h-4 w-4 text-destructive" />
-                    </Button>
+                    {canViewLetter && (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => {
+                          setViewReport(report);
+                          setViewMode('letter');
+                        }}
+                      >
+                        <FileText className="h-4 w-4" />
+                      </Button>
+                    )}
+                    {canDelete && (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setDeleteId(report.id)}
+                      >
+                        <Trash2 className="h-4 w-4 text-destructive" />
+                      </Button>
+                    )}
                   </div>
                 </CardContent>
               </Card>
@@ -140,10 +207,12 @@ const Reports = () => {
             <p className="text-muted-foreground mb-4">
               Create your first monthly report to get started
             </p>
-            <Button onClick={() => setCreateDialogOpen(true)}>
-              <Plus className="h-4 w-4 mr-2" />
-              Generate Report
-            </Button>
+            {canCreate && (
+              <Button onClick={() => setCreateDialogOpen(true)}>
+                <Plus className="h-4 w-4 mr-2" />
+                Generate Report
+              </Button>
+            )}
           </div>
         )}
 

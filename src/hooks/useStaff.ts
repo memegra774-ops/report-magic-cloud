@@ -66,6 +66,7 @@ export const useCreateStaff = () => {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['staff'] });
+      queryClient.invalidateQueries({ queryKey: ['staff-stats'] });
       toast.success('Staff member added successfully');
     },
     onError: (error) => {
@@ -91,6 +92,7 @@ export const useUpdateStaff = () => {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['staff'] });
+      queryClient.invalidateQueries({ queryKey: ['staff-stats'] });
       toast.success('Staff member updated successfully');
     },
     onError: (error) => {
@@ -113,6 +115,7 @@ export const useDeleteStaff = () => {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['staff'] });
+      queryClient.invalidateQueries({ queryKey: ['staff-stats'] });
       toast.success('Staff member deleted successfully');
     },
     onError: (error) => {
@@ -121,13 +124,19 @@ export const useDeleteStaff = () => {
   });
 };
 
-export const useStaffStats = () => {
+export const useStaffStats = (departmentId?: string) => {
   return useQuery({
-    queryKey: ['staff-stats'],
+    queryKey: ['staff-stats', departmentId],
     queryFn: async () => {
-      const { data, error } = await supabase
+      let query = supabase
         .from('staff')
         .select('category, sex, education_level');
+      
+      if (departmentId) {
+        query = query.eq('department_id', departmentId);
+      }
+
+      const { data, error } = await query;
 
       if (error) throw error;
 

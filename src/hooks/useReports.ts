@@ -9,7 +9,7 @@ export const useMonthlyReports = () => {
     queryFn: async () => {
       const { data, error } = await supabase
         .from('monthly_reports')
-        .select('*')
+        .select('*, departments(*)')
         .order('report_year', { ascending: false })
         .order('report_month', { ascending: false });
 
@@ -23,20 +23,30 @@ export const useCreateReport = () => {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async ({ month, year }: { month: number; year: number }) => {
+    mutationFn: async ({ month, year, departmentId }: { month: number; year: number; departmentId?: string | null }) => {
       // First create the report
       const { data: report, error: reportError } = await supabase
         .from('monthly_reports')
-        .insert({ report_month: month, report_year: year })
+        .insert({ 
+          report_month: month, 
+          report_year: year,
+          department_id: departmentId || null 
+        })
         .select()
         .single();
 
       if (reportError) throw reportError;
 
-      // Then copy all staff into report entries
-      const { data: staffData, error: staffError } = await supabase
+      // Then copy all staff into report entries (filtered by department if applicable)
+      let staffQuery = supabase
         .from('staff')
         .select('id, category, current_status, remark');
+      
+      if (departmentId) {
+        staffQuery = staffQuery.eq('department_id', departmentId);
+      }
+
+      const { data: staffData, error: staffError } = await staffQuery;
 
       if (staffError) throw staffError;
 
@@ -89,6 +99,31 @@ export const useReportEntries = (reportId: string | undefined) => {
       return data;
     },
     enabled: !!reportId,
+  });
+};
+
+export const useUpdateReportEntry = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({ id, current_status, remark }: { id: string; current_status?: string; remark?: string }) => {
+      const { data, error } = await supabase
+        .from('report_entries')
+        .update({ current_status, remark })
+        .eq('id', id)
+        .select()
+        .single();
+
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['report-entries'] });
+      toast.success('Entry updated');
+    },
+    onError: (error) => {
+      toast.error('Failed to update entry: ' + error.message);
+    },
   });
 };
 
