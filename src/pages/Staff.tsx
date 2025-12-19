@@ -44,7 +44,7 @@ const Staff = () => {
 
   const canEdit = role === 'system_admin' || role === 'department_head';
   const canDelete = role === 'system_admin' || role === 'department_head';
-  const canImport = role === 'department_head';
+  const canImport = role === 'system_admin' || role === 'department_head';
 
   return (
     <div className="min-h-screen bg-background">

@@ -1,8 +1,8 @@
 import { useRef } from 'react';
-import { MonthlyReport, MONTHS, STAFF_CATEGORIES, StaffCategory, Staff, Department } from '@/types/staff';
+import { MonthlyReport, MONTHS, Department } from '@/types/staff';
 import { useReportEntries } from '@/hooks/useReports';
 import { Button } from '@/components/ui/button';
-import { Printer, FileText } from 'lucide-react';
+import { Printer } from 'lucide-react';
 
 interface ReportLetterProps {
   report: MonthlyReport;
@@ -43,9 +43,9 @@ const ReportLetter = ({ report, department, signatory = 'Associate Dean for Acad
         <head>
           <title>Staff Report Letter - ${MONTHS[report.report_month - 1]} ${report.report_year}</title>
           <style>
-            @page { size: A4; margin: 20mm; }
+            @page { size: A4 landscape; margin: 15mm; }
             body { 
-              font-family: 'Times New Roman', serif; 
+              font-family: 'Times New Roman', Times, serif; 
               font-size: 12pt;
               line-height: 1.5;
               color: #000;
@@ -57,7 +57,7 @@ const ReportLetter = ({ report, department, signatory = 'Associate Dean for Acad
               margin-bottom: 20px;
             }
             .letterhead h1 { 
-              font-size: 18pt; 
+              font-size: 16pt; 
               font-weight: bold; 
               margin: 0;
               color: #1e40af;
@@ -95,7 +95,7 @@ const ReportLetter = ({ report, department, signatory = 'Associate Dean for Acad
               width: 100%;
               border-collapse: collapse;
               margin: 20px 0;
-              font-size: 10pt;
+              font-size: 11pt;
             }
             th, td {
               border: 1px solid #000;
@@ -211,18 +211,22 @@ const ReportLetter = ({ report, department, signatory = 'Associate Dean for Acad
         </Button>
       </div>
 
-      <div ref={printRef} className="bg-white p-8 rounded-lg border shadow-sm max-w-4xl mx-auto">
+      <div ref={printRef} className="bg-white p-8 rounded-lg border shadow-sm max-w-5xl mx-auto" style={{ fontFamily: "'Times New Roman', serif" }}>
         {/* Letterhead */}
         <div className="letterhead text-center border-b-2 border-primary pb-4 mb-6">
           <p className="text-sm text-muted-foreground">
             P.O. Box: 1888 &nbsp; Tele: +251-221-100026 &nbsp; Fax: +251-022-112-01-50 &nbsp; E-mail: adaa.soeec@astu.et
           </p>
-          <h1 className="text-2xl font-bold text-primary mt-2">ADAMA SCIENCE AND TECHNOLOGY UNIVERSITY</h1>
-          <h2 className="text-lg font-semibold">አዳማ ሳይንስ እና ቴክኖሎጂ ዩኒቨርሲቲ</h2>
+          <h1 className="text-2xl font-bold text-primary mt-2" style={{ fontFamily: "'Times New Roman', serif" }}>
+            ADAMA SCIENCE AND TECHNOLOGY UNIVERSITY
+          </h1>
+          <h2 className="text-lg font-semibold" style={{ fontFamily: "'Times New Roman', serif" }}>
+            አዳማ ሳይንስ እና ቴክኖሎጂ ዩኒቨርሲቲ
+          </h2>
         </div>
 
         {/* Meta info */}
-        <div className="flex justify-between text-sm mb-6">
+        <div className="flex justify-between text-sm mb-6" style={{ fontSize: '12pt' }}>
           <div>
             <p><strong>To:</strong> Competence and Human Resource Administration Executive</p>
           </div>
@@ -233,18 +237,18 @@ const ReportLetter = ({ report, department, signatory = 'Associate Dean for Acad
         </div>
 
         {/* From */}
-        <div className="mb-4">
+        <div className="mb-4" style={{ fontSize: '12pt' }}>
           <p>College of Electrical Engineering & Computing</p>
           <p>{signatory}</p>
         </div>
 
         {/* Subject */}
-        <p className="font-bold underline my-6">
+        <p className="font-bold underline my-6" style={{ fontSize: '12pt' }}>
           Subject: Academic Staff Member Report of {monthName} {report.report_year}
         </p>
 
         {/* Content */}
-        <p className="text-justify mb-6">
+        <p className="text-justify mb-6" style={{ fontSize: '12pt' }}>
           The following table shows statistics of Academic staff (Local Instructors, Academic and Research Assistants 
           & MSc. Sponsored contract Students) on duty, absent, sick and study leave in College of Electrical 
           Engineering and Computing for the month of {monthName} {report.report_year}. Please kindly find also 
@@ -253,98 +257,98 @@ const ReportLetter = ({ report, department, signatory = 'Associate Dean for Acad
 
         {/* Statistics Table */}
         <div className="overflow-x-auto mb-6">
-          <table className="w-full border-collapse text-sm">
+          <table className="w-full border-collapse" style={{ fontSize: '11pt' }}>
             <thead>
               <tr className="bg-primary text-primary-foreground">
-                <th className="border p-2">No</th>
-                <th className="border p-2">Academic Staff</th>
-                <th className="border p-2">Sex</th>
-                <th className="border p-2">On Duty</th>
-                <th className="border p-2">On Study</th>
-                <th className="border p-2">Not On Duty</th>
-                <th className="border p-2">Sick</th>
-                <th className="border p-2">On Study Leave</th>
-                <th className="border p-2">Total</th>
+                <th className="border border-foreground/30 p-2">No</th>
+                <th className="border border-foreground/30 p-2">Academic Staff</th>
+                <th className="border border-foreground/30 p-2">Sex</th>
+                <th className="border border-foreground/30 p-2">On Duty</th>
+                <th className="border border-foreground/30 p-2">On Study</th>
+                <th className="border border-foreground/30 p-2">Not On Duty</th>
+                <th className="border border-foreground/30 p-2">Sick</th>
+                <th className="border border-foreground/30 p-2">On Study Leave</th>
+                <th className="border border-foreground/30 p-2">Total</th>
               </tr>
             </thead>
             <tbody>
               {stats.map((row, index) => (
                 <>
                   <tr key={`${row.category}-m`}>
-                    <td className="border p-2" rowSpan={3}>{index + 1}</td>
-                    <td className="border p-2 text-left" rowSpan={3}>{row.category}</td>
-                    <td className="border p-2">M</td>
-                    <td className="border p-2">{row.mOnDuty || '-'}</td>
-                    <td className="border p-2">{row.mOnStudy || '-'}</td>
-                    <td className="border p-2">{row.mNotOnDuty || '-'}</td>
-                    <td className="border p-2">{row.mSick || '-'}</td>
-                    <td className="border p-2">{row.mOnStudyLeave || '-'}</td>
-                    <td className="border p-2">{row.mTotal}</td>
+                    <td className="border border-foreground/30 p-2" rowSpan={3}>{index + 1}</td>
+                    <td className="border border-foreground/30 p-2 text-left" rowSpan={3}>{row.category}</td>
+                    <td className="border border-foreground/30 p-2">M</td>
+                    <td className="border border-foreground/30 p-2">{row.mOnDuty || '-'}</td>
+                    <td className="border border-foreground/30 p-2">{row.mOnStudy || '-'}</td>
+                    <td className="border border-foreground/30 p-2">{row.mNotOnDuty || '-'}</td>
+                    <td className="border border-foreground/30 p-2">{row.mSick || '-'}</td>
+                    <td className="border border-foreground/30 p-2">{row.mOnStudyLeave || '-'}</td>
+                    <td className="border border-foreground/30 p-2">{row.mTotal}</td>
                   </tr>
                   <tr key={`${row.category}-f`}>
-                    <td className="border p-2">F</td>
-                    <td className="border p-2">{row.fOnDuty || '-'}</td>
-                    <td className="border p-2">{row.fOnStudy || '-'}</td>
-                    <td className="border p-2">{row.fNotOnDuty || '-'}</td>
-                    <td className="border p-2">{row.fSick || '-'}</td>
-                    <td className="border p-2">{row.fOnStudyLeave || '-'}</td>
-                    <td className="border p-2">{row.fTotal}</td>
+                    <td className="border border-foreground/30 p-2">F</td>
+                    <td className="border border-foreground/30 p-2">{row.fOnDuty || '-'}</td>
+                    <td className="border border-foreground/30 p-2">{row.fOnStudy || '-'}</td>
+                    <td className="border border-foreground/30 p-2">{row.fNotOnDuty || '-'}</td>
+                    <td className="border border-foreground/30 p-2">{row.fSick || '-'}</td>
+                    <td className="border border-foreground/30 p-2">{row.fOnStudyLeave || '-'}</td>
+                    <td className="border border-foreground/30 p-2">{row.fTotal}</td>
                   </tr>
                   <tr key={`${row.category}-t`} className="bg-muted/30">
-                    <td className="border p-2 font-semibold">T</td>
-                    <td className="border p-2 font-semibold">{row.mOnDuty + row.fOnDuty || '-'}</td>
-                    <td className="border p-2 font-semibold">{row.mOnStudy + row.fOnStudy || '-'}</td>
-                    <td className="border p-2 font-semibold">{row.mNotOnDuty + row.fNotOnDuty || '-'}</td>
-                    <td className="border p-2 font-semibold">{row.mSick + row.fSick || '-'}</td>
-                    <td className="border p-2 font-semibold">{row.mOnStudyLeave + row.fOnStudyLeave || '-'}</td>
-                    <td className="border p-2 font-semibold">{row.total}</td>
+                    <td className="border border-foreground/30 p-2 font-semibold">T</td>
+                    <td className="border border-foreground/30 p-2 font-semibold">{row.mOnDuty + row.fOnDuty || '-'}</td>
+                    <td className="border border-foreground/30 p-2 font-semibold">{row.mOnStudy + row.fOnStudy || '-'}</td>
+                    <td className="border border-foreground/30 p-2 font-semibold">{row.mNotOnDuty + row.fNotOnDuty || '-'}</td>
+                    <td className="border border-foreground/30 p-2 font-semibold">{row.mSick + row.fSick || '-'}</td>
+                    <td className="border border-foreground/30 p-2 font-semibold">{row.mOnStudyLeave + row.fOnStudyLeave || '-'}</td>
+                    <td className="border border-foreground/30 p-2 font-semibold">{row.total}</td>
                   </tr>
                 </>
               ))}
               {/* Grand Total */}
               <tr className="bg-muted font-bold">
-                <td className="border p-2" rowSpan={3}></td>
-                <td className="border p-2 text-left" rowSpan={3}>Total</td>
-                <td className="border p-2">M</td>
-                <td className="border p-2">{totals.mOnDuty}</td>
-                <td className="border p-2">{totals.mOnStudy}</td>
-                <td className="border p-2">{totals.mNotOnDuty}</td>
-                <td className="border p-2">{totals.mSick}</td>
-                <td className="border p-2">{totals.mOnStudyLeave}</td>
-                <td className="border p-2">{totals.mTotal}</td>
+                <td className="border border-foreground/30 p-2" rowSpan={3}></td>
+                <td className="border border-foreground/30 p-2 text-left" rowSpan={3}>Total</td>
+                <td className="border border-foreground/30 p-2">M</td>
+                <td className="border border-foreground/30 p-2">{totals.mOnDuty}</td>
+                <td className="border border-foreground/30 p-2">{totals.mOnStudy}</td>
+                <td className="border border-foreground/30 p-2">{totals.mNotOnDuty}</td>
+                <td className="border border-foreground/30 p-2">{totals.mSick}</td>
+                <td className="border border-foreground/30 p-2">{totals.mOnStudyLeave}</td>
+                <td className="border border-foreground/30 p-2">{totals.mTotal}</td>
               </tr>
               <tr className="bg-muted font-bold">
-                <td className="border p-2">F</td>
-                <td className="border p-2">{totals.fOnDuty}</td>
-                <td className="border p-2">{totals.fOnStudy}</td>
-                <td className="border p-2">{totals.fNotOnDuty}</td>
-                <td className="border p-2">{totals.fSick}</td>
-                <td className="border p-2">{totals.fOnStudyLeave}</td>
-                <td className="border p-2">{totals.fTotal}</td>
+                <td className="border border-foreground/30 p-2">F</td>
+                <td className="border border-foreground/30 p-2">{totals.fOnDuty}</td>
+                <td className="border border-foreground/30 p-2">{totals.fOnStudy}</td>
+                <td className="border border-foreground/30 p-2">{totals.fNotOnDuty}</td>
+                <td className="border border-foreground/30 p-2">{totals.fSick}</td>
+                <td className="border border-foreground/30 p-2">{totals.fOnStudyLeave}</td>
+                <td className="border border-foreground/30 p-2">{totals.fTotal}</td>
               </tr>
               <tr className="bg-muted font-bold">
-                <td className="border p-2">T</td>
-                <td className="border p-2">{totals.mOnDuty + totals.fOnDuty}</td>
-                <td className="border p-2">{totals.mOnStudy + totals.fOnStudy}</td>
-                <td className="border p-2">{totals.mNotOnDuty + totals.fNotOnDuty}</td>
-                <td className="border p-2">{totals.mSick + totals.fSick}</td>
-                <td className="border p-2">{totals.mOnStudyLeave + totals.fOnStudyLeave}</td>
-                <td className="border p-2">{totals.total}</td>
+                <td className="border border-foreground/30 p-2">T</td>
+                <td className="border border-foreground/30 p-2">{totals.mOnDuty + totals.fOnDuty}</td>
+                <td className="border border-foreground/30 p-2">{totals.mOnStudy + totals.fOnStudy}</td>
+                <td className="border border-foreground/30 p-2">{totals.mNotOnDuty + totals.fNotOnDuty}</td>
+                <td className="border border-foreground/30 p-2">{totals.mSick + totals.fSick}</td>
+                <td className="border border-foreground/30 p-2">{totals.mOnStudyLeave + totals.fOnStudyLeave}</td>
+                <td className="border border-foreground/30 p-2">{totals.total}</td>
               </tr>
             </tbody>
           </table>
         </div>
 
         {/* Closing */}
-        <p className="mb-8">With regards</p>
+        <p className="mb-8" style={{ fontSize: '12pt' }}>With regards</p>
 
         {/* Signature */}
         <div className="mt-12">
-          <p className="font-semibold">{signatory}</p>
+          <p className="font-semibold" style={{ fontSize: '12pt' }}>{signatory}</p>
         </div>
 
         {/* CC */}
-        <div className="mt-8 text-sm">
+        <div className="mt-8" style={{ fontSize: '11pt' }}>
           <p className="font-semibold">CC:</p>
           <ul className="ml-4">
             <li>CoEEC Dean</li>

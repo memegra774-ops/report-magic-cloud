@@ -1,5 +1,5 @@
 import { useRef } from 'react';
-import { MonthlyReport, MONTHS, STAFF_CATEGORIES, StaffCategory, Staff } from '@/types/staff';
+import { MonthlyReport, MONTHS, Staff } from '@/types/staff';
 import { useReportEntries } from '@/hooks/useReports';
 import { Button } from '@/components/ui/button';
 import { Printer } from 'lucide-react';
@@ -17,6 +17,24 @@ interface ReportViewProps {
   report: MonthlyReport;
 }
 
+// Report sections matching the Excel template exactly
+type ReportSection = {
+  id: string;
+  title: string;
+  categoryFilter: string;
+  statusFilter?: string;
+};
+
+const REPORT_SECTIONS: ReportSection[] = [
+  { id: 'local-on-duty', title: 'On Duty Academic Staff Report', categoryFilter: 'Local Instructors', statusFilter: 'On Duty' },
+  { id: 'local-not-on-duty', title: 'Not On Duty Academic Staff Report', categoryFilter: 'Local Instructors', statusFilter: 'Not On Duty' },
+  { id: 'local-on-study', title: 'On Study Academic Staff Report', categoryFilter: 'Local Instructors', statusFilter: 'On Study' },
+  { id: 'local-not-reporting', title: 'Not Reporting On Study Academic Staff Report', categoryFilter: 'Local Instructors', statusFilter: 'On Study Leave' },
+  { id: 'ara-on-duty', title: 'On Duty Academic and Research Assistants Report', categoryFilter: 'ARA', statusFilter: 'On Duty' },
+  { id: 'ara-not-on-duty', title: 'Not On Duty Academic and Research Assistants Report', categoryFilter: 'ARA', statusFilter: 'Not On Duty' },
+  { id: 'astu-sponsor', title: 'ASTU Sponsors Report', categoryFilter: 'ASTU Sponsor' },
+];
+
 const ReportView = ({ report }: ReportViewProps) => {
   const { data: entries, isLoading } = useReportEntries(report.id);
   const printRef = useRef<HTMLDivElement>(null);
@@ -33,13 +51,57 @@ const ReportView = ({ report }: ReportViewProps) => {
         <head>
           <title>Monthly Report - ${MONTHS[report.report_month - 1]} ${report.report_year}</title>
           <style>
-            body { font-family: Arial, sans-serif; padding: 20px; }
-            table { width: 100%; border-collapse: collapse; margin-bottom: 30px; }
-            th, td { border: 1px solid #ddd; padding: 8px; text-align: left; font-size: 11px; }
-            th { background-color: #1e40af; color: white; }
-            .header { text-align: center; margin-bottom: 20px; }
-            .section-title { background-color: #f3f4f6; font-weight: bold; padding: 10px; margin-top: 20px; }
-            @media print { body { -webkit-print-color-adjust: exact; print-color-adjust: exact; } }
+            @page { 
+              size: A4 landscape; 
+              margin: 10mm; 
+            }
+            body { 
+              font-family: 'Times New Roman', Times, serif; 
+              font-size: 12pt;
+              padding: 10px; 
+            }
+            table { 
+              width: 100%; 
+              border-collapse: collapse; 
+              margin-bottom: 20px;
+              page-break-inside: avoid;
+            }
+            th, td { 
+              border: 1px solid #000; 
+              padding: 4px 6px; 
+              text-align: left; 
+              font-size: 11pt; 
+            }
+            th { 
+              background-color: #1e40af; 
+              color: white; 
+              font-weight: bold;
+            }
+            .header { 
+              text-align: center; 
+              margin-bottom: 10px; 
+            }
+            .header h1 { 
+              font-size: 14pt; 
+              font-weight: bold; 
+              margin: 0;
+            }
+            .header h2 { 
+              font-size: 12pt; 
+              margin: 3px 0;
+            }
+            .section-title { 
+              background-color: #f3f4f6; 
+              font-weight: bold; 
+              padding: 8px; 
+              margin-top: 15px;
+              font-size: 12pt;
+              border: 1px solid #000;
+            }
+            .text-center { text-align: center; }
+            @media print { 
+              body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+            }
           </style>
         </head>
         <body>
@@ -51,12 +113,17 @@ const ReportView = ({ report }: ReportViewProps) => {
     printWindow.print();
   };
 
-  const groupedEntries = entries?.reduce((acc, entry) => {
-    const category = entry.category as StaffCategory;
-    if (!acc[category]) acc[category] = [];
-    acc[category].push(entry);
-    return acc;
-  }, {} as Record<StaffCategory, typeof entries>);
+  // Filter entries by section
+  const getEntriesForSection = (section: ReportSection) => {
+    if (!entries) return [];
+    return entries.filter(entry => {
+      const categoryMatch = entry.category === section.categoryFilter;
+      if (section.statusFilter) {
+        return categoryMatch && entry.current_status === section.statusFilter;
+      }
+      return categoryMatch;
+    });
+  };
 
   if (isLoading) {
     return <div className="text-center py-8">Loading report...</div>;
@@ -77,46 +144,50 @@ const ReportView = ({ report }: ReportViewProps) => {
       </div>
 
       <div ref={printRef}>
-        <div className="header text-center mb-6">
-          <h1 className="text-xl font-bold">Adama Science & Technology University</h1>
-          <h2 className="text-lg">College of Electrical Engineering & Computing</h2>
-          <p className="text-muted-foreground">
-            Staff Report of {MONTHS[report.report_month - 1]}, {report.report_year}
-          </p>
-        </div>
-
-        {STAFF_CATEGORIES.map((category) => {
-          const categoryEntries = groupedEntries?.[category];
-          if (!categoryEntries || categoryEntries.length === 0) return null;
+        {REPORT_SECTIONS.map((section) => {
+          const sectionEntries = getEntriesForSection(section);
+          if (sectionEntries.length === 0) return null;
 
           return (
-            <div key={category} className="mb-8 animate-slide-up">
-              <h3 className="text-lg font-semibold bg-secondary px-4 py-2 rounded-t-lg">
-                {getCategoryTitle(category, report.report_month, report.report_year)}
-              </h3>
-              <div className="rounded-b-lg border border-t-0 overflow-hidden">
+            <div key={section.id} className="mb-6 animate-slide-up" style={{ pageBreakInside: 'avoid' }}>
+              {/* Section Header */}
+              <div className="header text-center mb-3">
+                <h1 style={{ fontFamily: "'Times New Roman', serif", fontSize: '14pt', fontWeight: 'bold' }}>
+                  Adama Science & Technology University
+                </h1>
+                <h2 style={{ fontFamily: "'Times New Roman', serif", fontSize: '12pt' }}>
+                  College of Electrical Engineering & Computing
+                </h2>
+                <p style={{ fontFamily: "'Times New Roman', serif", fontSize: '12pt', fontWeight: 'bold', marginTop: '5px' }}>
+                  {section.title} of {MONTHS[report.report_month - 1]}, {report.report_year}
+                </p>
+              </div>
+              
+              <div className="rounded-lg border overflow-hidden">
                 <Table>
                   <TableHeader>
                     <TableRow className="table-header hover:bg-primary">
-                      <TableHead className="text-primary-foreground w-12">#</TableHead>
+                      <TableHead className="text-primary-foreground w-10 text-center">#</TableHead>
                       <TableHead className="text-primary-foreground">Staff ID</TableHead>
                       <TableHead className="text-primary-foreground">Full Name</TableHead>
-                      <TableHead className="text-primary-foreground text-center">Sex</TableHead>
-                      <TableHead className="text-primary-foreground">Dept</TableHead>
+                      <TableHead className="text-primary-foreground text-center w-12">Sex</TableHead>
+                      <TableHead className="text-primary-foreground">College Name</TableHead>
+                      <TableHead className="text-primary-foreground w-16">Dep</TableHead>
                       <TableHead className="text-primary-foreground">Specialization</TableHead>
-                      <TableHead className="text-primary-foreground text-center">Edu.</TableHead>
+                      <TableHead className="text-primary-foreground text-center w-16">Edu. Level</TableHead>
                       <TableHead className="text-primary-foreground">Academic Rank</TableHead>
-                      <TableHead className="text-primary-foreground">Status</TableHead>
+                      <TableHead className="text-primary-foreground">Current Status</TableHead>
                       <TableHead className="text-primary-foreground">Remark</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {categoryEntries.map((entry, index) => (
+                    {sectionEntries.map((entry, index) => (
                       <TableRow key={entry.id} className="table-row-hover">
-                        <TableCell className="font-medium text-muted-foreground">{index + 1}</TableCell>
+                        <TableCell className="text-center font-medium text-muted-foreground">{index + 1}</TableCell>
                         <TableCell className="font-mono text-sm">{entry.staff?.staff_id || '-'}</TableCell>
                         <TableCell className="font-medium">{entry.staff?.full_name}</TableCell>
                         <TableCell className="text-center">{entry.staff?.sex}</TableCell>
+                        <TableCell>{entry.staff?.college_name || 'CoEEC'}</TableCell>
                         <TableCell>{entry.staff?.departments?.code || '-'}</TableCell>
                         <TableCell className="max-w-[150px] truncate">{entry.staff?.specialization || '-'}</TableCell>
                         <TableCell className="text-center">
@@ -142,16 +213,6 @@ const ReportView = ({ report }: ReportViewProps) => {
       </div>
     </div>
   );
-};
-
-const getCategoryTitle = (category: StaffCategory, month: number, year: number) => {
-  const monthName = MONTHS[month - 1];
-  const titles: Record<StaffCategory, string> = {
-    'Local Instructors': `On Duty Academic Staff Report of ${monthName}, ${year}`,
-    'ARA': `On Duty Academic and Research Assistants Report of ${monthName}, ${year}`,
-    'ASTU Sponsor': `ASTU Sponsors Report of ${monthName}, ${year}`,
-  };
-  return titles[category];
 };
 
 export default ReportView;
