@@ -42,9 +42,9 @@ const Staff = () => {
     setSelectedStaff(null);
   };
 
-  const canEdit = role === 'system_admin' || role === 'department_head';
-  const canDelete = role === 'system_admin' || role === 'department_head';
-  const canImport = role === 'system_admin' || role === 'department_head';
+  const canEdit = role === 'system_admin' || role === 'department_head' || role === 'avd';
+  const canDelete = role === 'system_admin' || role === 'department_head' || role === 'avd';
+  const canImport = role === 'system_admin' || role === 'department_head' || role === 'avd';
 
   return (
     <div className="min-h-screen bg-background">
