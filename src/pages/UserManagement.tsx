@@ -91,45 +91,21 @@ const UserManagement = () => {
 
   const inviteUser = useMutation({
     mutationFn: async (data: typeof formData) => {
-      // Sign up the user with default password
-      const { data: authData, error: signUpError } = await supabase.auth.signUp({
-        email: data.email,
-        password: '12345678',
-        options: {
-          emailRedirectTo: `${window.location.origin}/`,
-          data: {
-            full_name: data.full_name,
-          },
+      // Use Edge Function to create user without logging out current admin
+      const { data: result, error } = await supabase.functions.invoke('create-user', {
+        body: {
+          email: data.email,
+          password: '12345678',
+          role: data.role,
+          full_name: data.full_name,
+          department_id: data.department_id || null,
         },
       });
 
-      if (signUpError) throw signUpError;
-      if (!authData.user) throw new Error('Failed to create user');
+      if (error) throw error;
+      if (result?.error) throw new Error(result.error);
 
-      // Update profile with department
-      if (data.department_id) {
-        const { error: profileError } = await supabase
-          .from('profiles')
-          .update({ 
-            department_id: data.department_id,
-            full_name: data.full_name,
-          })
-          .eq('id', authData.user.id);
-
-        if (profileError) throw profileError;
-      }
-
-      // Assign role
-      const { error: roleError } = await supabase
-        .from('user_roles')
-        .insert({
-          user_id: authData.user.id,
-          role: data.role,
-        });
-
-      if (roleError) throw roleError;
-
-      return authData.user;
+      return result;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['users-with-roles'] });
