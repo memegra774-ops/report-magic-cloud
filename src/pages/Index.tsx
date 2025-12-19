@@ -63,25 +63,25 @@ const Index = () => {
                 description="All registered staff members"
               />
               <StatsCard
-                title="Instructors"
-                value={stats?.byCategory['Local Instructors'] || 0}
+                title="Lecturers"
+                value={stats?.byRank?.['Lecturer'] || 0}
                 icon={UserCheck}
                 variant="success"
-                description="Local instructors"
+                description="Lecturer rank"
               />
               <StatsCard
-                title="ARAs"
-                value={stats?.byCategory['ARA'] || 0}
+                title="Asst. Professor"
+                value={stats?.byRank?.['Asst. Prof.'] || 0}
                 icon={BookOpen}
                 variant="info"
-                description="Academic Research Assistants"
+                description="Assistant Professor"
               />
               <StatsCard
-                title="PhD Holders"
-                value={(stats?.byEducation['PHD'] || 0)}
+                title="Assoc. Professor"
+                value={stats?.byRank?.['Asso. Prof.'] || 0}
                 icon={Award}
                 variant="warning"
-                description="Doctoral degree holders"
+                description="Associate Professor"
               />
             </>
           )}

@@ -130,7 +130,7 @@ export const useStaffStats = (departmentId?: string) => {
     queryFn: async () => {
       let query = supabase
         .from('staff')
-        .select('category, sex, education_level');
+        .select('category, sex, education_level, academic_rank');
       
       if (departmentId) {
         query = query.eq('department_id', departmentId);
@@ -145,6 +145,12 @@ export const useStaffStats = (departmentId?: string) => {
         byCategory: {} as Record<StaffCategory, number>,
         bySex: { M: 0, F: 0 },
         byEducation: {} as Record<string, number>,
+        byRank: {
+          'Lecturer': 0,
+          'Asst. Prof.': 0,
+          'Asso. Prof.': 0,
+          'Professor': 0,
+        } as Record<string, number>,
       };
 
       data.forEach((staff) => {
@@ -153,6 +159,18 @@ export const useStaffStats = (departmentId?: string) => {
         stats.bySex[staff.sex as SexType]++;
         const edu = staff.education_level as string;
         stats.byEducation[edu] = (stats.byEducation[edu] || 0) + 1;
+        
+        // Count by academic rank (normalize variations)
+        const rank = staff.academic_rank?.toLowerCase() || '';
+        if (rank.includes('lecturer') && !rank.includes('senior') && !rank.includes('s.')) {
+          stats.byRank['Lecturer']++;
+        } else if (rank.includes('asst') || rank.includes('assistant')) {
+          stats.byRank['Asst. Prof.']++;
+        } else if (rank.includes('asso') || rank.includes('associate')) {
+          stats.byRank['Asso. Prof.']++;
+        } else if (rank === 'professor' || rank === 'prof' || rank === 'prof.') {
+          stats.byRank['Professor']++;
+        }
       });
 
       return stats;

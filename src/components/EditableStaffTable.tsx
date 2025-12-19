@@ -1,9 +1,9 @@
-import { useState } from 'react';
-import { Staff, STAFF_CATEGORIES, EDUCATION_LEVELS, STAFF_STATUSES, StaffCategory, EducationLevel } from '@/types/staff';
+import { useState, useMemo } from 'react';
+import { Staff, STAFF_CATEGORIES, EDUCATION_LEVELS, STAFF_STATUSES, StaffCategory, EducationLevel, ACADEMIC_RANKS } from '@/types/staff';
 import { useUpdateStaff, useDeleteStaff, useDepartments } from '@/hooks/useStaff';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { Trash2, Check, X } from 'lucide-react';
+import { Trash2, Check, X, Filter } from 'lucide-react';
 import {
   Select,
   SelectContent,
@@ -29,6 +29,11 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from '@/components/ui/popover';
 
 interface EditableStaffTableProps {
   staff: Staff[];
@@ -42,12 +47,46 @@ interface EditingCell {
   value: string;
 }
 
+interface ColumnFilters {
+  sex?: string;
+  education_level?: string;
+  academic_rank?: string;
+  category?: string;
+  current_status?: string;
+  department?: string;
+}
+
 const EditableStaffTable = ({ staff, canEdit = true, canDelete = true }: EditableStaffTableProps) => {
   const [editingCell, setEditingCell] = useState<EditingCell | null>(null);
   const [deleteId, setDeleteId] = useState<string | null>(null);
+  const [columnFilters, setColumnFilters] = useState<ColumnFilters>({});
   const updateStaff = useUpdateStaff();
   const deleteStaff = useDeleteStaff();
   const { data: departments } = useDepartments();
+
+  // Get unique values for filters
+  const uniqueRanks = useMemo(() => {
+    const ranks = new Set(staff.map(s => s.academic_rank).filter(Boolean));
+    return Array.from(ranks) as string[];
+  }, [staff]);
+
+  const uniqueDepts = useMemo(() => {
+    const depts = new Set(staff.map(s => s.departments?.code).filter(Boolean));
+    return Array.from(depts) as string[];
+  }, [staff]);
+
+  // Apply column filters
+  const filteredStaff = useMemo(() => {
+    return staff.filter(s => {
+      if (columnFilters.sex && s.sex !== columnFilters.sex) return false;
+      if (columnFilters.education_level && s.education_level !== columnFilters.education_level) return false;
+      if (columnFilters.academic_rank && s.academic_rank !== columnFilters.academic_rank) return false;
+      if (columnFilters.category && s.category !== columnFilters.category) return false;
+      if (columnFilters.current_status && s.current_status !== columnFilters.current_status) return false;
+      if (columnFilters.department && s.departments?.code !== columnFilters.department) return false;
+      return true;
+    });
+  }, [staff, columnFilters]);
 
   const startEditing = (staffId: string, field: keyof Staff, currentValue: string) => {
     if (!canEdit) return;
@@ -73,6 +112,58 @@ const EditableStaffTable = ({ staff, canEdit = true, canDelete = true }: Editabl
       await deleteStaff.mutateAsync(deleteId);
       setDeleteId(null);
     }
+  };
+
+  const clearFilter = (key: keyof ColumnFilters) => {
+    setColumnFilters(prev => {
+      const newFilters = { ...prev };
+      delete newFilters[key];
+      return newFilters;
+    });
+  };
+
+  const renderFilterPopover = (
+    label: string,
+    filterKey: keyof ColumnFilters,
+    options: string[]
+  ) => {
+    const hasFilter = !!columnFilters[filterKey];
+    return (
+      <Popover>
+        <PopoverTrigger asChild>
+          <Button variant="ghost" size="sm" className={`h-5 w-5 p-0 ml-1 ${hasFilter ? 'text-accent' : 'text-primary-foreground/60'}`}>
+            <Filter className="h-3 w-3" />
+          </Button>
+        </PopoverTrigger>
+        <PopoverContent className="w-48 p-2" align="start">
+          <div className="space-y-2">
+            <p className="text-xs font-medium text-muted-foreground">Filter {label}</p>
+            <Select
+              value={columnFilters[filterKey] || 'all'}
+              onValueChange={(v) => {
+                if (v === 'all') {
+                  clearFilter(filterKey);
+                } else {
+                  setColumnFilters(prev => ({ ...prev, [filterKey]: v }));
+                }
+              }}
+            >
+              <SelectTrigger className="h-8 text-xs">
+                <SelectValue placeholder="Select..." />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All</SelectItem>
+                {options.map((opt) => (
+                  <SelectItem key={opt} value={opt}>
+                    {opt}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+        </PopoverContent>
+      </Popover>
+    );
   };
 
   const renderEditableCell = (
@@ -135,8 +226,18 @@ const EditableStaffTable = ({ staff, canEdit = true, canDelete = true }: Editabl
     );
   };
 
+  const activeFiltersCount = Object.keys(columnFilters).length;
+
   return (
     <>
+      {activeFiltersCount > 0 && (
+        <div className="flex items-center gap-2 mb-2 text-sm">
+          <span className="text-muted-foreground">Active filters: {activeFiltersCount}</span>
+          <Button variant="ghost" size="sm" onClick={() => setColumnFilters({})}>
+            Clear all
+          </Button>
+        </div>
+      )}
       <div className="rounded-lg border overflow-hidden">
         <Table>
           <TableHeader>
@@ -144,19 +245,37 @@ const EditableStaffTable = ({ staff, canEdit = true, canDelete = true }: Editabl
               <TableHead className="text-primary-foreground w-12">#</TableHead>
               <TableHead className="text-primary-foreground">Staff ID</TableHead>
               <TableHead className="text-primary-foreground">Full Name</TableHead>
-              <TableHead className="text-primary-foreground text-center">Sex</TableHead>
-              <TableHead className="text-primary-foreground">Dept</TableHead>
+              <TableHead className="text-primary-foreground text-center">
+                Sex
+                {renderFilterPopover('Sex', 'sex', ['M', 'F'])}
+              </TableHead>
+              <TableHead className="text-primary-foreground">
+                Dept
+                {renderFilterPopover('Department', 'department', uniqueDepts)}
+              </TableHead>
               <TableHead className="text-primary-foreground">Specialization</TableHead>
-              <TableHead className="text-primary-foreground text-center">Edu.</TableHead>
-              <TableHead className="text-primary-foreground">Academic Rank</TableHead>
-              <TableHead className="text-primary-foreground">Category</TableHead>
-              <TableHead className="text-primary-foreground">Status</TableHead>
+              <TableHead className="text-primary-foreground text-center">
+                Edu.
+                {renderFilterPopover('Education', 'education_level', EDUCATION_LEVELS as unknown as string[])}
+              </TableHead>
+              <TableHead className="text-primary-foreground">
+                Academic Rank
+                {renderFilterPopover('Rank', 'academic_rank', uniqueRanks)}
+              </TableHead>
+              <TableHead className="text-primary-foreground">
+                Category
+                {renderFilterPopover('Category', 'category', STAFF_CATEGORIES as unknown as string[])}
+              </TableHead>
+              <TableHead className="text-primary-foreground">
+                Status
+                {renderFilterPopover('Status', 'current_status', STAFF_STATUSES as unknown as string[])}
+              </TableHead>
               <TableHead className="text-primary-foreground">Remark</TableHead>
               {canDelete && <TableHead className="text-primary-foreground w-12"></TableHead>}
             </TableRow>
           </TableHeader>
           <TableBody>
-            {staff.map((s, index) => (
+            {filteredStaff.map((s, index) => (
               <TableRow key={s.id} className="hover:bg-muted/50">
                 <TableCell className="font-medium text-muted-foreground">{index + 1}</TableCell>
                 <TableCell className="font-mono text-xs">
@@ -176,7 +295,7 @@ const EditableStaffTable = ({ staff, canEdit = true, canDelete = true }: Editabl
                   {renderEditableCell(s, 'education_level', s.education_level, 'select', EDUCATION_LEVELS as unknown as string[])}
                 </TableCell>
                 <TableCell>
-                  {renderEditableCell(s, 'academic_rank', s.academic_rank || '')}
+                  {renderEditableCell(s, 'academic_rank', s.academic_rank || '', 'select', ACADEMIC_RANKS)}
                 </TableCell>
                 <TableCell>
                   {renderEditableCell(s, 'category', s.category, 'select', STAFF_CATEGORIES as unknown as string[])}
@@ -201,12 +320,19 @@ const EditableStaffTable = ({ staff, canEdit = true, canDelete = true }: Editabl
                 )}
               </TableRow>
             ))}
+            {filteredStaff.length === 0 && (
+              <TableRow>
+                <TableCell colSpan={canDelete ? 12 : 11} className="text-center py-8 text-muted-foreground">
+                  No staff members found
+                </TableCell>
+              </TableRow>
+            )}
           </TableBody>
         </Table>
       </div>
 
       {/* Delete Confirmation */}
-      <AlertDialog open={!!deleteId} onOpenChange={() => setDeleteId(null)}>
+      <AlertDialog open={!!deleteId} onOpenChange={(open) => !open && setDeleteId(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Delete Staff Member</AlertDialogTitle>
