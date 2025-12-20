@@ -3,6 +3,7 @@ import { Link, useLocation } from 'react-router-dom';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
+import NotificationsBell from './NotificationsBell';
 
 const Header = () => {
   const location = useLocation();
@@ -55,7 +56,11 @@ const Header = () => {
             </nav>
 
             {user && (
-              <div className="flex items-center gap-3">
+              <div className="flex items-center gap-2">
+                {/* Notifications bell for AVD and system_admin */}
+                {(role === 'avd' || role === 'system_admin') && (
+                  <NotificationsBell />
+                )}
                 <span className="text-sm text-primary-foreground/80 hidden lg:block">
                   {profile?.full_name || user.email}
                 </span>

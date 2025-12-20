@@ -1,7 +1,6 @@
 import { Users, UserCheck, BookOpen, Award, GraduationCap, Building2 } from 'lucide-react';
 import Header from '@/components/Header';
 import StatsCard from '@/components/StatsCard';
-import NotificationsPanel from '@/components/NotificationsPanel';
 import { useStaffStats, useDepartmentStats, useDepartments } from '@/hooks/useStaff';
 import { useAuth } from '@/contexts/AuthContext';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -106,42 +105,35 @@ const Index = () => {
           )}
         </div>
 
-        {/* Status Summary, Notifications (AVD only), & Gender Distribution */}
-        <div className={`grid grid-cols-1 gap-6 mb-8 ${
-          role === 'avd' || role === 'system_admin' ? 'lg:grid-cols-3' : 'md:grid-cols-3'
-        }`}>
+        {/* Status Summary & Gender Distribution */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
           <Card className="animate-fade-in">
             <CardHeader>
               <CardTitle className="text-lg">Staff Status Summary</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="space-y-3">
-                <div className="flex justify-between items-center p-3 bg-success/10 rounded-lg">
+              <div className="space-y-2">
+                <div className="flex justify-between items-center p-2.5 bg-success/10 rounded-lg">
                   <span className="text-sm text-muted-foreground">On Duty</span>
-                  <span className="text-2xl font-bold text-success">{stats?.byStatus?.['On Duty'] || 0}</span>
+                  <span className="text-xl font-bold text-success">{stats?.byStatus?.['On Duty'] || 0}</span>
                 </div>
-                <div className="flex justify-between items-center p-3 bg-destructive/10 rounded-lg">
+                <div className="flex justify-between items-center p-2.5 bg-destructive/10 rounded-lg">
                   <span className="text-sm text-muted-foreground">Not On Duty</span>
-                  <span className="text-2xl font-bold text-destructive">{stats?.byStatus?.['Not On Duty'] || 0}</span>
+                  <span className="text-xl font-bold text-destructive">{stats?.byStatus?.['Not On Duty'] || 0}</span>
                 </div>
-                <div className="flex justify-between items-center p-3 bg-info/10 rounded-lg">
+                <div className="flex justify-between items-center p-2.5 bg-info/10 rounded-lg">
                   <span className="text-sm text-muted-foreground">On Study</span>
-                  <span className="text-2xl font-bold text-info">{stats?.byStatus?.['On Study'] || 0}</span>
+                  <span className="text-xl font-bold text-info">{stats?.byStatus?.['On Study'] || 0}</span>
+                </div>
+                <div className="flex justify-between items-center p-2.5 bg-warning/10 rounded-lg">
+                  <span className="text-sm text-muted-foreground">Not Reporting</span>
+                  <span className="text-xl font-bold text-warning">{stats?.byStatus?.['Not Reporting'] || 0}</span>
                 </div>
               </div>
             </CardContent>
           </Card>
 
-          {/* Notifications Panel for AVD users */}
-          {(role === 'avd' || role === 'system_admin') && (
-            <div className="animate-fade-in">
-              <NotificationsPanel />
-            </div>
-          )}
-
-          <Card className={`animate-fade-in ${
-            role === 'avd' || role === 'system_admin' ? '' : 'md:col-span-2'
-          }`}>
+          <Card className="animate-fade-in md:col-span-2">
             <CardHeader>
               <CardTitle className="text-lg">Gender Distribution by Status & Department</CardTitle>
             </CardHeader>

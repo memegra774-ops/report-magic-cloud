@@ -237,6 +237,7 @@ export const useStaffStats = (departmentId?: string) => {
           'On Duty': 0,
           'Not On Duty': 0,
           'On Study': 0,
+          'Not Reporting': 0,
         } as Record<string, number>,
         onDutyByRank: {
           total: 0,
@@ -259,6 +260,7 @@ export const useStaffStats = (departmentId?: string) => {
         if (status === 'On Duty') stats.byStatus['On Duty']++;
         else if (status === 'Not On Duty') stats.byStatus['Not On Duty']++;
         else if (status === 'On Study' || status === 'On Study Leave') stats.byStatus['On Study']++;
+        else if (status === 'Not Reporting') stats.byStatus['Not Reporting']++;
         
         // Count by academic rank (normalize variations)
         const rank = staff.academic_rank?.toLowerCase() || '';
