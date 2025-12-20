@@ -10,18 +10,17 @@ interface ReportLetterProps {
   signatory?: string;
 }
 
-interface StatsRow {
+interface StatusCount {
+  status: string;
+  male: number;
+  female: number;
+  total: number;
+}
+
+interface CategoryStats {
   category: string;
-  mOnDuty: number;
-  fOnDuty: number;
-  mOnStudy: number;
-  fOnStudy: number;
-  mNotOnDuty: number;
-  fNotOnDuty: number;
-  mSick: number;
-  fSick: number;
-  mOnStudyLeave: number;
-  fOnStudyLeave: number;
+  displayName: string;
+  statuses: StatusCount[];
   mTotal: number;
   fTotal: number;
   total: number;
@@ -30,6 +29,69 @@ interface StatsRow {
 const ReportLetter = ({ report, department, signatory = 'Associate Dean for Academic Affairs' }: ReportLetterProps) => {
   const { data: entries, isLoading } = useReportEntries(report.id);
   const printRef = useRef<HTMLDivElement>(null);
+
+  // Get unique statuses from entries
+  const getUniqueStatuses = (): string[] => {
+    if (!entries) return [];
+    const statuses = new Set<string>();
+    entries.forEach(e => {
+      if (e.current_status) {
+        statuses.add(e.current_status);
+      }
+    });
+    return Array.from(statuses).sort();
+  };
+
+  // Calculate statistics with dynamic status columns
+  const calculateStats = (): { stats: CategoryStats[]; uniqueStatuses: string[] } => {
+    if (!entries) return { stats: [], uniqueStatuses: [] };
+
+    const uniqueStatuses = getUniqueStatuses();
+    const categories = [
+      { key: 'Local Instructors', display: 'Local Instructors' },
+      { key: 'ARA', display: 'Academic and Research Assistants' },
+      { key: 'ASTU Sponsor', display: 'ASTU Sponsor Students' }
+    ] as const;
+    
+    const stats: CategoryStats[] = [];
+
+    categories.forEach((cat) => {
+      const categoryEntries = entries.filter(e => e.category === cat.key);
+      
+      const statuses: StatusCount[] = uniqueStatuses.map(status => ({
+        status,
+        male: categoryEntries.filter(e => e.staff?.sex === 'M' && e.current_status === status).length,
+        female: categoryEntries.filter(e => e.staff?.sex === 'F' && e.current_status === status).length,
+        total: categoryEntries.filter(e => e.current_status === status).length,
+      }));
+
+      stats.push({
+        category: cat.key,
+        displayName: cat.display,
+        statuses,
+        mTotal: categoryEntries.filter(e => e.staff?.sex === 'M').length,
+        fTotal: categoryEntries.filter(e => e.staff?.sex === 'F').length,
+        total: categoryEntries.length,
+      });
+    });
+
+    return { stats, uniqueStatuses };
+  };
+
+  const { stats, uniqueStatuses } = calculateStats();
+  
+  // Calculate grand totals
+  const grandTotals = {
+    statuses: uniqueStatuses.map(status => ({
+      status,
+      male: stats.reduce((acc, row) => acc + (row.statuses.find(s => s.status === status)?.male || 0), 0),
+      female: stats.reduce((acc, row) => acc + (row.statuses.find(s => s.status === status)?.female || 0), 0),
+      total: stats.reduce((acc, row) => acc + (row.statuses.find(s => s.status === status)?.total || 0), 0),
+    })),
+    mTotal: stats.reduce((acc, row) => acc + row.mTotal, 0),
+    fTotal: stats.reduce((acc, row) => acc + row.fTotal, 0),
+    total: stats.reduce((acc, row) => acc + row.total, 0),
+  };
 
   const handlePrint = () => {
     const printContent = printRef.current;
@@ -141,58 +203,6 @@ const ReportLetter = ({ report, department, signatory = 'Associate Dean for Acad
     printWindow.print();
   };
 
-  // Calculate statistics
-  const calculateStats = (): StatsRow[] => {
-    if (!entries) return [];
-
-    const categories = ['Local Instructors', 'ARA', 'ASTU Sponsor'] as const;
-    const stats: StatsRow[] = [];
-
-    categories.forEach((category) => {
-      const categoryEntries = entries.filter(e => e.category === category);
-      const row: StatsRow = {
-        category: category === 'Local Instructors' ? 'Local Instructors' : category === 'ARA' ? 'Academic and Research Assistants' : 'ASTU Sponsor Students',
-        mOnDuty: categoryEntries.filter(e => e.staff?.sex === 'M' && e.current_status === 'On Duty').length,
-        fOnDuty: categoryEntries.filter(e => e.staff?.sex === 'F' && e.current_status === 'On Duty').length,
-        mOnStudy: categoryEntries.filter(e => e.staff?.sex === 'M' && e.current_status === 'On Study').length,
-        fOnStudy: categoryEntries.filter(e => e.staff?.sex === 'F' && e.current_status === 'On Study').length,
-        mNotOnDuty: categoryEntries.filter(e => e.staff?.sex === 'M' && e.current_status === 'Not On Duty').length,
-        fNotOnDuty: categoryEntries.filter(e => e.staff?.sex === 'F' && e.current_status === 'Not On Duty').length,
-        mSick: categoryEntries.filter(e => e.staff?.sex === 'M' && e.current_status === 'Sick').length,
-        fSick: categoryEntries.filter(e => e.staff?.sex === 'F' && e.current_status === 'Sick').length,
-        mOnStudyLeave: categoryEntries.filter(e => e.staff?.sex === 'M' && e.current_status === 'On Study Leave').length,
-        fOnStudyLeave: categoryEntries.filter(e => e.staff?.sex === 'F' && e.current_status === 'On Study Leave').length,
-        mTotal: categoryEntries.filter(e => e.staff?.sex === 'M').length,
-        fTotal: categoryEntries.filter(e => e.staff?.sex === 'F').length,
-        total: categoryEntries.length,
-      };
-      stats.push(row);
-    });
-
-    return stats;
-  };
-
-  const stats = calculateStats();
-  const totals = stats.reduce((acc, row) => ({
-    mOnDuty: acc.mOnDuty + row.mOnDuty,
-    fOnDuty: acc.fOnDuty + row.fOnDuty,
-    mOnStudy: acc.mOnStudy + row.mOnStudy,
-    fOnStudy: acc.fOnStudy + row.fOnStudy,
-    mNotOnDuty: acc.mNotOnDuty + row.mNotOnDuty,
-    fNotOnDuty: acc.fNotOnDuty + row.fNotOnDuty,
-    mSick: acc.mSick + row.mSick,
-    fSick: acc.fSick + row.fSick,
-    mOnStudyLeave: acc.mOnStudyLeave + row.mOnStudyLeave,
-    fOnStudyLeave: acc.fOnStudyLeave + row.fOnStudyLeave,
-    mTotal: acc.mTotal + row.mTotal,
-    fTotal: acc.fTotal + row.fTotal,
-    total: acc.total + row.total,
-  }), {
-    mOnDuty: 0, fOnDuty: 0, mOnStudy: 0, fOnStudy: 0,
-    mNotOnDuty: 0, fNotOnDuty: 0, mSick: 0, fSick: 0,
-    mOnStudyLeave: 0, fOnStudyLeave: 0, mTotal: 0, fTotal: 0, total: 0
-  });
-
   if (isLoading) {
     return <div className="text-center py-8">Loading report...</div>;
   }
@@ -201,6 +211,11 @@ const ReportLetter = ({ report, department, signatory = 'Associate Dean for Acad
   const today = new Date();
   const dateStr = `${today.getDate()}/${today.getMonth() + 1}/${today.getFullYear()}`;
   const versionText = report.version > 1 ? ` (Version ${report.version})` : '';
+
+  // Generate status list for letter text
+  const statusListText = uniqueStatuses.length > 0 
+    ? uniqueStatuses.join(', ').replace(/, ([^,]*)$/, ' and $1')
+    : 'various statuses';
 
   return (
     <div className="space-y-6">
@@ -214,11 +229,11 @@ const ReportLetter = ({ report, department, signatory = 'Associate Dean for Acad
         </Button>
       </div>
 
-      <div ref={printRef} className="bg-white p-8 rounded-lg border shadow-sm max-w-5xl mx-auto" style={{ fontFamily: "'Times New Roman', serif" }}>
+      <div ref={printRef} className="bg-white p-8 rounded-lg border shadow-sm max-w-6xl mx-auto" style={{ fontFamily: "'Times New Roman', serif" }}>
         {/* Letterhead */}
         <div className="letterhead text-center border-b-2 border-primary pb-4 mb-6">
           <p className="text-sm text-muted-foreground">
-            P.O. Box: 1888 &nbsp; Tele: +251-221-100026 &nbsp; Fax: +251-022-112-01-50 &nbsp; E-mail: adaa.soeec@astu.et
+            P.O. Box: 1888 &nbsp; Tel: +251-221-100026 &nbsp; Fax: +251-022-112-01-50 &nbsp; E-mail: adaa.soeec@astu.et
           </p>
           <h1 className="text-2xl font-bold text-primary mt-2" style={{ fontFamily: "'Times New Roman', serif" }}>
             ADAMA SCIENCE AND TECHNOLOGY UNIVERSITY
@@ -247,18 +262,18 @@ const ReportLetter = ({ report, department, signatory = 'Associate Dean for Acad
 
         {/* Subject */}
         <p className="font-bold underline my-6" style={{ fontSize: '12pt' }}>
-          Subject: Academic Staff Member Report of {monthName} {report.report_year}
+          Subject: Academic Staff Member Report for {monthName} {report.report_year}
         </p>
 
         {/* Content */}
         <p className="text-justify mb-6" style={{ fontSize: '12pt' }}>
-          The following table shows statistics of Academic staff (Local Instructors, Academic and Research Assistants 
-          & MSc. Sponsored contract Students) on duty, absent, sick and study leave in College of Electrical 
-          Engineering and Computing for the month of {monthName} {report.report_year}. Please kindly find also 
-          attached herewith the detail of the report.
+          The following table presents the statistics of academic staff members, including Local Instructors, 
+          Academic and Research Assistants, and MSc Sponsored Contract Students, categorized by their current status 
+          ({statusListText}) in the College of Electrical Engineering and Computing for the month of {monthName} {report.report_year}. 
+          Please find the detailed report attached herewith.
         </p>
 
-        {/* Statistics Table */}
+        {/* Statistics Table with Dynamic Status Columns */}
         <div className="overflow-x-auto mb-6">
           <table className="w-full border-collapse" style={{ fontSize: '11pt' }}>
             <thead>
@@ -266,11 +281,9 @@ const ReportLetter = ({ report, department, signatory = 'Associate Dean for Acad
                 <th className="border border-foreground/30 p-2">No</th>
                 <th className="border border-foreground/30 p-2">Academic Staff</th>
                 <th className="border border-foreground/30 p-2">Sex</th>
-                <th className="border border-foreground/30 p-2">On Duty</th>
-                <th className="border border-foreground/30 p-2">On Study</th>
-                <th className="border border-foreground/30 p-2">Not On Duty</th>
-                <th className="border border-foreground/30 p-2">Sick</th>
-                <th className="border border-foreground/30 p-2">On Study Leave</th>
+                {uniqueStatuses.map(status => (
+                  <th key={status} className="border border-foreground/30 p-2">{status}</th>
+                ))}
                 <th className="border border-foreground/30 p-2">Total</th>
               </tr>
             </thead>
@@ -279,31 +292,31 @@ const ReportLetter = ({ report, department, signatory = 'Associate Dean for Acad
                 <>
                   <tr key={`${row.category}-m`}>
                     <td className="border border-foreground/30 p-2" rowSpan={3}>{index + 1}</td>
-                    <td className="border border-foreground/30 p-2 text-left" rowSpan={3}>{row.category}</td>
+                    <td className="border border-foreground/30 p-2 text-left" rowSpan={3}>{row.displayName}</td>
                     <td className="border border-foreground/30 p-2">M</td>
-                    <td className="border border-foreground/30 p-2">{row.mOnDuty || '-'}</td>
-                    <td className="border border-foreground/30 p-2">{row.mOnStudy || '-'}</td>
-                    <td className="border border-foreground/30 p-2">{row.mNotOnDuty || '-'}</td>
-                    <td className="border border-foreground/30 p-2">{row.mSick || '-'}</td>
-                    <td className="border border-foreground/30 p-2">{row.mOnStudyLeave || '-'}</td>
+                    {row.statuses.map(s => (
+                      <td key={`${row.category}-m-${s.status}`} className="border border-foreground/30 p-2">
+                        {s.male || '-'}
+                      </td>
+                    ))}
                     <td className="border border-foreground/30 p-2">{row.mTotal}</td>
                   </tr>
                   <tr key={`${row.category}-f`}>
                     <td className="border border-foreground/30 p-2">F</td>
-                    <td className="border border-foreground/30 p-2">{row.fOnDuty || '-'}</td>
-                    <td className="border border-foreground/30 p-2">{row.fOnStudy || '-'}</td>
-                    <td className="border border-foreground/30 p-2">{row.fNotOnDuty || '-'}</td>
-                    <td className="border border-foreground/30 p-2">{row.fSick || '-'}</td>
-                    <td className="border border-foreground/30 p-2">{row.fOnStudyLeave || '-'}</td>
+                    {row.statuses.map(s => (
+                      <td key={`${row.category}-f-${s.status}`} className="border border-foreground/30 p-2">
+                        {s.female || '-'}
+                      </td>
+                    ))}
                     <td className="border border-foreground/30 p-2">{row.fTotal}</td>
                   </tr>
                   <tr key={`${row.category}-t`} className="bg-muted/30">
                     <td className="border border-foreground/30 p-2 font-semibold">T</td>
-                    <td className="border border-foreground/30 p-2 font-semibold">{row.mOnDuty + row.fOnDuty || '-'}</td>
-                    <td className="border border-foreground/30 p-2 font-semibold">{row.mOnStudy + row.fOnStudy || '-'}</td>
-                    <td className="border border-foreground/30 p-2 font-semibold">{row.mNotOnDuty + row.fNotOnDuty || '-'}</td>
-                    <td className="border border-foreground/30 p-2 font-semibold">{row.mSick + row.fSick || '-'}</td>
-                    <td className="border border-foreground/30 p-2 font-semibold">{row.mOnStudyLeave + row.fOnStudyLeave || '-'}</td>
+                    {row.statuses.map(s => (
+                      <td key={`${row.category}-t-${s.status}`} className="border border-foreground/30 p-2 font-semibold">
+                        {s.total || '-'}
+                      </td>
+                    ))}
                     <td className="border border-foreground/30 p-2 font-semibold">{row.total}</td>
                   </tr>
                 </>
@@ -313,37 +326,31 @@ const ReportLetter = ({ report, department, signatory = 'Associate Dean for Acad
                 <td className="border border-foreground/30 p-2" rowSpan={3}></td>
                 <td className="border border-foreground/30 p-2 text-left" rowSpan={3}>Total</td>
                 <td className="border border-foreground/30 p-2">M</td>
-                <td className="border border-foreground/30 p-2">{totals.mOnDuty}</td>
-                <td className="border border-foreground/30 p-2">{totals.mOnStudy}</td>
-                <td className="border border-foreground/30 p-2">{totals.mNotOnDuty}</td>
-                <td className="border border-foreground/30 p-2">{totals.mSick}</td>
-                <td className="border border-foreground/30 p-2">{totals.mOnStudyLeave}</td>
-                <td className="border border-foreground/30 p-2">{totals.mTotal}</td>
+                {grandTotals.statuses.map(s => (
+                  <td key={`total-m-${s.status}`} className="border border-foreground/30 p-2">{s.male}</td>
+                ))}
+                <td className="border border-foreground/30 p-2">{grandTotals.mTotal}</td>
               </tr>
               <tr className="bg-muted font-bold">
                 <td className="border border-foreground/30 p-2">F</td>
-                <td className="border border-foreground/30 p-2">{totals.fOnDuty}</td>
-                <td className="border border-foreground/30 p-2">{totals.fOnStudy}</td>
-                <td className="border border-foreground/30 p-2">{totals.fNotOnDuty}</td>
-                <td className="border border-foreground/30 p-2">{totals.fSick}</td>
-                <td className="border border-foreground/30 p-2">{totals.fOnStudyLeave}</td>
-                <td className="border border-foreground/30 p-2">{totals.fTotal}</td>
+                {grandTotals.statuses.map(s => (
+                  <td key={`total-f-${s.status}`} className="border border-foreground/30 p-2">{s.female}</td>
+                ))}
+                <td className="border border-foreground/30 p-2">{grandTotals.fTotal}</td>
               </tr>
               <tr className="bg-muted font-bold">
                 <td className="border border-foreground/30 p-2">T</td>
-                <td className="border border-foreground/30 p-2">{totals.mOnDuty + totals.fOnDuty}</td>
-                <td className="border border-foreground/30 p-2">{totals.mOnStudy + totals.fOnStudy}</td>
-                <td className="border border-foreground/30 p-2">{totals.mNotOnDuty + totals.fNotOnDuty}</td>
-                <td className="border border-foreground/30 p-2">{totals.mSick + totals.fSick}</td>
-                <td className="border border-foreground/30 p-2">{totals.mOnStudyLeave + totals.fOnStudyLeave}</td>
-                <td className="border border-foreground/30 p-2">{totals.total}</td>
+                {grandTotals.statuses.map(s => (
+                  <td key={`total-t-${s.status}`} className="border border-foreground/30 p-2">{s.total}</td>
+                ))}
+                <td className="border border-foreground/30 p-2">{grandTotals.total}</td>
               </tr>
             </tbody>
           </table>
         </div>
 
         {/* Closing */}
-        <p className="mb-8" style={{ fontSize: '12pt' }}>With regards</p>
+        <p className="mb-8" style={{ fontSize: '12pt' }}>With regards,</p>
 
         {/* Signature */}
         <div className="mt-12">
