@@ -38,6 +38,7 @@ export interface MonthlyReport {
   id: string;
   report_month: number;
   report_year: number;
+  version: number;
   department_id: string | null;
   created_at: string;
   created_by: string | null;

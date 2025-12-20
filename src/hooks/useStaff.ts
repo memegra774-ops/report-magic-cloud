@@ -67,6 +67,7 @@ export const useCreateStaff = () => {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['staff'] });
       queryClient.invalidateQueries({ queryKey: ['staff-stats'] });
+      queryClient.invalidateQueries({ queryKey: ['department-stats'] });
       toast.success('Staff member added successfully');
     },
     onError: (error) => {
@@ -93,6 +94,7 @@ export const useUpdateStaff = () => {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['staff'] });
       queryClient.invalidateQueries({ queryKey: ['staff-stats'] });
+      queryClient.invalidateQueries({ queryKey: ['department-stats'] });
       toast.success('Staff member updated successfully');
     },
     onError: (error) => {
@@ -116,6 +118,7 @@ export const useDeleteStaff = () => {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['staff'] });
       queryClient.invalidateQueries({ queryKey: ['staff-stats'] });
+      queryClient.invalidateQueries({ queryKey: ['department-stats'] });
       toast.success('Staff member deleted successfully');
     },
     onError: (error) => {
@@ -130,7 +133,7 @@ export const useStaffStats = (departmentId?: string) => {
     queryFn: async () => {
       let query = supabase
         .from('staff')
-        .select('category, sex, education_level, academic_rank');
+        .select('category, sex, education_level, academic_rank, current_status');
       
       if (departmentId) {
         query = query.eq('department_id', departmentId);
@@ -151,6 +154,11 @@ export const useStaffStats = (departmentId?: string) => {
           'Asso. Prof.': 0,
           'Professor': 0,
         } as Record<string, number>,
+        byStatus: {
+          'On Duty': 0,
+          'Not On Duty': 0,
+          'On Study': 0,
+        } as Record<string, number>,
       };
 
       data.forEach((staff) => {
@@ -159,6 +167,12 @@ export const useStaffStats = (departmentId?: string) => {
         stats.bySex[staff.sex as SexType]++;
         const edu = staff.education_level as string;
         stats.byEducation[edu] = (stats.byEducation[edu] || 0) + 1;
+        
+        // Count by status
+        const status = staff.current_status || '';
+        if (status === 'On Duty') stats.byStatus['On Duty']++;
+        else if (status === 'Not On Duty') stats.byStatus['Not On Duty']++;
+        else if (status === 'On Study' || status === 'On Study Leave') stats.byStatus['On Study']++;
         
         // Count by academic rank (normalize variations)
         const rank = staff.academic_rank?.toLowerCase() || '';
@@ -174,6 +188,68 @@ export const useStaffStats = (departmentId?: string) => {
       });
 
       return stats;
+    },
+  });
+};
+
+// New hook for department-wise statistics
+export const useDepartmentStats = () => {
+  return useQuery({
+    queryKey: ['department-stats'],
+    queryFn: async () => {
+      const { data: departments, error: deptError } = await supabase
+        .from('departments')
+        .select('id, code, name')
+        .order('code');
+
+      if (deptError) throw deptError;
+
+      const { data: staffData, error: staffError } = await supabase
+        .from('staff')
+        .select('department_id, current_status, academic_rank');
+
+      if (staffError) throw staffError;
+
+      const deptStats = departments.map((dept) => {
+        const deptStaff = staffData.filter((s) => s.department_id === dept.id);
+        
+        const byStatus = {
+          onDuty: deptStaff.filter((s) => s.current_status === 'On Duty').length,
+          notOnDuty: deptStaff.filter((s) => s.current_status === 'Not On Duty').length,
+          onStudy: deptStaff.filter((s) => s.current_status === 'On Study' || s.current_status === 'On Study Leave').length,
+        };
+
+        const byRank = {
+          lecturer: 0,
+          asstProf: 0,
+          assoProf: 0,
+          professor: 0,
+        };
+
+        deptStaff.forEach((staff) => {
+          const rank = staff.academic_rank?.toLowerCase() || '';
+          if (rank.includes('lecturer') && !rank.includes('senior') && !rank.includes('s.')) {
+            byRank.lecturer++;
+          } else if (rank.includes('asst') || rank.includes('assistant')) {
+            byRank.asstProf++;
+          } else if (rank.includes('asso') || rank.includes('associate')) {
+            byRank.assoProf++;
+          } else if (rank === 'professor' || rank === 'prof' || rank === 'prof.') {
+            byRank.professor++;
+          }
+        });
+
+        return {
+          id: dept.id,
+          code: dept.code,
+          name: dept.name,
+          total: deptStaff.length,
+          byStatus,
+          byRank,
+        };
+      });
+
+      return deptStats;
     },
   });
 };

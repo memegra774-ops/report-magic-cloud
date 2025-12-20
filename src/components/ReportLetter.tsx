@@ -38,10 +38,12 @@ const ReportLetter = ({ report, department, signatory = 'Associate Dean for Acad
     const printWindow = window.open('', '_blank');
     if (!printWindow) return;
 
+    const versionText = report.version > 1 ? ` (Version ${report.version})` : '';
+
     printWindow.document.write(`
       <html>
         <head>
-          <title>Staff Report Letter - ${MONTHS[report.report_month - 1]} ${report.report_year}</title>
+          <title>Staff Report Letter - ${MONTHS[report.report_month - 1]} ${report.report_year}${versionText}</title>
           <style>
             @page { size: A4 landscape; margin: 15mm; }
             body { 
@@ -149,7 +151,7 @@ const ReportLetter = ({ report, department, signatory = 'Associate Dean for Acad
     categories.forEach((category) => {
       const categoryEntries = entries.filter(e => e.category === category);
       const row: StatsRow = {
-        category: category === 'Local Instructors' ? 'Local Instructors' : category === 'ARA' ? 'ARA' : 'ASTU Sponsor Students',
+        category: category === 'Local Instructors' ? 'Local Instructors' : category === 'ARA' ? 'Academic and Research Assistants' : 'ASTU Sponsor Students',
         mOnDuty: categoryEntries.filter(e => e.staff?.sex === 'M' && e.current_status === 'On Duty').length,
         fOnDuty: categoryEntries.filter(e => e.staff?.sex === 'F' && e.current_status === 'On Duty').length,
         mOnStudy: categoryEntries.filter(e => e.staff?.sex === 'M' && e.current_status === 'On Study').length,
@@ -198,12 +200,13 @@ const ReportLetter = ({ report, department, signatory = 'Associate Dean for Acad
   const monthName = MONTHS[report.report_month - 1];
   const today = new Date();
   const dateStr = `${today.getDate()}/${today.getMonth() + 1}/${today.getFullYear()}`;
+  const versionText = report.version > 1 ? ` (Version ${report.version})` : '';
 
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <h2 className="font-serif text-2xl font-bold">
-          Official Letter - {monthName} {report.report_year}
+          Official Letter - {monthName} {report.report_year}{versionText}
         </h2>
         <Button onClick={handlePrint}>
           <Printer className="h-4 w-4 mr-2" />
