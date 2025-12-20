@@ -46,6 +46,7 @@ export type Database = {
           id: string
           report_month: number
           report_year: number
+          version: number
         }
         Insert: {
           created_at?: string
@@ -54,6 +55,7 @@ export type Database = {
           id?: string
           report_month: number
           report_year: number
+          version?: number
         }
         Update: {
           created_at?: string
@@ -62,6 +64,7 @@ export type Database = {
           id?: string
           report_month?: number
           report_year?: number
+          version?: number
         }
         Relationships: [
           {
