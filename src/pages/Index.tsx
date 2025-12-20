@@ -1,12 +1,11 @@
 import { Users, UserCheck, BookOpen, Award, GraduationCap, Building2 } from 'lucide-react';
 import Header from '@/components/Header';
 import StatsCard from '@/components/StatsCard';
-import { useStaffStats, useStaff, useDepartmentStats } from '@/hooks/useStaff';
+import { useStaffStats, useDepartmentStats, useDepartments } from '@/hooks/useStaff';
 import { useAuth } from '@/contexts/AuthContext';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
-import EditableStaffTable from '@/components/EditableStaffTable';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import {
   Table,
@@ -25,9 +24,7 @@ const Index = () => {
   
   const { data: stats, isLoading: statsLoading } = useStaffStats(departmentId);
   const { data: deptStats, isLoading: deptStatsLoading } = useDepartmentStats();
-  const { data: recentStaff, isLoading: staffLoading } = useStaff({
-    departmentId,
-  });
+  const { data: departments } = useDepartments();
 
   const getRoleDisplayName = () => {
     switch (role) {
@@ -59,7 +56,7 @@ const Index = () => {
           </p>
         </div>
 
-        {/* Stats Grid */}
+        {/* Stats Grid - On Duty by Academic Rank */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6 mb-8">
           {statsLoading ? (
             <>
@@ -70,36 +67,36 @@ const Index = () => {
           ) : (
             <>
               <StatsCard
-                title="Total Staff"
-                value={stats?.total || 0}
+                title="On Duty Total"
+                value={stats?.onDutyByRank?.total || 0}
                 icon={Users}
                 variant="primary"
-                description="All registered staff members"
+                description="All on-duty staff"
               />
               <StatsCard
-                title="Lecturers"
-                value={stats?.byRank?.['Lecturer'] || 0}
+                title="On Duty Lecturers"
+                value={stats?.onDutyByRank?.lecturer || 0}
                 icon={UserCheck}
                 variant="success"
                 description="Lecturer rank"
               />
               <StatsCard
-                title="Asst. Professor"
-                value={stats?.byRank?.['Asst. Prof.'] || 0}
+                title="On Duty Asst. Prof."
+                value={stats?.onDutyByRank?.asstProf || 0}
                 icon={BookOpen}
                 variant="info"
                 description="Assistant Professor"
               />
               <StatsCard
-                title="Assoc. Professor"
-                value={stats?.byRank?.['Asso. Prof.'] || 0}
+                title="On Duty Assoc. Prof."
+                value={stats?.onDutyByRank?.assoProf || 0}
                 icon={Award}
                 variant="warning"
                 description="Associate Professor"
               />
               <StatsCard
-                title="Professor"
-                value={stats?.byRank?.['Professor'] || 0}
+                title="On Duty Professor"
+                value={stats?.onDutyByRank?.professor || 0}
                 icon={GraduationCap}
                 variant="primary"
                 description="Full Professor"
@@ -108,7 +105,7 @@ const Index = () => {
           )}
         </div>
 
-        {/* Status Summary & Quick Actions */}
+        {/* Status Summary & Gender Distribution */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
           <Card className="animate-fade-in">
             <CardHeader>
@@ -132,53 +129,82 @@ const Index = () => {
             </CardContent>
           </Card>
 
-          <Card className="animate-fade-in">
+          <Card className="animate-fade-in md:col-span-2">
             <CardHeader>
-              <CardTitle className="text-lg">Gender Distribution</CardTitle>
+              <CardTitle className="text-lg">Gender Distribution by Status & Department</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="flex gap-4">
-                <div className="flex-1 text-center p-4 bg-info/10 rounded-lg">
-                  <p className="text-3xl font-serif font-bold text-info">{stats?.bySex.M || 0}</p>
-                  <p className="text-sm text-muted-foreground">Male</p>
+              {deptStatsLoading ? (
+                <Skeleton className="h-48 w-full" />
+              ) : (
+                <div className="overflow-x-auto">
+                  <Table>
+                    <TableHeader>
+                      <TableRow className="bg-primary/5">
+                        <TableHead>Department</TableHead>
+                        <TableHead className="text-center" colSpan={2}>On Duty</TableHead>
+                        <TableHead className="text-center" colSpan={2}>Not On Duty</TableHead>
+                        <TableHead className="text-center" colSpan={2}>On Study</TableHead>
+                      </TableRow>
+                      <TableRow className="bg-muted/50">
+                        <TableHead></TableHead>
+                        <TableHead className="text-center text-info">M</TableHead>
+                        <TableHead className="text-center text-accent">F</TableHead>
+                        <TableHead className="text-center text-info">M</TableHead>
+                        <TableHead className="text-center text-accent">F</TableHead>
+                        <TableHead className="text-center text-info">M</TableHead>
+                        <TableHead className="text-center text-accent">F</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {filteredDeptStats?.map((dept) => (
+                        <TableRow key={dept.id}>
+                          <TableCell className="font-medium">{dept.code}</TableCell>
+                          <TableCell className="text-center text-info">{dept.genderByStatus?.onDuty?.M || 0}</TableCell>
+                          <TableCell className="text-center text-accent">{dept.genderByStatus?.onDuty?.F || 0}</TableCell>
+                          <TableCell className="text-center text-info">{dept.genderByStatus?.notOnDuty?.M || 0}</TableCell>
+                          <TableCell className="text-center text-accent">{dept.genderByStatus?.notOnDuty?.F || 0}</TableCell>
+                          <TableCell className="text-center text-info">{dept.genderByStatus?.onStudy?.M || 0}</TableCell>
+                          <TableCell className="text-center text-accent">{dept.genderByStatus?.onStudy?.F || 0}</TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
                 </div>
-                <div className="flex-1 text-center p-4 bg-accent/10 rounded-lg">
-                  <p className="text-3xl font-serif font-bold text-accent">{stats?.bySex.F || 0}</p>
-                  <p className="text-sm text-muted-foreground">Female</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card className="animate-fade-in">
-            <CardHeader>
-              <CardTitle className="text-lg">Quick Actions</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-2">
-                <Link to="/staff">
-                  <Button variant="outline" className="w-full justify-start">
-                    <Users className="h-4 w-4 mr-2" />
-                    View Staff Directory
-                  </Button>
-                </Link>
-                <Link to="/reports">
-                  <Button variant="outline" className="w-full justify-start">
-                    <GraduationCap className="h-4 w-4 mr-2" />
-                    Generate Report
-                  </Button>
-                </Link>
-              </div>
+              )}
             </CardContent>
           </Card>
         </div>
 
-        {/* Department-wise Statistics */}
+        {/* Quick Actions */}
+        <Card className="mb-8 animate-fade-in">
+          <CardHeader>
+            <CardTitle className="text-lg">Quick Actions</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="flex flex-wrap gap-2">
+              <Link to="/staff">
+                <Button variant="outline">
+                  <Users className="h-4 w-4 mr-2" />
+                  View Staff Directory
+                </Button>
+              </Link>
+              <Link to="/reports">
+                <Button variant="outline">
+                  <GraduationCap className="h-4 w-4 mr-2" />
+                  Generate Report
+                </Button>
+              </Link>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Department-wise On Duty Staff Statistics */}
         <Card className="mb-8 animate-fade-in">
           <CardHeader>
             <CardTitle className="text-lg flex items-center gap-2">
               <Building2 className="h-5 w-5" />
-              Department-wise Staff Statistics
+              Department-wise On Duty Staff by Academic Rank
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -190,13 +216,10 @@ const Index = () => {
                   <TableHeader>
                     <TableRow className="bg-primary/5">
                       <TableHead>Department</TableHead>
-                      <TableHead className="text-center">Total</TableHead>
-                      <TableHead className="text-center text-success">On Duty</TableHead>
-                      <TableHead className="text-center text-destructive">Not On Duty</TableHead>
-                      <TableHead className="text-center text-info">On Study</TableHead>
+                      <TableHead className="text-center">On Duty Total</TableHead>
                       <TableHead className="text-center">Lecturer</TableHead>
                       <TableHead className="text-center">Asst. Prof.</TableHead>
-                      <TableHead className="text-center">Asso. Prof.</TableHead>
+                      <TableHead className="text-center">Assoc. Prof.</TableHead>
                       <TableHead className="text-center">Professor</TableHead>
                     </TableRow>
                   </TableHeader>
@@ -204,28 +227,22 @@ const Index = () => {
                     {filteredDeptStats?.map((dept) => (
                       <TableRow key={dept.id}>
                         <TableCell className="font-medium">{dept.code}</TableCell>
-                        <TableCell className="text-center font-bold">{dept.total}</TableCell>
-                        <TableCell className="text-center text-success">{dept.byStatus.onDuty}</TableCell>
-                        <TableCell className="text-center text-destructive">{dept.byStatus.notOnDuty}</TableCell>
-                        <TableCell className="text-center text-info">{dept.byStatus.onStudy}</TableCell>
-                        <TableCell className="text-center">{dept.byRank.lecturer}</TableCell>
-                        <TableCell className="text-center">{dept.byRank.asstProf}</TableCell>
-                        <TableCell className="text-center">{dept.byRank.assoProf}</TableCell>
-                        <TableCell className="text-center">{dept.byRank.professor}</TableCell>
+                        <TableCell className="text-center font-bold text-success">{dept.onDutyByRank?.total || 0}</TableCell>
+                        <TableCell className="text-center">{dept.onDutyByRank?.lecturer || 0}</TableCell>
+                        <TableCell className="text-center">{dept.onDutyByRank?.asstProf || 0}</TableCell>
+                        <TableCell className="text-center">{dept.onDutyByRank?.assoProf || 0}</TableCell>
+                        <TableCell className="text-center">{dept.onDutyByRank?.professor || 0}</TableCell>
                       </TableRow>
                     ))}
                     {/* Totals Row */}
                     {filteredDeptStats && filteredDeptStats.length > 1 && (
                       <TableRow className="bg-muted font-bold">
                         <TableCell>Total</TableCell>
-                        <TableCell className="text-center">{filteredDeptStats.reduce((sum, d) => sum + d.total, 0)}</TableCell>
-                        <TableCell className="text-center text-success">{filteredDeptStats.reduce((sum, d) => sum + d.byStatus.onDuty, 0)}</TableCell>
-                        <TableCell className="text-center text-destructive">{filteredDeptStats.reduce((sum, d) => sum + d.byStatus.notOnDuty, 0)}</TableCell>
-                        <TableCell className="text-center text-info">{filteredDeptStats.reduce((sum, d) => sum + d.byStatus.onStudy, 0)}</TableCell>
-                        <TableCell className="text-center">{filteredDeptStats.reduce((sum, d) => sum + d.byRank.lecturer, 0)}</TableCell>
-                        <TableCell className="text-center">{filteredDeptStats.reduce((sum, d) => sum + d.byRank.asstProf, 0)}</TableCell>
-                        <TableCell className="text-center">{filteredDeptStats.reduce((sum, d) => sum + d.byRank.assoProf, 0)}</TableCell>
-                        <TableCell className="text-center">{filteredDeptStats.reduce((sum, d) => sum + d.byRank.professor, 0)}</TableCell>
+                        <TableCell className="text-center text-success">{filteredDeptStats.reduce((sum, d) => sum + (d.onDutyByRank?.total || 0), 0)}</TableCell>
+                        <TableCell className="text-center">{filteredDeptStats.reduce((sum, d) => sum + (d.onDutyByRank?.lecturer || 0), 0)}</TableCell>
+                        <TableCell className="text-center">{filteredDeptStats.reduce((sum, d) => sum + (d.onDutyByRank?.asstProf || 0), 0)}</TableCell>
+                        <TableCell className="text-center">{filteredDeptStats.reduce((sum, d) => sum + (d.onDutyByRank?.assoProf || 0), 0)}</TableCell>
+                        <TableCell className="text-center">{filteredDeptStats.reduce((sum, d) => sum + (d.onDutyByRank?.professor || 0), 0)}</TableCell>
                       </TableRow>
                     )}
                   </TableBody>
@@ -234,25 +251,6 @@ const Index = () => {
             )}
           </CardContent>
         </Card>
-
-        {/* Recent Staff */}
-        <div className="animate-slide-up">
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="font-serif text-2xl font-bold">Recent Staff Members</h2>
-            <Link to="/staff">
-              <Button variant="ghost">View All →</Button>
-            </Link>
-          </div>
-          {staffLoading ? (
-            <Skeleton className="h-64 w-full rounded-xl" />
-          ) : (
-            <EditableStaffTable 
-              staff={recentStaff?.slice(0, 10) || []} 
-              canEdit={false}
-              canDelete={false}
-            />
-          )}
-        </div>
       </main>
     </div>
   );

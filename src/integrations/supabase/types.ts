@@ -83,6 +83,7 @@ export type Database = {
           email: string
           full_name: string | null
           id: string
+          password_change_required: boolean
           updated_at: string
         }
         Insert: {
@@ -91,6 +92,7 @@ export type Database = {
           email: string
           full_name?: string | null
           id: string
+          password_change_required?: boolean
           updated_at?: string
         }
         Update: {
@@ -99,6 +101,7 @@ export type Database = {
           email?: string
           full_name?: string | null
           id?: string
+          password_change_required?: boolean
           updated_at?: string
         }
         Relationships: [

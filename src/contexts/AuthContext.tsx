@@ -9,6 +9,7 @@ interface Profile {
   email: string;
   full_name: string | null;
   department_id: string | null;
+  password_change_required?: boolean;
 }
 
 interface AuthContextType {

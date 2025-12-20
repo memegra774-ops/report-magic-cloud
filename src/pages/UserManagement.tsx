@@ -44,6 +44,12 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { toast } from 'sonner';
+import emailjs from '@emailjs/browser';
+
+// EmailJS configuration - using public API key
+const EMAILJS_PUBLIC_KEY = 'U7ON9nZCHj4tFvcvG';
+const EMAILJS_SERVICE_ID = 'default_service'; // User needs to configure this
+const EMAILJS_TEMPLATE_ID = 'template_invite'; // User needs to configure this
 
 const ROLES: { value: AppRole; label: string }[] = [
   { value: 'department_head', label: 'Department Head' },
@@ -59,6 +65,44 @@ interface UserWithRole {
   departments?: { code: string; name: string } | null;
   role: AppRole | null;
 }
+
+// Send invitation email using EmailJS
+const sendInvitationEmail = async (name: string, email: string) => {
+  try {
+    // Initialize EmailJS
+    emailjs.init(EMAILJS_PUBLIC_KEY);
+    
+    const templateParams = {
+      to_name: name,
+      to_email: email,
+      name: name,
+      subject: 'Invitation to Join Staff Reporting Portal',
+      message: `Dear ${name},
+
+Please join the reporting portal using the following login information:
+
+Username: ${email}
+Password: 12345678
+
+Please change your password after your first login.
+
+Best regards,
+ASTU Staff Report System`,
+    };
+
+    await emailjs.send(
+      EMAILJS_SERVICE_ID,
+      EMAILJS_TEMPLATE_ID,
+      templateParams
+    );
+    
+    console.log('Invitation email sent successfully');
+    return true;
+  } catch (error) {
+    console.error('Failed to send invitation email:', error);
+    return false;
+  }
+};
 
 const UserManagement = () => {
   const { role } = useAuth();
@@ -119,7 +163,10 @@ const UserManagement = () => {
       if (error) throw error;
       if (result?.error) throw new Error(result.error);
 
-      return result;
+      // Send email using EmailJS
+      const emailSent = await sendInvitationEmail(data.full_name || 'User', data.email);
+
+      return { ...result, email_sent: emailSent };
     },
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ['users-with-roles'] });
@@ -128,7 +175,7 @@ const UserManagement = () => {
       if (data?.email_sent) {
         toast.success('User invited successfully. Email notification sent with login credentials.');
       } else {
-        toast.success('User invited successfully. Default password: 12345678');
+        toast.success('User invited successfully. Email could not be sent. Default password: 12345678');
       }
     },
     onError: (error) => {

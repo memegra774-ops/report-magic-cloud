@@ -159,6 +159,13 @@ export const useStaffStats = (departmentId?: string) => {
           'Not On Duty': 0,
           'On Study': 0,
         } as Record<string, number>,
+        onDutyByRank: {
+          total: 0,
+          lecturer: 0,
+          asstProf: 0,
+          assoProf: 0,
+          professor: 0,
+        },
       };
 
       data.forEach((staff) => {
@@ -178,12 +185,21 @@ export const useStaffStats = (departmentId?: string) => {
         const rank = staff.academic_rank?.toLowerCase() || '';
         if (rank.includes('lecturer') && !rank.includes('senior') && !rank.includes('s.')) {
           stats.byRank['Lecturer']++;
+          if (status === 'On Duty') stats.onDutyByRank.lecturer++;
         } else if (rank.includes('asst') || rank.includes('assistant')) {
           stats.byRank['Asst. Prof.']++;
+          if (status === 'On Duty') stats.onDutyByRank.asstProf++;
         } else if (rank.includes('asso') || rank.includes('associate')) {
           stats.byRank['Asso. Prof.']++;
+          if (status === 'On Duty') stats.onDutyByRank.assoProf++;
         } else if (rank === 'professor' || rank === 'prof' || rank === 'prof.') {
           stats.byRank['Professor']++;
+          if (status === 'On Duty') stats.onDutyByRank.professor++;
+        }
+        
+        // Count on duty total
+        if (status === 'On Duty') {
+          stats.onDutyByRank.total++;
         }
       });
 
@@ -192,7 +208,7 @@ export const useStaffStats = (departmentId?: string) => {
   });
 };
 
-// New hook for department-wise statistics
+// Hook for department-wise statistics with gender by status and on-duty by rank
 export const useDepartmentStats = () => {
   return useQuery({
     queryKey: ['department-stats'],
@@ -206,38 +222,60 @@ export const useDepartmentStats = () => {
 
       const { data: staffData, error: staffError } = await supabase
         .from('staff')
-        .select('department_id, current_status, academic_rank');
+        .select('department_id, current_status, academic_rank, sex');
 
       if (staffError) throw staffError;
 
       const deptStats = departments.map((dept) => {
         const deptStaff = staffData.filter((s) => s.department_id === dept.id);
         
-        const byStatus = {
-          onDuty: deptStaff.filter((s) => s.current_status === 'On Duty').length,
-          notOnDuty: deptStaff.filter((s) => s.current_status === 'Not On Duty').length,
-          onStudy: deptStaff.filter((s) => s.current_status === 'On Study' || s.current_status === 'On Study Leave').length,
+        // Gender by status
+        const genderByStatus = {
+          onDuty: { M: 0, F: 0 },
+          notOnDuty: { M: 0, F: 0 },
+          onStudy: { M: 0, F: 0 },
         };
 
-        const byRank = {
+        deptStaff.forEach((staff) => {
+          const sex = staff.sex as 'M' | 'F';
+          const status = staff.current_status;
+          if (status === 'On Duty') {
+            genderByStatus.onDuty[sex]++;
+          } else if (status === 'Not On Duty') {
+            genderByStatus.notOnDuty[sex]++;
+          } else if (status === 'On Study' || status === 'On Study Leave') {
+            genderByStatus.onStudy[sex]++;
+          }
+        });
+
+        // On duty staff by rank
+        const onDutyStaff = deptStaff.filter((s) => s.current_status === 'On Duty');
+        const onDutyByRank = {
+          total: onDutyStaff.length,
           lecturer: 0,
           asstProf: 0,
           assoProf: 0,
           professor: 0,
         };
 
-        deptStaff.forEach((staff) => {
+        onDutyStaff.forEach((staff) => {
           const rank = staff.academic_rank?.toLowerCase() || '';
           if (rank.includes('lecturer') && !rank.includes('senior') && !rank.includes('s.')) {
-            byRank.lecturer++;
+            onDutyByRank.lecturer++;
           } else if (rank.includes('asst') || rank.includes('assistant')) {
-            byRank.asstProf++;
+            onDutyByRank.asstProf++;
           } else if (rank.includes('asso') || rank.includes('associate')) {
-            byRank.assoProf++;
+            onDutyByRank.assoProf++;
           } else if (rank === 'professor' || rank === 'prof' || rank === 'prof.') {
-            byRank.professor++;
+            onDutyByRank.professor++;
           }
         });
+
+        const byStatus = {
+          onDuty: deptStaff.filter((s) => s.current_status === 'On Duty').length,
+          notOnDuty: deptStaff.filter((s) => s.current_status === 'Not On Duty').length,
+          onStudy: deptStaff.filter((s) => s.current_status === 'On Study' || s.current_status === 'On Study Leave').length,
+        };
 
         return {
           id: dept.id,
@@ -245,7 +283,8 @@ export const useDepartmentStats = () => {
           name: dept.name,
           total: deptStaff.length,
           byStatus,
-          byRank,
+          genderByStatus,
+          onDutyByRank,
         };
       });
 
