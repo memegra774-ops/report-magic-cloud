@@ -2,7 +2,8 @@
 export type StaffCategory = 'Local Instructors' | 'ARA' | 'ASTU Sponsor';
 
 // Status types for the report
-export type StaffStatus = 'On Duty' | 'On Study' | 'Not On Duty' | 'Sick' | 'On Study Leave';
+export type StaffStatus = 'On Duty' | 'On Study' | 'Not on Duty' | 'Sick' | 'On Study and Not Reporting
+';
 
 export type SexType = 'M' | 'F';
 
