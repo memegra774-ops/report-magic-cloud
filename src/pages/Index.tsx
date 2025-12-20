@@ -112,23 +112,27 @@ const Index = () => {
               <CardTitle className="text-lg">Staff Status Summary</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="space-y-2">
-                <div className="flex justify-between items-center p-2.5 bg-success/10 rounded-lg">
-                  <span className="text-sm text-muted-foreground">On Duty</span>
-                  <span className="text-xl font-bold text-success">{stats?.byStatus?.['On Duty'] || 0}</span>
-                </div>
-                <div className="flex justify-between items-center p-2.5 bg-destructive/10 rounded-lg">
-                  <span className="text-sm text-muted-foreground">Not On Duty</span>
-                  <span className="text-xl font-bold text-destructive">{stats?.byStatus?.['Not On Duty'] || 0}</span>
-                </div>
-                <div className="flex justify-between items-center p-2.5 bg-info/10 rounded-lg">
-                  <span className="text-sm text-muted-foreground">On Study</span>
-                  <span className="text-xl font-bold text-info">{stats?.byStatus?.['On Study'] || 0}</span>
-                </div>
-                <div className="flex justify-between items-center p-2.5 bg-warning/10 rounded-lg">
-                  <span className="text-sm text-muted-foreground">Not Reporting</span>
-                  <span className="text-xl font-bold text-warning">{stats?.byStatus?.['Not Reporting'] || 0}</span>
-                </div>
+              <div className="space-y-2 max-h-64 overflow-y-auto">
+                {stats?.byStatus && Object.entries(stats.byStatus)
+                  .sort(([, a], [, b]) => b - a)
+                  .map(([status, count]) => {
+                    // Determine color based on status
+                    const getStatusColor = (s: string) => {
+                      const lower = s.toLowerCase();
+                      if (lower === 'on duty') return { bg: 'bg-success/10', text: 'text-success' };
+                      if (lower === 'not on duty') return { bg: 'bg-destructive/10', text: 'text-destructive' };
+                      if (lower.includes('study')) return { bg: 'bg-info/10', text: 'text-info' };
+                      if (lower.includes('sick')) return { bg: 'bg-warning/10', text: 'text-warning' };
+                      return { bg: 'bg-muted', text: 'text-foreground' };
+                    };
+                    const colors = getStatusColor(status);
+                    return (
+                      <div key={status} className={`flex justify-between items-center p-2.5 ${colors.bg} rounded-lg`}>
+                        <span className="text-sm text-muted-foreground">{status}</span>
+                        <span className={`text-xl font-bold ${colors.text}`}>{count}</span>
+                      </div>
+                    );
+                  })}
               </div>
             </CardContent>
           </Card>

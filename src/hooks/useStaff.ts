@@ -233,12 +233,7 @@ export const useStaffStats = (departmentId?: string) => {
           'Asso. Prof.': 0,
           'Professor': 0,
         } as Record<string, number>,
-        byStatus: {
-          'On Duty': 0,
-          'Not On Duty': 0,
-          'On Study': 0,
-          'Not Reporting': 0,
-        } as Record<string, number>,
+        byStatus: {} as Record<string, number>,
         onDutyByRank: {
           total: 0,
           lecturer: 0,
@@ -255,12 +250,14 @@ export const useStaffStats = (departmentId?: string) => {
         const edu = staff.education_level as string;
         stats.byEducation[edu] = (stats.byEducation[edu] || 0) + 1;
         
-        // Count by status
-        const status = staff.current_status || '';
-        if (status === 'On Duty') stats.byStatus['On Duty']++;
-        else if (status === 'Not On Duty') stats.byStatus['Not On Duty']++;
-        else if (status === 'On Study' || status === 'On Study Leave') stats.byStatus['On Study']++;
-        else if (status === 'Not Reporting') stats.byStatus['Not Reporting']++;
+        // Count by status - normalize case and count all statuses dynamically
+        const rawStatus = staff.current_status || 'Unknown';
+        // Normalize common variations
+        let status = rawStatus;
+        if (rawStatus.toLowerCase() === 'on duty') status = 'On Duty';
+        else if (rawStatus.toLowerCase() === 'not on duty') status = 'Not On Duty';
+        
+        stats.byStatus[status] = (stats.byStatus[status] || 0) + 1;
         
         // Count by academic rank (normalize variations)
         const rank = staff.academic_rank?.toLowerCase() || '';
