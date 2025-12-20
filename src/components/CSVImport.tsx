@@ -31,7 +31,8 @@ interface ParsedRow {
 }
 
 const CSVImport = ({ open, onClose }: CSVImportProps) => {
-  const { profile } = useAuth();
+  const auth = useAuth();
+  const profile = auth?.profile;
   const [file, setFile] = useState<File | null>(null);
   const [parsedData, setParsedData] = useState<ParsedRow[]>([]);
   const [importing, setImporting] = useState(false);
