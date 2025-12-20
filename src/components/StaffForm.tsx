@@ -3,6 +3,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { Staff, StaffCategory, STAFF_CATEGORIES, EDUCATION_LEVELS, ACADEMIC_RANKS, STAFF_STATUSES } from '@/types/staff';
 import { useDepartments, useCreateStaff, useUpdateStaff } from '@/hooks/useStaff';
+import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import {
@@ -49,6 +50,7 @@ interface StaffFormProps {
 }
 
 const StaffForm = ({ open, onClose, staff, defaultDepartmentId }: StaffFormProps) => {
+  const { profile } = useAuth();
   const { data: departments } = useDepartments();
   const createStaff = useCreateStaff();
   const updateStaff = useUpdateStaff();
@@ -84,7 +86,17 @@ const StaffForm = ({ open, onClose, staff, defaultDepartmentId }: StaffFormProps
       if (staff) {
         await updateStaff.mutateAsync({ id: staff.id, ...data });
       } else {
-        await createStaff.mutateAsync(data as any);
+        // Get department name for notification
+        const deptId = values.department_id || defaultDepartmentId;
+        const dept = departments?.find(d => d.id === deptId);
+        
+        await createStaff.mutateAsync({
+          ...data,
+          notificationOptions: {
+            departmentName: dept?.name,
+            performedBy: profile?.full_name || profile?.email || 'Department User',
+          },
+        } as any);
       }
       onClose();
       form.reset();

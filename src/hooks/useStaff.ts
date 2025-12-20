@@ -2,6 +2,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { Staff, StaffCategory, SexType, EducationLevel } from '@/types/staff';
 import { toast } from 'sonner';
+import { sendStaffNotificationToAVD } from '@/lib/emailNotifications';
 
 export const useStaff = (filters?: {
   category?: StaffCategory;
@@ -50,18 +51,39 @@ export const useDepartments = () => {
   });
 };
 
-export const useCreateStaff = () => {
+interface CreateStaffOptions {
+  departmentName?: string;
+  performedBy?: string;
+  skipNotification?: boolean;
+}
+
+export const useCreateStaff = (options?: CreateStaffOptions) => {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async (staff: Omit<Staff, 'id' | 'created_at' | 'updated_at' | 'departments'>) => {
+    mutationFn: async (staff: Omit<Staff, 'id' | 'created_at' | 'updated_at' | 'departments'> & { 
+      notificationOptions?: CreateStaffOptions 
+    }) => {
+      const { notificationOptions, ...staffData } = staff;
       const { data, error } = await supabase
         .from('staff')
-        .insert(staff)
-        .select()
+        .insert(staffData)
+        .select('*, departments(*)')
         .single();
 
       if (error) throw error;
+      
+      // Send notification to AVD
+      const opts = notificationOptions || options;
+      if (!opts?.skipNotification) {
+        const deptName = (data as any)?.departments?.name || opts?.departmentName || 'Unknown Department';
+        const performer = opts?.performedBy || 'Department User';
+        
+        // Send notification asynchronously (don't await)
+        sendStaffNotificationToAVD('added', data.full_name, deptName, performer)
+          .catch(err => console.error('Failed to send AVD notification:', err));
+      }
+      
       return data;
     },
     onSuccess: () => {
@@ -103,17 +125,42 @@ export const useUpdateStaff = () => {
   });
 };
 
+interface DeleteStaffOptions {
+  staffName?: string;
+  departmentName?: string;
+  performedBy?: string;
+}
+
 export const useDeleteStaff = () => {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async (id: string) => {
+    mutationFn: async ({ id, options }: { id: string; options?: DeleteStaffOptions }) => {
+      // First get the staff details for notification
+      const { data: staffData, error: fetchError } = await supabase
+        .from('staff')
+        .select('full_name, departments(name)')
+        .eq('id', id)
+        .single();
+      
+      if (fetchError) throw fetchError;
+      
+      // Then delete
       const { error } = await supabase
         .from('staff')
         .delete()
         .eq('id', id);
 
       if (error) throw error;
+      
+      // Send notification to AVD
+      const staffName = options?.staffName || staffData?.full_name || 'Unknown Staff';
+      const deptName = options?.departmentName || (staffData as any)?.departments?.name || 'Unknown Department';
+      const performer = options?.performedBy || 'Department User';
+      
+      // Send notification asynchronously (don't await)
+      sendStaffNotificationToAVD('deleted', staffName, deptName, performer)
+        .catch(err => console.error('Failed to send AVD notification:', err));
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['staff'] });
