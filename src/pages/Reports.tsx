@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Plus, Calendar, Trash2, Eye, FileText } from 'lucide-react';
+import { Plus, Calendar, Trash2, Eye, FileText, RefreshCw } from 'lucide-react';
 import Header from '@/components/Header';
 import ReportView from '@/components/ReportView';
 import ReportLetter from '@/components/ReportLetter';
@@ -44,6 +44,7 @@ const Reports = () => {
   const [viewReport, setViewReport] = useState<MonthlyReport | null>(null);
   const [viewMode, setViewMode] = useState<'report' | 'letter'>('report');
   const [deleteId, setDeleteId] = useState<string | null>(null);
+  const [isRegenerating, setIsRegenerating] = useState(false);
 
   const { data: departments } = useDepartments();
   const { data: reports, isLoading } = useMonthlyReports();
@@ -59,6 +60,22 @@ const Reports = () => {
     setCreateDialogOpen(false);
   };
 
+  const handleRegenerateReport = async (report: MonthlyReport) => {
+    setIsRegenerating(true);
+    try {
+      // Delete the old report first
+      await deleteReport.mutateAsync(report.id);
+      // Create a new one with the same month/year
+      await createReport.mutateAsync({ 
+        month: report.report_month, 
+        year: report.report_year,
+        departmentId: report.department_id || (role === 'department_head' ? profile?.department_id : undefined)
+      });
+    } finally {
+      setIsRegenerating(false);
+    }
+  };
+
   const confirmDelete = async () => {
     if (deleteId) {
       await deleteReport.mutateAsync(deleteId);
@@ -70,14 +87,21 @@ const Reports = () => {
   const years = Array.from({ length: 5 }, (_, i) => currentYear - 2 + i);
 
   const canCreate = role === 'system_admin' || role === 'department_head' || role === 'avd';
-  const canDelete = role === 'system_admin' || role === 'avd';
+  // Both AVD and department heads can delete their own reports
+  const canDelete = role === 'system_admin' || role === 'avd' || role === 'department_head';
   const canViewLetter = role === 'avd' || role === 'system_admin';
 
   // Filter reports based on role
   const filteredReports = reports?.filter(report => {
     if (role === 'department_head') {
+      // Department heads only see their own department's reports
       return report.department_id === profile?.department_id;
     }
+    if (role === 'avd') {
+      // AVD only sees reports WITHOUT a department_id (their own reports, not department heads')
+      return !report.department_id;
+    }
+    // System admin and management see all
     return true;
   });
 
@@ -124,7 +148,7 @@ const Reports = () => {
             <h1 className="font-serif text-3xl font-bold text-foreground">Monthly Reports</h1>
             <p className="text-muted-foreground">
               {role === 'avd' 
-                ? 'View combined reports from all departments' 
+                ? 'View and generate combined reports from all departments' 
                 : 'Generate and view monthly staff reports'}
             </p>
           </div>
@@ -164,7 +188,12 @@ const Reports = () => {
                       Dept: {departments?.find(d => d.id === report.department_id)?.code || '-'}
                     </p>
                   )}
-                  <div className="flex gap-2">
+                  {report.version > 1 && (
+                    <p className="text-sm text-primary mb-4">
+                      Version: {report.version}
+                    </p>
+                  )}
+                  <div className="flex gap-2 flex-wrap">
                     <Button
                       variant="default"
                       size="sm"
@@ -184,6 +213,17 @@ const Reports = () => {
                         }}
                       >
                         <FileText className="h-4 w-4" />
+                      </Button>
+                    )}
+                    {canCreate && (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handleRegenerateReport(report)}
+                        disabled={isRegenerating}
+                        title="Regenerate report with latest data"
+                      >
+                        <RefreshCw className={`h-4 w-4 ${isRegenerating ? 'animate-spin' : ''}`} />
                       </Button>
                     )}
                     {canDelete && (

@@ -2,8 +2,9 @@ import { useRef } from 'react';
 import { MonthlyReport, MONTHS, Staff, STAFF_STATUSES } from '@/types/staff';
 import { useReportEntries } from '@/hooks/useReports';
 import { Button } from '@/components/ui/button';
-import { Printer } from 'lucide-react';
+import { Printer, FileSpreadsheet } from 'lucide-react';
 import StatusBadge from './StatusBadge';
+import * as XLSX from 'xlsx';
 import {
   Table,
   TableBody,
@@ -65,11 +66,15 @@ const ReportView = ({ report }: ReportViewProps) => {
               font-size: 12pt;
               padding: 10px; 
             }
+            .section-container {
+              page-break-inside: avoid;
+              break-inside: avoid;
+              margin-bottom: 30px;
+            }
             table { 
               width: 100%; 
               border-collapse: collapse; 
-              margin-bottom: 20px;
-              page-break-inside: avoid;
+              margin-bottom: 15px;
             }
             th, td { 
               border: 1px solid #000; 
@@ -104,8 +109,27 @@ const ReportView = ({ report }: ReportViewProps) => {
               border: 1px solid #000;
             }
             .text-center { text-align: center; }
+            .footer-signatures {
+              margin-top: 40px;
+              page-break-inside: avoid;
+              break-inside: avoid;
+            }
+            .signature-row {
+              display: flex;
+              justify-content: space-between;
+              margin-top: 30px;
+            }
+            .signature-block {
+              width: 45%;
+            }
+            .signature-line {
+              border-bottom: 1px solid #000;
+              width: 200px;
+              margin-top: 30px;
+            }
             @media print { 
               body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+              .section-container { page-break-inside: avoid; break-inside: avoid; }
             }
           </style>
         </head>
@@ -116,6 +140,63 @@ const ReportView = ({ report }: ReportViewProps) => {
     `);
     printWindow.document.close();
     printWindow.print();
+  };
+
+  const handleExportExcel = () => {
+    if (!entries || entries.length === 0) return;
+
+    // Create workbook
+    const wb = XLSX.utils.book_new();
+
+    // Create data for each section
+    REPORT_SECTIONS.forEach((section) => {
+      const sectionEntries = getEntriesForSection(section);
+      if (sectionEntries.length === 0) return;
+
+      const data = sectionEntries.map((entry, index) => ({
+        '#': index + 1,
+        'Staff ID': entry.staff?.staff_id || '-',
+        'Full Name': entry.staff?.full_name || '-',
+        'Sex': entry.staff?.sex || '-',
+        'College': entry.staff?.college_name || 'CoEEC',
+        'Department': entry.staff?.departments?.code || '-',
+        'Specialization': entry.staff?.specialization || '-',
+        'Edu. Level': entry.staff?.education_level || '-',
+        'Academic Rank': entry.staff?.academic_rank || '-',
+        'Current Status': entry.current_status || '-',
+        'Remark': entry.remark || '-',
+      }));
+
+      // Create worksheet
+      const ws = XLSX.utils.json_to_sheet(data);
+      
+      // Shorten the sheet name to max 31 characters (Excel limitation)
+      const sheetName = section.title.substring(0, 31);
+      XLSX.utils.book_append_sheet(wb, ws, sheetName);
+    });
+
+    // Create a summary sheet with all entries
+    const allData = entries.map((entry, index) => ({
+      '#': index + 1,
+      'Staff ID': entry.staff?.staff_id || '-',
+      'Full Name': entry.staff?.full_name || '-',
+      'Sex': entry.staff?.sex || '-',
+      'College': entry.staff?.college_name || 'CoEEC',
+      'Department': entry.staff?.departments?.code || '-',
+      'Specialization': entry.staff?.specialization || '-',
+      'Edu. Level': entry.staff?.education_level || '-',
+      'Academic Rank': entry.staff?.academic_rank || '-',
+      'Category': entry.category || '-',
+      'Current Status': entry.current_status || '-',
+      'Remark': entry.remark || '-',
+    }));
+
+    const summaryWs = XLSX.utils.json_to_sheet(allData);
+    XLSX.utils.book_append_sheet(wb, summaryWs, 'All Staff');
+
+    // Download the file
+    const fileName = `Report_${MONTHS[report.report_month - 1]}_${report.report_year}.xlsx`;
+    XLSX.writeFile(wb, fileName);
   };
 
   // Filter entries by section
@@ -143,6 +224,10 @@ const ReportView = ({ report }: ReportViewProps) => {
           {MONTHS[report.report_month - 1]} {report.report_year} Report{versionText}
         </h2>
         <div className="flex gap-2">
+          <Button variant="outline" onClick={handleExportExcel}>
+            <FileSpreadsheet className="h-4 w-4 mr-2" />
+            Export Excel
+          </Button>
           <Button variant="outline" onClick={handlePrint}>
             <Printer className="h-4 w-4 mr-2" />
             Print
@@ -156,7 +241,7 @@ const ReportView = ({ report }: ReportViewProps) => {
           if (sectionEntries.length === 0) return null;
 
           return (
-            <div key={section.id} className="mb-6 animate-slide-up" style={{ pageBreakInside: 'avoid' }}>
+            <div key={section.id} className="section-container mb-6 animate-slide-up" style={{ pageBreakInside: 'avoid', breakInside: 'avoid' }}>
               {/* Section Header */}
               <div className="header text-center mb-3">
                 <h1 style={{ fontFamily: "'Times New Roman', serif", fontSize: '14pt', fontWeight: 'bold' }}>
@@ -213,6 +298,28 @@ const ReportView = ({ report }: ReportViewProps) => {
                     ))}
                   </TableBody>
                 </Table>
+              </div>
+
+              {/* Footer with Prepared by and Approved by */}
+              <div className="footer-signatures mt-8" style={{ pageBreakInside: 'avoid', breakInside: 'avoid' }}>
+                <div className="grid grid-cols-2 gap-8 mt-6">
+                  <div className="space-y-2">
+                    <p style={{ fontFamily: "'Times New Roman', serif" }}>
+                      <strong>Prepared by:</strong> ______________________________
+                    </p>
+                    <p style={{ fontFamily: "'Times New Roman', serif", marginTop: '20px' }}>
+                      <strong>Signature:</strong> ______________________________
+                    </p>
+                  </div>
+                  <div className="space-y-2">
+                    <p style={{ fontFamily: "'Times New Roman', serif" }}>
+                      <strong>Approved by:</strong> ______________________________
+                    </p>
+                    <p style={{ fontFamily: "'Times New Roman', serif", marginTop: '20px' }}>
+                      <strong>Signature:</strong> ______________________________
+                    </p>
+                  </div>
+                </div>
               </div>
             </div>
           );
