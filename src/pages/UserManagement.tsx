@@ -48,8 +48,8 @@ import emailjs from '@emailjs/browser';
 
 // EmailJS configuration - using public API key
 const EMAILJS_PUBLIC_KEY = 'U7ON9nZCHj4tFvcvG';
-const EMAILJS_SERVICE_ID = 'default_service'; // User needs to configure this
-const EMAILJS_TEMPLATE_ID = 'template_invite'; // User needs to configure this
+const EMAILJS_SERVICE_ID = 'service_mgzytra'; // User needs to configure this
+const EMAILJS_TEMPLATE_ID = 'template_gwsmq1l'; // User needs to configure this
 
 const ROLES: { value: AppRole; label: string }[] = [
   { value: 'department_head', label: 'Department Head' },
