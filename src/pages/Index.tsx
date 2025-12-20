@@ -1,6 +1,7 @@
 import { Users, UserCheck, BookOpen, Award, GraduationCap, Building2 } from 'lucide-react';
 import Header from '@/components/Header';
 import StatsCard from '@/components/StatsCard';
+import NotificationsPanel from '@/components/NotificationsPanel';
 import { useStaffStats, useDepartmentStats, useDepartments } from '@/hooks/useStaff';
 import { useAuth } from '@/contexts/AuthContext';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -105,8 +106,10 @@ const Index = () => {
           )}
         </div>
 
-        {/* Status Summary & Gender Distribution */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+        {/* Status Summary, Notifications (AVD only), & Gender Distribution */}
+        <div className={`grid grid-cols-1 gap-6 mb-8 ${
+          role === 'avd' || role === 'system_admin' ? 'lg:grid-cols-3' : 'md:grid-cols-3'
+        }`}>
           <Card className="animate-fade-in">
             <CardHeader>
               <CardTitle className="text-lg">Staff Status Summary</CardTitle>
@@ -129,7 +132,16 @@ const Index = () => {
             </CardContent>
           </Card>
 
-          <Card className="animate-fade-in md:col-span-2">
+          {/* Notifications Panel for AVD users */}
+          {(role === 'avd' || role === 'system_admin') && (
+            <div className="animate-fade-in">
+              <NotificationsPanel />
+            </div>
+          )}
+
+          <Card className={`animate-fade-in ${
+            role === 'avd' || role === 'system_admin' ? '' : 'md:col-span-2'
+          }`}>
             <CardHeader>
               <CardTitle className="text-lg">Gender Distribution by Status & Department</CardTitle>
             </CardHeader>
