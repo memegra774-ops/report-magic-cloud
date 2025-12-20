@@ -76,6 +76,53 @@ export type Database = {
           },
         ]
       }
+      notifications: {
+        Row: {
+          created_at: string
+          department_id: string | null
+          id: string
+          is_read: boolean
+          message: string
+          performed_by: string | null
+          staff_name: string | null
+          target_role: Database["public"]["Enums"]["app_role"]
+          title: string
+          type: string
+        }
+        Insert: {
+          created_at?: string
+          department_id?: string | null
+          id?: string
+          is_read?: boolean
+          message: string
+          performed_by?: string | null
+          staff_name?: string | null
+          target_role?: Database["public"]["Enums"]["app_role"]
+          title: string
+          type: string
+        }
+        Update: {
+          created_at?: string
+          department_id?: string | null
+          id?: string
+          is_read?: boolean
+          message?: string
+          performed_by?: string | null
+          staff_name?: string | null
+          target_role?: Database["public"]["Enums"]["app_role"]
+          title?: string
+          type?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "notifications_department_id_fkey"
+            columns: ["department_id"]
+            isOneToOne: false
+            referencedRelation: "departments"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       profiles: {
         Row: {
           created_at: string

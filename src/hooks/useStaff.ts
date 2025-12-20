@@ -4,6 +4,30 @@ import { Staff, StaffCategory, SexType, EducationLevel } from '@/types/staff';
 import { toast } from 'sonner';
 import { sendStaffNotificationToAVD } from '@/lib/emailNotifications';
 
+// Helper to create database notification for AVD
+const createAVDNotification = async (
+  type: 'staff_added' | 'staff_deleted',
+  staffName: string,
+  departmentId: string | null,
+  departmentName: string,
+  performedBy: string
+) => {
+  try {
+    const action = type === 'staff_added' ? 'added to' : 'removed from';
+    await supabase.from('notifications').insert({
+      type,
+      title: `Staff ${type === 'staff_added' ? 'Added' : 'Deleted'}`,
+      message: `${staffName} has been ${action} ${departmentName} by ${performedBy}`,
+      department_id: departmentId,
+      staff_name: staffName,
+      performed_by: performedBy,
+      target_role: 'avd' as const,
+    });
+  } catch (err) {
+    console.error('Failed to create notification:', err);
+  }
+};
+
 export const useStaff = (filters?: {
   category?: StaffCategory;
   departmentId?: string;
@@ -77,9 +101,13 @@ export const useCreateStaff = (options?: CreateStaffOptions) => {
       const opts = notificationOptions || options;
       if (!opts?.skipNotification) {
         const deptName = (data as any)?.departments?.name || opts?.departmentName || 'Unknown Department';
+        const deptId = (data as any)?.department_id || null;
         const performer = opts?.performedBy || 'Department User';
         
-        // Send notification asynchronously (don't await)
+        // Create database notification for AVD dashboard
+        createAVDNotification('staff_added', data.full_name, deptId, deptName, performer);
+        
+        // Send email notification asynchronously (don't await)
         sendStaffNotificationToAVD('added', data.full_name, deptName, performer)
           .catch(err => console.error('Failed to send AVD notification:', err));
       }
@@ -136,10 +164,10 @@ export const useDeleteStaff = () => {
 
   return useMutation({
     mutationFn: async ({ id, options }: { id: string; options?: DeleteStaffOptions }) => {
-      // First get the staff details for notification
+      // First get the staff details for notification (including department_id)
       const { data: staffData, error: fetchError } = await supabase
         .from('staff')
-        .select('full_name, departments(name)')
+        .select('full_name, department_id, departments(name)')
         .eq('id', id)
         .single();
       
@@ -156,9 +184,13 @@ export const useDeleteStaff = () => {
       // Send notification to AVD
       const staffName = options?.staffName || staffData?.full_name || 'Unknown Staff';
       const deptName = options?.departmentName || (staffData as any)?.departments?.name || 'Unknown Department';
+      const deptId = staffData?.department_id || null;
       const performer = options?.performedBy || 'Department User';
       
-      // Send notification asynchronously (don't await)
+      // Create database notification for AVD dashboard
+      createAVDNotification('staff_deleted', staffName, deptId, deptName, performer);
+      
+      // Send email notification asynchronously (don't await)
       sendStaffNotificationToAVD('deleted', staffName, deptName, performer)
         .catch(err => console.error('Failed to send AVD notification:', err));
     },
