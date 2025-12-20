@@ -269,7 +269,7 @@ export const useDepartmentStats = () => {
 
       const { data: staffData, error: staffError } = await supabase
         .from('staff')
-        .select('department_id, current_status, academic_rank, sex');
+        .select('department_id, current_status, academic_rank, sex, category');
 
       if (staffError) throw staffError;
 
@@ -281,17 +281,23 @@ export const useDepartmentStats = () => {
           onDuty: { M: 0, F: 0 },
           notOnDuty: { M: 0, F: 0 },
           onStudy: { M: 0, F: 0 },
+          onDutyARA: { M: 0, F: 0 },
         };
 
         deptStaff.forEach((staff) => {
           const sex = staff.sex as 'M' | 'F';
           const status = staff.current_status;
+          const category = (staff as any).category;
           if (status === 'On Duty') {
             genderByStatus.onDuty[sex]++;
           } else if (status === 'Not On Duty') {
             genderByStatus.notOnDuty[sex]++;
           } else if (status === 'On Study' || status === 'On Study Leave') {
             genderByStatus.onStudy[sex]++;
+          }
+          // On Duty ARA
+          if (category === 'ARA' && status === 'On Duty') {
+            genderByStatus.onDutyARA[sex]++;
           }
         });
 
@@ -318,6 +324,11 @@ export const useDepartmentStats = () => {
           }
         });
 
+        // On Duty ARA count for department-wise table
+        const onDutyARACount = deptStaff.filter((s) => 
+          (s as any).category === 'ARA' && s.current_status === 'On Duty'
+        ).length;
+
         const byStatus = {
           onDuty: deptStaff.filter((s) => s.current_status === 'On Duty').length,
           notOnDuty: deptStaff.filter((s) => s.current_status === 'Not On Duty').length,
@@ -332,6 +343,7 @@ export const useDepartmentStats = () => {
           byStatus,
           genderByStatus,
           onDutyByRank,
+          onDutyARACount,
         };
       });
 

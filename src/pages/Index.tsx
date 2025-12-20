@@ -138,16 +138,19 @@ const Index = () => {
                 <Skeleton className="h-48 w-full" />
               ) : (
                 <div className="overflow-x-auto">
-                  <Table>
+                <Table>
                     <TableHeader>
                       <TableRow className="bg-primary/5">
                         <TableHead>Department</TableHead>
                         <TableHead className="text-center" colSpan={2}>On Duty</TableHead>
                         <TableHead className="text-center" colSpan={2}>Not On Duty</TableHead>
                         <TableHead className="text-center" colSpan={2}>On Study</TableHead>
+                        <TableHead className="text-center" colSpan={2}>On Duty ARA</TableHead>
                       </TableRow>
                       <TableRow className="bg-muted/50">
                         <TableHead></TableHead>
+                        <TableHead className="text-center text-info">M</TableHead>
+                        <TableHead className="text-center text-accent">F</TableHead>
                         <TableHead className="text-center text-info">M</TableHead>
                         <TableHead className="text-center text-accent">F</TableHead>
                         <TableHead className="text-center text-info">M</TableHead>
@@ -166,6 +169,8 @@ const Index = () => {
                           <TableCell className="text-center text-accent">{dept.genderByStatus?.notOnDuty?.F || 0}</TableCell>
                           <TableCell className="text-center text-info">{dept.genderByStatus?.onStudy?.M || 0}</TableCell>
                           <TableCell className="text-center text-accent">{dept.genderByStatus?.onStudy?.F || 0}</TableCell>
+                          <TableCell className="text-center text-info">{dept.genderByStatus?.onDutyARA?.M || 0}</TableCell>
+                          <TableCell className="text-center text-accent">{dept.genderByStatus?.onDutyARA?.F || 0}</TableCell>
                         </TableRow>
                       ))}
                     </TableBody>
@@ -221,6 +226,7 @@ const Index = () => {
                       <TableHead className="text-center">Asst. Prof.</TableHead>
                       <TableHead className="text-center">Assoc. Prof.</TableHead>
                       <TableHead className="text-center">Professor</TableHead>
+                      <TableHead className="text-center">On Duty ARA</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -232,6 +238,7 @@ const Index = () => {
                         <TableCell className="text-center">{dept.onDutyByRank?.asstProf || 0}</TableCell>
                         <TableCell className="text-center">{dept.onDutyByRank?.assoProf || 0}</TableCell>
                         <TableCell className="text-center">{dept.onDutyByRank?.professor || 0}</TableCell>
+                        <TableCell className="text-center font-semibold text-primary">{dept.onDutyARACount || 0}</TableCell>
                       </TableRow>
                     ))}
                     {/* Totals Row */}
@@ -243,6 +250,7 @@ const Index = () => {
                         <TableCell className="text-center">{filteredDeptStats.reduce((sum, d) => sum + (d.onDutyByRank?.asstProf || 0), 0)}</TableCell>
                         <TableCell className="text-center">{filteredDeptStats.reduce((sum, d) => sum + (d.onDutyByRank?.assoProf || 0), 0)}</TableCell>
                         <TableCell className="text-center">{filteredDeptStats.reduce((sum, d) => sum + (d.onDutyByRank?.professor || 0), 0)}</TableCell>
+                        <TableCell className="text-center text-primary">{filteredDeptStats.reduce((sum, d) => sum + (d.onDutyARACount || 0), 0)}</TableCell>
                       </TableRow>
                     )}
                   </TableBody>

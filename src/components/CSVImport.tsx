@@ -151,6 +151,21 @@ const CSVImport = ({ open, onClose }: CSVImportProps) => {
     for (const row of parsedData) {
       if (!row.full_name) continue;
 
+      // Check for duplicate staff_id
+      if (row.staff_id) {
+        const { data: existingStaff } = await supabase
+          .from('staff')
+          .select('id')
+          .eq('staff_id', row.staff_id)
+          .maybeSingle();
+        
+        if (existingStaff) {
+          errorCount++;
+          console.error(`Duplicate staff_id: ${row.staff_id}`);
+          continue;
+        }
+      }
+
       try {
         await createStaff.mutateAsync({
           staff_id: row.staff_id || null,
