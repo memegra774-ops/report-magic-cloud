@@ -87,16 +87,16 @@ const ReportView = ({ report }: ReportViewProps) => {
               color: white; 
               font-weight: bold;
             }
-            .header { 
+            .section-header { 
               text-align: center; 
               margin-bottom: 10px; 
             }
-            .header h1 { 
+            .section-header h1 { 
               font-size: 14pt; 
               font-weight: bold; 
               margin: 0;
             }
-            .header h2 { 
+            .section-header h2 { 
               font-size: 12pt; 
               margin: 3px 0;
             }
@@ -127,9 +127,16 @@ const ReportView = ({ report }: ReportViewProps) => {
               width: 200px;
               margin-top: 30px;
             }
+            .hide-in-section {
+              display: none;
+            }
+            .last-page-only {
+              display: block;
+            }
             @media print { 
               body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
               .section-container { page-break-inside: avoid; break-inside: avoid; }
+              .hide-in-section { display: none !important; }
             }
           </style>
         </head>
@@ -236,14 +243,18 @@ const ReportView = ({ report }: ReportViewProps) => {
       </div>
 
       <div ref={printRef}>
-        {REPORT_SECTIONS.map((section) => {
+        {REPORT_SECTIONS.map((section, sectionIndex) => {
           const sectionEntries = getEntriesForSection(section);
           if (sectionEntries.length === 0) return null;
+
+          // Check if this is the last section with entries
+          const remainingSections = REPORT_SECTIONS.slice(sectionIndex + 1);
+          const isLastSection = !remainingSections.some(s => getEntriesForSection(s).length > 0);
 
           return (
             <div key={section.id} className="section-container mb-6 animate-slide-up" style={{ pageBreakInside: 'avoid', breakInside: 'avoid' }}>
               {/* Section Header */}
-              <div className="header text-center mb-3">
+              <div className="section-header text-center mb-3">
                 <h1 style={{ fontFamily: "'Times New Roman', serif", fontSize: '14pt', fontWeight: 'bold' }}>
                   Adama Science & Technology University
                 </h1>
@@ -300,27 +311,29 @@ const ReportView = ({ report }: ReportViewProps) => {
                 </Table>
               </div>
 
-              {/* Footer with Prepared by and Approved by */}
-              <div className="footer-signatures mt-8" style={{ pageBreakInside: 'avoid', breakInside: 'avoid' }}>
-                <div className="grid grid-cols-2 gap-8 mt-6">
-                  <div className="space-y-2">
-                    <p style={{ fontFamily: "'Times New Roman', serif" }}>
-                      <strong>Prepared by:</strong> ______________________________
-                    </p>
-                    <p style={{ fontFamily: "'Times New Roman', serif", marginTop: '20px' }}>
-                      <strong>Signature:</strong> ______________________________
-                    </p>
-                  </div>
-                  <div className="space-y-2">
-                    <p style={{ fontFamily: "'Times New Roman', serif" }}>
-                      <strong>Approved by:</strong> ______________________________
-                    </p>
-                    <p style={{ fontFamily: "'Times New Roman', serif", marginTop: '20px' }}>
-                      <strong>Signature:</strong> ______________________________
-                    </p>
+              {/* Footer with Prepared by and Approved by - Only on last page */}
+              {isLastSection && (
+                <div className="footer-signatures mt-8 last-page-only" style={{ pageBreakInside: 'avoid', breakInside: 'avoid' }}>
+                  <div className="grid grid-cols-2 gap-8 mt-6">
+                    <div className="space-y-2">
+                      <p style={{ fontFamily: "'Times New Roman', serif" }}>
+                        <strong>Prepared by:</strong> ______________________________
+                      </p>
+                      <p style={{ fontFamily: "'Times New Roman', serif", marginTop: '20px' }}>
+                        <strong>Signature:</strong> ______________________________
+                      </p>
+                    </div>
+                    <div className="space-y-2">
+                      <p style={{ fontFamily: "'Times New Roman', serif" }}>
+                        <strong>Approved by:</strong> ______________________________
+                      </p>
+                      <p style={{ fontFamily: "'Times New Roman', serif", marginTop: '20px' }}>
+                        <strong>Signature:</strong> ______________________________
+                      </p>
+                    </div>
                   </div>
                 </div>
-              </div>
+              )}
             </div>
           );
         })}
