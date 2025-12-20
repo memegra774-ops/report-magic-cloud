@@ -63,13 +63,12 @@ const Reports = () => {
   const handleRegenerateReport = async (report: MonthlyReport) => {
     setIsRegenerating(true);
     try {
-      // Delete the old report first
-      await deleteReport.mutateAsync(report.id);
-      // Create a new one with the same month/year
+      // Use the regenerate flag to replace existing report
       await createReport.mutateAsync({ 
         month: report.report_month, 
         year: report.report_year,
-        departmentId: report.department_id || (role === 'department_head' ? profile?.department_id : undefined)
+        departmentId: report.department_id || (role === 'department_head' ? profile?.department_id : undefined),
+        regenerate: true
       });
     } finally {
       setIsRegenerating(false);
