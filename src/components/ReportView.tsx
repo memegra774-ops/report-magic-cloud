@@ -1,5 +1,5 @@
 import { useRef } from 'react';
-import { MonthlyReport, MONTHS, Staff } from '@/types/staff';
+import { MonthlyReport, MONTHS, Staff, STAFF_STATUSES } from '@/types/staff';
 import { useReportEntries } from '@/hooks/useReports';
 import { Button } from '@/components/ui/button';
 import { Printer } from 'lucide-react';
@@ -17,7 +17,7 @@ interface ReportViewProps {
   report: MonthlyReport;
 }
 
-// Report sections matching the Excel template exactly
+// Report sections matching the PDF template exactly
 type ReportSection = {
   id: string;
   title: string;
@@ -30,8 +30,11 @@ const REPORT_SECTIONS: ReportSection[] = [
   { id: 'local-not-on-duty', title: 'Not On Duty Academic Staff Report', categoryFilter: 'Local Instructors', statusFilter: 'Not On Duty' },
   { id: 'local-on-study', title: 'On Study Academic Staff Report', categoryFilter: 'Local Instructors', statusFilter: 'On Study' },
   { id: 'local-not-reporting', title: 'Not Reporting On Study Academic Staff Report', categoryFilter: 'Local Instructors', statusFilter: 'On Study Leave' },
-  { id: 'ara-on-duty', title: 'On Duty Academic and Research Assistants Report', categoryFilter: 'ARA', statusFilter: 'On Duty' },
-  { id: 'ara-not-on-duty', title: 'Not On Duty Academic and Research Assistants Report', categoryFilter: 'ARA', statusFilter: 'Not On Duty' },
+  { id: 'local-sick', title: 'Sick Academic Staff Report', categoryFilter: 'Local Instructors', statusFilter: 'Sick' },
+  { id: 'ara-on-duty', title: 'On Duty Academic and Research Assistances Report', categoryFilter: 'ARA', statusFilter: 'On Duty' },
+  { id: 'ara-not-on-duty', title: 'Not On Duty Academic and Research Assistances Report', categoryFilter: 'ARA', statusFilter: 'Not On Duty' },
+  { id: 'ara-on-study', title: 'On Study Academic and Research Assistances Report', categoryFilter: 'ARA', statusFilter: 'On Study' },
+  { id: 'ara-sick', title: 'Sick Academic and Research Assistances Report', categoryFilter: 'ARA', statusFilter: 'Sick' },
   { id: 'astu-sponsor', title: 'ASTU Sponsors Report', categoryFilter: 'ASTU Sponsor' },
 ];
 
@@ -46,10 +49,12 @@ const ReportView = ({ report }: ReportViewProps) => {
     const printWindow = window.open('', '_blank');
     if (!printWindow) return;
 
+    const versionText = report.version > 1 ? ` (Version ${report.version})` : '';
+
     printWindow.document.write(`
       <html>
         <head>
-          <title>Monthly Report - ${MONTHS[report.report_month - 1]} ${report.report_year}</title>
+          <title>Monthly Report - ${MONTHS[report.report_month - 1]} ${report.report_year}${versionText}</title>
           <style>
             @page { 
               size: A4 landscape; 
@@ -129,11 +134,13 @@ const ReportView = ({ report }: ReportViewProps) => {
     return <div className="text-center py-8">Loading report...</div>;
   }
 
+  const versionText = report.version > 1 ? ` (Version ${report.version})` : '';
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <h2 className="font-serif text-2xl font-bold">
-          {MONTHS[report.report_month - 1]} {report.report_year} Report
+          {MONTHS[report.report_month - 1]} {report.report_year} Report{versionText}
         </h2>
         <div className="flex gap-2">
           <Button variant="outline" onClick={handlePrint}>
@@ -171,7 +178,7 @@ const ReportView = ({ report }: ReportViewProps) => {
                       <TableHead className="text-primary-foreground">Staff ID</TableHead>
                       <TableHead className="text-primary-foreground">Full Name</TableHead>
                       <TableHead className="text-primary-foreground text-center w-12">Sex</TableHead>
-                      <TableHead className="text-primary-foreground">College Name</TableHead>
+                      <TableHead className="text-primary-foreground">College</TableHead>
                       <TableHead className="text-primary-foreground w-16">Dep</TableHead>
                       <TableHead className="text-primary-foreground">Specialization</TableHead>
                       <TableHead className="text-primary-foreground text-center w-16">Edu. Level</TableHead>

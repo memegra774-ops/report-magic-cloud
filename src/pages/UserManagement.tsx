@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Plus, Trash2, UserPlus } from 'lucide-react';
+import { Trash2, UserPlus, Edit } from 'lucide-react';
 import Header from '@/components/Header';
 import { useAuth, AppRole } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
@@ -51,14 +51,29 @@ const ROLES: { value: AppRole; label: string }[] = [
   { value: 'management', label: 'Management' },
 ];
 
+interface UserWithRole {
+  id: string;
+  email: string;
+  full_name: string | null;
+  department_id: string | null;
+  departments?: { code: string; name: string } | null;
+  role: AppRole | null;
+}
+
 const UserManagement = () => {
   const { role } = useAuth();
   const queryClient = useQueryClient();
   const [inviteDialogOpen, setInviteDialogOpen] = useState(false);
+  const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [deleteUserId, setDeleteUserId] = useState<string | null>(null);
+  const [editingUser, setEditingUser] = useState<UserWithRole | null>(null);
   const [formData, setFormData] = useState({
     email: '',
     full_name: '',
+    role: 'department_head' as AppRole,
+    department_id: '',
+  });
+  const [editFormData, setEditFormData] = useState({
     role: 'department_head' as AppRole,
     department_id: '',
   });
@@ -85,13 +100,12 @@ const UserManagement = () => {
       return profiles.map(profile => ({
         ...profile,
         role: roleMap.get(profile.id) || null,
-      }));
+      })) as UserWithRole[];
     },
   });
 
   const inviteUser = useMutation({
     mutationFn: async (data: typeof formData) => {
-      // Use Edge Function to create user without logging out current admin
       const { data: result, error } = await supabase.functions.invoke('create-user', {
         body: {
           email: data.email,
@@ -107,39 +121,88 @@ const UserManagement = () => {
 
       return result;
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ['users-with-roles'] });
       setInviteDialogOpen(false);
       setFormData({ email: '', full_name: '', role: 'department_head', department_id: '' });
-      toast.success('User invited successfully. Default password: 12345678');
+      if (data?.email_sent) {
+        toast.success('User invited successfully. Email notification sent with login credentials.');
+      } else {
+        toast.success('User invited successfully. Default password: 12345678');
+      }
     },
     onError: (error) => {
       toast.error('Failed to invite user: ' + error.message);
     },
   });
 
-  const deleteUser = useMutation({
-    mutationFn: async (userId: string) => {
-      // Note: This only removes the role, not the actual user account
-      const { error } = await supabase
-        .from('user_roles')
-        .delete()
-        .eq('user_id', userId);
+  const updateUserRole = useMutation({
+    mutationFn: async ({ userId, newRole, departmentId }: { userId: string; newRole: AppRole; departmentId?: string }) => {
+      const { data: result, error } = await supabase.functions.invoke('update-user-role', {
+        body: {
+          user_id: userId,
+          new_role: newRole,
+          department_id: departmentId,
+        },
+      });
 
       if (error) throw error;
+      if (result?.error) throw new Error(result.error);
+
+      return result;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['users-with-roles'] });
+      setEditDialogOpen(false);
+      setEditingUser(null);
+      toast.success('User role updated successfully');
+    },
+    onError: (error) => {
+      toast.error('Failed to update user role: ' + error.message);
+    },
+  });
+
+  const deleteUser = useMutation({
+    mutationFn: async (userId: string) => {
+      const { data: result, error } = await supabase.functions.invoke('delete-user', {
+        body: { user_id: userId },
+      });
+
+      if (error) throw error;
+      if (result?.error) throw new Error(result.error);
+
+      return result;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['users-with-roles'] });
       setDeleteUserId(null);
-      toast.success('User role removed successfully');
+      toast.success('User deleted successfully');
     },
     onError: (error) => {
-      toast.error('Failed to remove user: ' + error.message);
+      toast.error('Failed to delete user: ' + error.message);
     },
   });
 
   const handleInvite = () => {
     inviteUser.mutate(formData);
+  };
+
+  const handleEditClick = (user: UserWithRole) => {
+    setEditingUser(user);
+    setEditFormData({
+      role: user.role || 'department_head',
+      department_id: user.department_id || '',
+    });
+    setEditDialogOpen(true);
+  };
+
+  const handleUpdateRole = () => {
+    if (!editingUser) return;
+    updateUserRole.mutate({
+      userId: editingUser.id,
+      newRole: editFormData.role,
+      departmentId: editFormData.department_id,
+    });
   };
 
   if (role !== 'system_admin') {
@@ -212,13 +275,22 @@ const UserManagement = () => {
                       </TableCell>
                       <TableCell className="text-right">
                         {user.role !== 'system_admin' && (
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => setDeleteUserId(user.id)}
-                          >
-                            <Trash2 className="h-4 w-4 text-destructive" />
-                          </Button>
+                          <div className="flex justify-end gap-2">
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => handleEditClick(user)}
+                            >
+                              <Edit className="h-4 w-4 text-primary" />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => setDeleteUserId(user.id)}
+                            >
+                              <Trash2 className="h-4 w-4 text-destructive" />
+                            </Button>
+                          </div>
                         )}
                       </TableCell>
                     </TableRow>
@@ -292,7 +364,7 @@ const UserManagement = () => {
                 </div>
               )}
               <p className="text-sm text-muted-foreground">
-                Default password: <code className="bg-muted px-1 rounded">12345678</code>
+                An email will be sent to the user with login credentials. Default password: <code className="bg-muted px-1 rounded">12345678</code>
               </p>
             </div>
             <DialogFooter>
@@ -306,13 +378,74 @@ const UserManagement = () => {
           </DialogContent>
         </Dialog>
 
+        {/* Edit Role Dialog */}
+        <Dialog open={editDialogOpen} onOpenChange={setEditDialogOpen}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle className="font-serif text-xl">Edit User Role</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4 py-4">
+              <div className="space-y-2">
+                <Label>User</Label>
+                <Input value={editingUser?.full_name || editingUser?.email || ''} disabled />
+              </div>
+              <div className="space-y-2">
+                <Label>Role</Label>
+                <Select
+                  value={editFormData.role}
+                  onValueChange={(v) => setEditFormData({ ...editFormData, role: v as AppRole })}
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {ROLES.map((role) => (
+                      <SelectItem key={role.value} value={role.value}>
+                        {role.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              {editFormData.role === 'department_head' && (
+                <div className="space-y-2">
+                  <Label>Department</Label>
+                  <Select
+                    value={editFormData.department_id}
+                    onValueChange={(v) => setEditFormData({ ...editFormData, department_id: v })}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select department" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {departments?.map((dept) => (
+                        <SelectItem key={dept.id} value={dept.id}>
+                          {dept.code} - {dept.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
+            </div>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setEditDialogOpen(false)}>
+                Cancel
+              </Button>
+              <Button onClick={handleUpdateRole} disabled={updateUserRole.isPending}>
+                {updateUserRole.isPending ? 'Updating...' : 'Update Role'}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
         {/* Delete Confirmation */}
         <AlertDialog open={!!deleteUserId} onOpenChange={() => setDeleteUserId(null)}>
           <AlertDialogContent>
             <AlertDialogHeader>
-              <AlertDialogTitle>Remove User Access</AlertDialogTitle>
+              <AlertDialogTitle>Delete User</AlertDialogTitle>
               <AlertDialogDescription>
-                Are you sure you want to remove this user's role? They will no longer have access to the system.
+                Are you sure you want to delete this user? This will remove their account, profile, and all associated data. This action cannot be undone.
               </AlertDialogDescription>
             </AlertDialogHeader>
             <AlertDialogFooter>
@@ -321,7 +454,7 @@ const UserManagement = () => {
                 onClick={() => deleteUserId && deleteUser.mutate(deleteUserId)}
                 className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
               >
-                Remove
+                {deleteUser.isPending ? 'Deleting...' : 'Delete User'}
               </AlertDialogAction>
             </AlertDialogFooter>
           </AlertDialogContent>
