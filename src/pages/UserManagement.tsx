@@ -44,12 +44,6 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { toast } from 'sonner';
-import emailjs from '@emailjs/browser';
-
-// EmailJS configuration - using public API key
-const EMAILJS_PUBLIC_KEY = 'U7ON9nZCHj4tFvcvG';
-const EMAILJS_SERVICE_ID = 'service_mgzytra'; // User needs to configure this
-const EMAILJS_TEMPLATE_ID = 'template_gwsmq1l'; // User needs to configure this
 
 const ROLES: { value: AppRole; label: string }[] = [
   { value: 'department_head', label: 'Department Head' },
@@ -66,43 +60,8 @@ interface UserWithRole {
   role: AppRole | null;
 }
 
-// Send invitation email using EmailJS
-const sendInvitationEmail = async (name: string, email: string) => {
-  try {
-    // Initialize EmailJS
-    emailjs.init(EMAILJS_PUBLIC_KEY);
-    
-    const templateParams = {
-      to_name: name,
-      to_email: email,
-      name: name,
-      subject: 'Invitation to Join Staff Reporting Portal',
-      message: `Dear ${name},
-
-Please join the reporting portal using the following login information:
-
-Username: ${email}
-Password: 12345678
-
-Please change your password after your first login.
-
-Best regards,
-ASTU Staff Report System`,
-    };
-
-    await emailjs.send(
-      EMAILJS_SERVICE_ID,
-      EMAILJS_TEMPLATE_ID,
-      templateParams
-    );
-    
-    console.log('Invitation email sent successfully');
-    return true;
-  } catch (error) {
-    console.error('Failed to send invitation email:', error);
-    return false;
-  }
-};
+// Import centralized email function
+import { sendInvitationEmail } from '@/lib/emailNotifications';
 
 const UserManagement = () => {
   const { role } = useAuth();

@@ -11,6 +11,7 @@ import {
 import { CSV_TEMPLATE_HEADERS, STAFF_CATEGORIES, EDUCATION_LEVELS, StaffCategory, EducationLevel } from '@/types/staff';
 import { useCreateStaff } from '@/hooks/useStaff';
 import { useAuth } from '@/contexts/AuthContext';
+import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 
 interface CSVImportProps {
@@ -137,6 +138,16 @@ const CSVImport = ({ open, onClose }: CSVImportProps) => {
     let successCount = 0;
     let errorCount = 0;
 
+    // Get department name for notifications
+    const { data: deptData } = await supabase
+      .from('departments')
+      .select('name')
+      .eq('id', profile.department_id)
+      .single();
+    
+    const departmentName = deptData?.name || 'Unknown Department';
+    const performedBy = profile?.full_name || profile?.email || 'Department User';
+
     for (const row of parsedData) {
       if (!row.full_name) continue;
 
@@ -153,7 +164,12 @@ const CSVImport = ({ open, onClose }: CSVImportProps) => {
           current_status: row.current_status,
           category: row.category,
           remark: row.remark || null,
-        });
+          notificationOptions: {
+            departmentName,
+            performedBy,
+            skipNotification: successCount > 0, // Only notify for first import to avoid spam
+          },
+        } as any);
         successCount++;
       } catch (error) {
         errorCount++;

@@ -1,6 +1,7 @@
 import { useState, useMemo } from 'react';
 import { Staff, STAFF_CATEGORIES, EDUCATION_LEVELS, STAFF_STATUSES, StaffCategory, EducationLevel, ACADEMIC_RANKS } from '@/types/staff';
 import { useUpdateStaff, useDeleteStaff, useDepartments } from '@/hooks/useStaff';
+import { useAuth } from '@/contexts/AuthContext';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Trash2, Check, X, Filter } from 'lucide-react';
@@ -57,8 +58,9 @@ interface ColumnFilters {
 }
 
 const EditableStaffTable = ({ staff, canEdit = true, canDelete = true }: EditableStaffTableProps) => {
+  const { profile } = useAuth();
   const [editingCell, setEditingCell] = useState<EditingCell | null>(null);
-  const [deleteId, setDeleteId] = useState<string | null>(null);
+  const [deleteStaffMember, setDeleteStaffMember] = useState<Staff | null>(null);
   const [columnFilters, setColumnFilters] = useState<ColumnFilters>({});
   const updateStaff = useUpdateStaff();
   const deleteStaff = useDeleteStaff();
@@ -108,9 +110,16 @@ const EditableStaffTable = ({ staff, canEdit = true, canDelete = true }: Editabl
   };
 
   const confirmDelete = async () => {
-    if (deleteId) {
-      await deleteStaff.mutateAsync(deleteId);
-      setDeleteId(null);
+    if (deleteStaffMember) {
+      await deleteStaff.mutateAsync({
+        id: deleteStaffMember.id,
+        options: {
+          staffName: deleteStaffMember.full_name,
+          departmentName: deleteStaffMember.departments?.name,
+          performedBy: profile?.full_name || profile?.email || 'Department User',
+        },
+      });
+      setDeleteStaffMember(null);
     }
   };
 
@@ -312,7 +321,7 @@ const EditableStaffTable = ({ staff, canEdit = true, canDelete = true }: Editabl
                       variant="ghost"
                       size="sm"
                       className="h-8 w-8 p-0"
-                      onClick={() => setDeleteId(s.id)}
+                      onClick={() => setDeleteStaffMember(s)}
                     >
                       <Trash2 className="h-4 w-4 text-destructive" />
                     </Button>
@@ -332,7 +341,7 @@ const EditableStaffTable = ({ staff, canEdit = true, canDelete = true }: Editabl
       </div>
 
       {/* Delete Confirmation */}
-      <AlertDialog open={!!deleteId} onOpenChange={(open) => !open && setDeleteId(null)}>
+      <AlertDialog open={!!deleteStaffMember} onOpenChange={(open) => !open && setDeleteStaffMember(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Delete Staff Member</AlertDialogTitle>
