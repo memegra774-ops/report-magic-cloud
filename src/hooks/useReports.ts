@@ -23,8 +23,37 @@ export const useCreateReport = () => {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async ({ month, year, departmentId }: { month: number; year: number; departmentId?: string | null }) => {
-      // First create the report
+    mutationFn: async ({ month, year, departmentId, regenerate = false }: { month: number; year: number; departmentId?: string | null; regenerate?: boolean }) => {
+      // Check if a report already exists for this month/year/department
+      let existingQuery = supabase
+        .from('monthly_reports')
+        .select('id')
+        .eq('report_month', month)
+        .eq('report_year', year);
+      
+      if (departmentId) {
+        existingQuery = existingQuery.eq('department_id', departmentId);
+      } else {
+        existingQuery = existingQuery.is('department_id', null);
+      }
+
+      const { data: existingReport } = await existingQuery.maybeSingle();
+
+      if (existingReport && !regenerate) {
+        throw new Error('A report already exists for this period. Use regenerate to update it.');
+      }
+
+      // If regenerating, delete the existing report first (cascade will delete entries)
+      if (existingReport && regenerate) {
+        const { error: deleteError } = await supabase
+          .from('monthly_reports')
+          .delete()
+          .eq('id', existingReport.id);
+        
+        if (deleteError) throw deleteError;
+      }
+
+      // Create the report
       const { data: report, error: reportError } = await supabase
         .from('monthly_reports')
         .insert({ 
