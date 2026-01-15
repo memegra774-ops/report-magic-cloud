@@ -163,31 +163,58 @@ export type Database = {
       }
       report_entries: {
         Row: {
+          academic_rank: string | null
           category: Database["public"]["Enums"]["staff_category"]
+          college_name: string | null
           created_at: string
           current_status: string
+          department_code: string | null
+          department_name: string | null
+          education_level: string | null
+          full_name: string | null
           id: string
           remark: string | null
           report_id: string | null
+          sex: string | null
+          specialization: string | null
           staff_id: string | null
+          staff_id_number: string | null
         }
         Insert: {
+          academic_rank?: string | null
           category: Database["public"]["Enums"]["staff_category"]
+          college_name?: string | null
           created_at?: string
           current_status: string
+          department_code?: string | null
+          department_name?: string | null
+          education_level?: string | null
+          full_name?: string | null
           id?: string
           remark?: string | null
           report_id?: string | null
+          sex?: string | null
+          specialization?: string | null
           staff_id?: string | null
+          staff_id_number?: string | null
         }
         Update: {
+          academic_rank?: string | null
           category?: Database["public"]["Enums"]["staff_category"]
+          college_name?: string | null
           created_at?: string
           current_status?: string
+          department_code?: string | null
+          department_name?: string | null
+          education_level?: string | null
+          full_name?: string | null
           id?: string
           remark?: string | null
           report_id?: string | null
+          sex?: string | null
+          specialization?: string | null
           staff_id?: string | null
+          staff_id_number?: string | null
         }
         Relationships: [
           {

@@ -16,6 +16,7 @@ import {
 
 interface ReportViewProps {
   report: MonthlyReport;
+  isDepartmentHead?: boolean;
 }
 
 // Report sections matching the PDF template exactly
@@ -39,9 +40,16 @@ const REPORT_SECTIONS: ReportSection[] = [
   { id: 'astu-sponsor', title: 'ASTU Sponsors Report', categoryFilter: 'ASTU Sponsor' },
 ];
 
-const ReportView = ({ report }: ReportViewProps) => {
+const ReportView = ({ report, isDepartmentHead = false }: ReportViewProps) => {
   const { data: entries, isLoading } = useReportEntries(report.id);
   const printRef = useRef<HTMLDivElement>(null);
+
+  // Get department info from the first entry (all entries in a dept report share the same dept)
+  const departmentInfo = entries?.[0]?.department_code && entries?.[0]?.department_name
+    ? { code: entries[0].department_code, name: entries[0].department_name }
+    : report.departments
+      ? { code: report.departments.code, name: report.departments.name }
+      : null;
 
   const handlePrint = () => {
     const printContent = printRef.current;
@@ -162,20 +170,37 @@ const ReportView = ({ report }: ReportViewProps) => {
 
       const data = sectionEntries.map((entry, index) => ({
         '#': index + 1,
-        'Staff ID': entry.staff?.staff_id || '-',
-        'Full Name': entry.staff?.full_name || '-',
-        'Sex': entry.staff?.sex || '-',
-        'College': entry.staff?.college_name || 'CoEEC',
-        'Department': entry.staff?.departments?.code || '-',
-        'Specialization': entry.staff?.specialization || '-',
-        'Edu. Level': entry.staff?.education_level || '-',
-        'Academic Rank': entry.staff?.academic_rank || '-',
+        'Staff ID': entry.staff_id_number || entry.staff?.staff_id || '-',
+        'Full Name': entry.full_name || entry.staff?.full_name || '-',
+        'Sex': entry.sex || entry.staff?.sex || '-',
+        'College': entry.college_name || entry.staff?.college_name || 'CoEEC',
+        'Department': entry.department_code || entry.staff?.departments?.code || '-',
+        'Specialization': entry.specialization || entry.staff?.specialization || '-',
+        'Edu. Level': entry.education_level || entry.staff?.education_level || '-',
+        'Academic Rank': entry.academic_rank || entry.staff?.academic_rank || '-',
         'Current Status': entry.current_status || '-',
         'Remark': entry.remark || '-',
       }));
 
-      // Create worksheet
-      const ws = XLSX.utils.json_to_sheet(data);
+      // Create worksheet with header rows for department heads
+      const ws = XLSX.utils.aoa_to_sheet([]);
+      
+      // Add header rows
+      XLSX.utils.sheet_add_aoa(ws, [['Adama Science & Technology University']], { origin: 'A1' });
+      XLSX.utils.sheet_add_aoa(ws, [['College of Electrical Engineering & Computing']], { origin: 'A2' });
+      
+      let dataStartRow = 4;
+      if (isDepartmentHead && departmentInfo) {
+        XLSX.utils.sheet_add_aoa(ws, [[`Department: ${departmentInfo.name} (${departmentInfo.code})`]], { origin: 'A3' });
+        XLSX.utils.sheet_add_aoa(ws, [[`${section.title} - ${MONTHS[report.report_month - 1]} ${report.report_year}`]], { origin: 'A4' });
+        dataStartRow = 6;
+      } else {
+        XLSX.utils.sheet_add_aoa(ws, [[`${section.title} - ${MONTHS[report.report_month - 1]} ${report.report_year}`]], { origin: 'A3' });
+        dataStartRow = 5;
+      }
+      
+      // Add data starting after headers
+      XLSX.utils.sheet_add_json(ws, data, { origin: `A${dataStartRow}` });
       
       // Shorten the sheet name to max 31 characters (Excel limitation)
       const sheetName = section.title.substring(0, 31);
@@ -185,20 +210,35 @@ const ReportView = ({ report }: ReportViewProps) => {
     // Create a summary sheet with all entries
     const allData = entries.map((entry, index) => ({
       '#': index + 1,
-      'Staff ID': entry.staff?.staff_id || '-',
-      'Full Name': entry.staff?.full_name || '-',
-      'Sex': entry.staff?.sex || '-',
-      'College': entry.staff?.college_name || 'CoEEC',
-      'Department': entry.staff?.departments?.code || '-',
-      'Specialization': entry.staff?.specialization || '-',
-      'Edu. Level': entry.staff?.education_level || '-',
-      'Academic Rank': entry.staff?.academic_rank || '-',
+      'Staff ID': entry.staff_id_number || entry.staff?.staff_id || '-',
+      'Full Name': entry.full_name || entry.staff?.full_name || '-',
+      'Sex': entry.sex || entry.staff?.sex || '-',
+      'College': entry.college_name || entry.staff?.college_name || 'CoEEC',
+      'Department': entry.department_code || entry.staff?.departments?.code || '-',
+      'Specialization': entry.specialization || entry.staff?.specialization || '-',
+      'Edu. Level': entry.education_level || entry.staff?.education_level || '-',
+      'Academic Rank': entry.academic_rank || entry.staff?.academic_rank || '-',
       'Category': entry.category || '-',
       'Current Status': entry.current_status || '-',
       'Remark': entry.remark || '-',
     }));
 
-    const summaryWs = XLSX.utils.json_to_sheet(allData);
+    // Create summary worksheet with header rows
+    const summaryWs = XLSX.utils.aoa_to_sheet([]);
+    XLSX.utils.sheet_add_aoa(summaryWs, [['Adama Science & Technology University']], { origin: 'A1' });
+    XLSX.utils.sheet_add_aoa(summaryWs, [['College of Electrical Engineering & Computing']], { origin: 'A2' });
+    
+    let summaryDataStartRow = 4;
+    if (isDepartmentHead && departmentInfo) {
+      XLSX.utils.sheet_add_aoa(summaryWs, [[`Department: ${departmentInfo.name} (${departmentInfo.code})`]], { origin: 'A3' });
+      XLSX.utils.sheet_add_aoa(summaryWs, [[`All Staff Summary - ${MONTHS[report.report_month - 1]} ${report.report_year}`]], { origin: 'A4' });
+      summaryDataStartRow = 6;
+    } else {
+      XLSX.utils.sheet_add_aoa(summaryWs, [[`All Staff Summary - ${MONTHS[report.report_month - 1]} ${report.report_year}`]], { origin: 'A3' });
+      summaryDataStartRow = 5;
+    }
+    
+    XLSX.utils.sheet_add_json(summaryWs, allData, { origin: `A${summaryDataStartRow}` });
     XLSX.utils.book_append_sheet(wb, summaryWs, 'All Staff');
 
     // Download the file
@@ -261,6 +301,11 @@ const ReportView = ({ report }: ReportViewProps) => {
                 <h2 style={{ fontFamily: "'Times New Roman', serif", fontSize: '12pt' }}>
                   College of Electrical Engineering & Computing
                 </h2>
+                {isDepartmentHead && departmentInfo && (
+                  <h3 style={{ fontFamily: "'Times New Roman', serif", fontSize: '12pt' }}>
+                    Department: {departmentInfo.name} ({departmentInfo.code})
+                  </h3>
+                )}
                 <p style={{ fontFamily: "'Times New Roman', serif", fontSize: '12pt', fontWeight: 'bold', marginTop: '5px' }}>
                   {section.title} of {MONTHS[report.report_month - 1]}, {report.report_year}
                 </p>
@@ -287,18 +332,18 @@ const ReportView = ({ report }: ReportViewProps) => {
                     {sectionEntries.map((entry, index) => (
                       <TableRow key={entry.id} className="table-row-hover">
                         <TableCell className="text-center font-medium text-muted-foreground">{index + 1}</TableCell>
-                        <TableCell className="font-mono text-sm">{entry.staff?.staff_id || '-'}</TableCell>
-                        <TableCell className="font-medium">{entry.staff?.full_name}</TableCell>
-                        <TableCell className="text-center">{entry.staff?.sex}</TableCell>
-                        <TableCell>{entry.staff?.college_name || 'CoEEC'}</TableCell>
-                        <TableCell>{entry.staff?.departments?.code || '-'}</TableCell>
-                        <TableCell className="max-w-[150px] truncate">{entry.staff?.specialization || '-'}</TableCell>
+                        <TableCell className="font-mono text-sm">{entry.staff_id_number || entry.staff?.staff_id || '-'}</TableCell>
+                        <TableCell className="font-medium">{entry.full_name || entry.staff?.full_name || '-'}</TableCell>
+                        <TableCell className="text-center">{entry.sex || entry.staff?.sex || '-'}</TableCell>
+                        <TableCell>{entry.college_name || entry.staff?.college_name || 'CoEEC'}</TableCell>
+                        <TableCell>{entry.department_code || entry.staff?.departments?.code || '-'}</TableCell>
+                        <TableCell className="max-w-[150px] truncate">{entry.specialization || entry.staff?.specialization || '-'}</TableCell>
                         <TableCell className="text-center">
                           <span className="inline-flex items-center px-2 py-0.5 rounded bg-secondary text-secondary-foreground text-xs font-medium">
-                            {entry.staff?.education_level}
+                            {entry.education_level || entry.staff?.education_level || '-'}
                           </span>
                         </TableCell>
-                        <TableCell>{entry.staff?.academic_rank || '-'}</TableCell>
+                        <TableCell>{entry.academic_rank || entry.staff?.academic_rank || '-'}</TableCell>
                         <TableCell>
                           <StatusBadge status={entry.current_status} />
                         </TableCell>

@@ -104,6 +104,8 @@ const Reports = () => {
     return true;
   });
 
+  const isDepartmentHead = role === 'department_head';
+
   if (viewReport) {
     return (
       <div className="min-h-screen bg-background">
@@ -120,7 +122,7 @@ const Reports = () => {
                 <TabsTrigger value="letter">Official Letter</TabsTrigger>
               </TabsList>
               <TabsContent value="report">
-                <ReportView report={viewReport} />
+                <ReportView report={viewReport} isDepartmentHead={isDepartmentHead} />
               </TabsContent>
               <TabsContent value="letter">
                 <ReportLetter 
@@ -130,7 +132,7 @@ const Reports = () => {
               </TabsContent>
             </Tabs>
           ) : (
-            <ReportView report={viewReport} />
+            <ReportView report={viewReport} isDepartmentHead={isDepartmentHead} />
           )}
         </main>
       </div>
