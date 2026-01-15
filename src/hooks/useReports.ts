@@ -66,10 +66,10 @@ export const useCreateReport = () => {
 
       if (reportError) throw reportError;
 
-      // Then copy all staff into report entries (filtered by department if applicable)
+      // Then copy all staff into report entries with full snapshot data (filtered by department if applicable)
       let staffQuery = supabase
         .from('staff')
-        .select('id, category, current_status, remark');
+        .select('id, staff_id, full_name, sex, college_name, department_id, specialization, education_level, academic_rank, category, current_status, remark, departments(code, name)');
       
       if (departmentId) {
         staffQuery = staffQuery.eq('department_id', departmentId);
@@ -80,12 +80,22 @@ export const useCreateReport = () => {
       if (staffError) throw staffError;
 
       if (staffData && staffData.length > 0) {
-        const entries = staffData.map((staff) => ({
+        const entries = staffData.map((staff: any) => ({
           report_id: report.id,
           staff_id: staff.id,
           category: staff.category,
           current_status: staff.current_status,
           remark: staff.remark,
+          // Store snapshot data for immutability
+          staff_id_number: staff.staff_id,
+          full_name: staff.full_name,
+          sex: staff.sex,
+          college_name: staff.college_name,
+          department_code: staff.departments?.code || null,
+          department_name: staff.departments?.name || null,
+          specialization: staff.specialization,
+          education_level: staff.education_level,
+          academic_rank: staff.academic_rank,
         }));
 
         const { error: entriesError } = await supabase
