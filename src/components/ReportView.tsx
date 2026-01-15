@@ -359,20 +359,20 @@ const ReportView = ({ report, isDepartmentHead = false }: ReportViewProps) => {
               {/* Footer with Prepared by and Approved by - Only on last page */}
               {isLastSection && (
                 <div className="footer-signatures mt-8 last-page-only" style={{ pageBreakInside: 'avoid', breakInside: 'avoid' }}>
-                  <div className="grid grid-cols-2 gap-8 mt-6">
-                    <div className="space-y-2">
-                      <p style={{ fontFamily: "'Times New Roman', serif" }}>
+                  <div className="signature-row flex justify-between mt-6" style={{ display: 'flex', justifyContent: 'space-between' }}>
+                    <div className="signature-block" style={{ width: '45%' }}>
+                      <p style={{ fontFamily: "'Times New Roman', serif", marginBottom: '8px' }}>
                         <strong>Prepared by:</strong> ______________________________
                       </p>
-                      <p style={{ fontFamily: "'Times New Roman', serif", marginTop: '20px' }}>
+                      <p style={{ fontFamily: "'Times New Roman', serif", marginTop: '24px' }}>
                         <strong>Signature:</strong> ______________________________
                       </p>
                     </div>
-                    <div className="space-y-2">
-                      <p style={{ fontFamily: "'Times New Roman', serif" }}>
+                    <div className="signature-block text-right" style={{ width: '45%', textAlign: 'right' }}>
+                      <p style={{ fontFamily: "'Times New Roman', serif", marginBottom: '8px' }}>
                         <strong>Approved by:</strong> ______________________________
                       </p>
-                      <p style={{ fontFamily: "'Times New Roman', serif", marginTop: '20px' }}>
+                      <p style={{ fontFamily: "'Times New Roman', serif", marginTop: '24px' }}>
                         <strong>Signature:</strong> ______________________________
                       </p>
                     </div>

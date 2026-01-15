@@ -1,8 +1,9 @@
 import { useState } from 'react';
-import { Plus, Calendar, Trash2, Eye, FileText, RefreshCw } from 'lucide-react';
+import { Plus, Calendar, Trash2, Eye, FileText, RefreshCw, GitCompare } from 'lucide-react';
 import Header from '@/components/Header';
 import ReportView from '@/components/ReportView';
 import ReportLetter from '@/components/ReportLetter';
+import ReportComparison from '@/components/ReportComparison';
 import { useMonthlyReports, useCreateReport, useDeleteReport } from '@/hooks/useReports';
 import { useAuth } from '@/contexts/AuthContext';
 import { useDepartments } from '@/hooks/useStaff';
@@ -42,9 +43,10 @@ const Reports = () => {
   const [selectedMonth, setSelectedMonth] = useState<number>(new Date().getMonth() + 1);
   const [selectedYear, setSelectedYear] = useState<number>(new Date().getFullYear());
   const [viewReport, setViewReport] = useState<MonthlyReport | null>(null);
-  const [viewMode, setViewMode] = useState<'report' | 'letter'>('report');
+  const [viewMode, setViewMode] = useState<'report' | 'letter' | 'compare'>('report');
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [isRegenerating, setIsRegenerating] = useState(false);
+  const [comparisonReports, setComparisonReports] = useState<{ previous: MonthlyReport; current: MonthlyReport } | null>(null);
 
   const { data: departments } = useDepartments();
   const { data: reports, isLoading } = useMonthlyReports();
@@ -106,6 +108,44 @@ const Reports = () => {
 
   const isDepartmentHead = role === 'department_head';
 
+  // Get sorted reports for comparison (newest first)
+  const sortedReports = filteredReports?.slice().sort((a, b) => {
+    const dateA = a.report_year * 12 + a.report_month;
+    const dateB = b.report_year * 12 + b.report_month;
+    return dateB - dateA;
+  });
+
+  // Find consecutive reports for comparison
+  const getConsecutivePairs = () => {
+    if (!sortedReports || sortedReports.length < 2) return [];
+    const pairs: { previous: MonthlyReport; current: MonthlyReport }[] = [];
+    for (let i = 0; i < sortedReports.length - 1; i++) {
+      pairs.push({ current: sortedReports[i], previous: sortedReports[i + 1] });
+    }
+    return pairs;
+  };
+
+  const consecutivePairs = getConsecutivePairs();
+
+  // Show comparison view
+  if (comparisonReports) {
+    return (
+      <div className="min-h-screen bg-background">
+        <Header />
+        <main className="container mx-auto px-4 py-8">
+          <Button variant="ghost" onClick={() => setComparisonReports(null)} className="mb-4">
+            ← Back to Reports
+          </Button>
+          <h2 className="font-serif text-2xl font-bold mb-6">Report Comparison</h2>
+          <ReportComparison 
+            previousReport={comparisonReports.previous} 
+            currentReport={comparisonReports.current} 
+          />
+        </main>
+      </div>
+    );
+  }
+
   if (viewReport) {
     return (
       <div className="min-h-screen bg-background">
@@ -153,12 +193,34 @@ const Reports = () => {
                 : 'Generate and view monthly staff reports'}
             </p>
           </div>
-          {canCreate && (
-            <Button onClick={() => setCreateDialogOpen(true)}>
-              <Plus className="h-4 w-4 mr-2" />
-              Generate New Report
-            </Button>
-          )}
+          <div className="flex gap-2">
+            {consecutivePairs.length > 0 && (
+              <Select 
+                onValueChange={(value) => {
+                  const pair = consecutivePairs[parseInt(value)];
+                  if (pair) setComparisonReports(pair);
+                }}
+              >
+                <SelectTrigger className="w-[200px]">
+                  <GitCompare className="h-4 w-4 mr-2" />
+                  <SelectValue placeholder="Compare Reports" />
+                </SelectTrigger>
+                <SelectContent>
+                  {consecutivePairs.map((pair, index) => (
+                    <SelectItem key={index} value={String(index)}>
+                      {MONTHS[pair.previous.report_month - 1]} → {MONTHS[pair.current.report_month - 1]} {pair.current.report_year}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            )}
+            {canCreate && (
+              <Button onClick={() => setCreateDialogOpen(true)}>
+                <Plus className="h-4 w-4 mr-2" />
+                Generate New Report
+              </Button>
+            )}
+          </div>
         </div>
 
         {/* Reports Grid */}
