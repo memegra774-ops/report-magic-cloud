@@ -1,5 +1,5 @@
 import { useMemo } from 'react';
-import { CheckCircle2, Clock, AlertCircle, Building2 } from 'lucide-react';
+import { CheckCircle2, Clock, AlertCircle, Building2, XCircle } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
@@ -16,7 +16,7 @@ interface DepartmentStatus {
   id: string;
   name: string;
   code: string;
-  status: 'pending' | 'submitted' | 'approved';
+  status: 'pending' | 'submitted' | 'approved' | 'rejected';
   report?: MonthlyReport;
 }
 
@@ -33,12 +33,16 @@ const SubmissionStatusDashboard = ({ reports, selectedMonth, selectedYear }: Sub
              r.report_year === selectedYear
       );
 
+      let status: DepartmentStatus['status'] = 'pending';
+      if (report?.status === 'approved') status = 'approved';
+      else if (report?.status === 'submitted') status = 'submitted';
+      else if (report?.status === 'rejected') status = 'rejected';
+
       return {
         id: dept.id,
         name: dept.name,
         code: dept.code,
-        status: report?.status === 'approved' ? 'approved' : 
-                report?.status === 'submitted' ? 'submitted' : 'pending',
+        status,
         report
       };
     });
@@ -47,11 +51,12 @@ const SubmissionStatusDashboard = ({ reports, selectedMonth, selectedYear }: Sub
   const stats = useMemo(() => {
     const approved = departmentStatuses.filter(d => d.status === 'approved').length;
     const submitted = departmentStatuses.filter(d => d.status === 'submitted').length;
+    const rejected = departmentStatuses.filter(d => d.status === 'rejected').length;
     const pending = departmentStatuses.filter(d => d.status === 'pending').length;
     const total = departmentStatuses.length;
     const progress = total > 0 ? ((approved + submitted) / total) * 100 : 0;
     
-    return { approved, submitted, pending, total, progress };
+    return { approved, submitted, rejected, pending, total, progress };
   }, [departmentStatuses]);
 
   const getStatusIcon = (status: DepartmentStatus['status']) => {
@@ -60,6 +65,8 @@ const SubmissionStatusDashboard = ({ reports, selectedMonth, selectedYear }: Sub
         return <CheckCircle2 className="h-4 w-4 text-blue-600" />;
       case 'submitted':
         return <Clock className="h-4 w-4 text-green-600" />;
+      case 'rejected':
+        return <XCircle className="h-4 w-4 text-red-500" />;
       case 'pending':
         return <AlertCircle className="h-4 w-4 text-amber-500" />;
     }
@@ -71,6 +78,8 @@ const SubmissionStatusDashboard = ({ reports, selectedMonth, selectedYear }: Sub
         return <Badge className="bg-blue-600 hover:bg-blue-700">Approved</Badge>;
       case 'submitted':
         return <Badge className="bg-green-600 hover:bg-green-700">Submitted</Badge>;
+      case 'rejected':
+        return <Badge variant="destructive">Rejected</Badge>;
       case 'pending':
         return <Badge variant="secondary">Pending</Badge>;
     }
@@ -86,7 +95,7 @@ const SubmissionStatusDashboard = ({ reports, selectedMonth, selectedYear }: Sub
       </CardHeader>
       <CardContent>
         {/* Summary Stats */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+        <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mb-6">
           <div className="bg-blue-50 p-4 rounded-lg text-center">
             <div className="text-2xl font-bold text-blue-600">{stats.approved}</div>
             <div className="text-sm text-muted-foreground">Approved</div>
@@ -94,6 +103,10 @@ const SubmissionStatusDashboard = ({ reports, selectedMonth, selectedYear }: Sub
           <div className="bg-green-50 p-4 rounded-lg text-center">
             <div className="text-2xl font-bold text-green-600">{stats.submitted}</div>
             <div className="text-sm text-muted-foreground">Submitted</div>
+          </div>
+          <div className="bg-red-50 p-4 rounded-lg text-center">
+            <div className="text-2xl font-bold text-red-600">{stats.rejected}</div>
+            <div className="text-sm text-muted-foreground">Rejected</div>
           </div>
           <div className="bg-amber-50 p-4 rounded-lg text-center">
             <div className="text-2xl font-bold text-amber-600">{stats.pending}</div>

@@ -1,17 +1,19 @@
 import { useState } from 'react';
-import { Plus, Calendar, Trash2, Eye, FileText, RefreshCw, GitCompare, Send, CheckCircle2, ThumbsUp, Building2 } from 'lucide-react';
+import { Plus, Calendar, Trash2, Eye, FileText, RefreshCw, GitCompare, Send, CheckCircle2, ThumbsUp, Building2, XCircle, AlertTriangle } from 'lucide-react';
 import Header from '@/components/Header';
 import ReportView from '@/components/ReportView';
 import ReportLetter from '@/components/ReportLetter';
 import ReportComparison from '@/components/ReportComparison';
 import SubmissionStatusDashboard from '@/components/SubmissionStatusDashboard';
-import { useMonthlyReports, useCreateReport, useDeleteReport, useSubmitReport, useApproveReport, useGenerateCollegeReport } from '@/hooks/useReports';
+import { useMonthlyReports, useCreateReport, useDeleteReport, useSubmitReport, useApproveReport, useRejectReport, useResubmitReport, useGenerateCollegeReport } from '@/hooks/useReports';
 import { useCreateNotification } from '@/hooks/useNotifications';
 import { useAuth } from '@/contexts/AuthContext';
 import { useDepartments } from '@/hooks/useStaff';
 import { MonthlyReport, MONTHS } from '@/types/staff';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { Textarea } from '@/components/ui/textarea';
+import { Label } from '@/components/ui/label';
 import {
   Select,
   SelectContent,
@@ -25,6 +27,7 @@ import {
   DialogHeader,
   DialogTitle,
   DialogFooter,
+  DialogDescription,
 } from '@/components/ui/dialog';
 import {
   AlertDialog,
@@ -50,6 +53,8 @@ const Reports = () => {
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [isRegenerating, setIsRegenerating] = useState(false);
   const [comparisonReports, setComparisonReports] = useState<{ previous: MonthlyReport; current: MonthlyReport } | null>(null);
+  const [rejectDialogOpen, setRejectDialogOpen] = useState<MonthlyReport | null>(null);
+  const [rejectionReason, setRejectionReason] = useState('');
 
   const { data: departments } = useDepartments();
   const { data: reports, isLoading } = useMonthlyReports();
@@ -57,6 +62,8 @@ const Reports = () => {
   const deleteReport = useDeleteReport();
   const submitReport = useSubmitReport();
   const approveReport = useApproveReport();
+  const rejectReport = useRejectReport();
+  const resubmitReport = useResubmitReport();
   const generateCollegeReport = useGenerateCollegeReport();
   const createNotification = useCreateNotification();
 
@@ -112,6 +119,47 @@ const Reports = () => {
     await approveReport.mutateAsync(report.id);
   };
 
+  const handleRejectReport = async () => {
+    if (!rejectDialogOpen || !user || !rejectionReason.trim()) return;
+    
+    await rejectReport.mutateAsync({
+      reportId: rejectDialogOpen.id,
+      rejectionReason: rejectionReason.trim(),
+      userId: user.id
+    });
+
+    // Create notification for department head
+    const dept = departments?.find(d => d.id === rejectDialogOpen.department_id);
+    await createNotification.mutateAsync({
+      type: 'report_rejected',
+      title: 'Report Rejected',
+      message: `Your ${MONTHS[rejectDialogOpen.report_month - 1]} ${rejectDialogOpen.report_year} report has been rejected. Reason: ${rejectionReason.trim()}`,
+      department_id: rejectDialogOpen.department_id,
+      target_role: 'department_head',
+      performed_by: profile?.full_name || 'AVD'
+    });
+
+    setRejectDialogOpen(null);
+    setRejectionReason('');
+  };
+
+  const handleResubmitReport = async (report: MonthlyReport) => {
+    if (!user) return;
+    
+    await resubmitReport.mutateAsync({ reportId: report.id, userId: user.id });
+    
+    // Create notification for AVD
+    const dept = departments?.find(d => d.id === report.department_id);
+    await createNotification.mutateAsync({
+      type: 'report_resubmitted',
+      title: 'Report Resubmitted',
+      message: `${dept?.name || 'Unknown Department'} has resubmitted their ${MONTHS[report.report_month - 1]} ${report.report_year} report after revision.`,
+      department_id: report.department_id,
+      target_role: 'avd',
+      performed_by: profile?.full_name || 'Unknown'
+    });
+  };
+
   const handleGenerateCollegeReport = async () => {
     await generateCollegeReport.mutateAsync({ 
       month: selectedMonth, 
@@ -158,6 +206,14 @@ const Reports = () => {
         report.status === 'approved' &&
         report.report_month === selectedMonth &&
         report.report_year === selectedYear
+      )
+    : [];
+
+  // For department heads: Get rejected reports that need revision
+  const rejectedReports = (role === 'department_head')
+    ? reports?.filter(report => 
+        report.department_id === profile?.department_id && 
+        report.status === 'rejected'
       )
     : [];
 
@@ -367,6 +423,14 @@ const Reports = () => {
                         <ThumbsUp className="h-4 w-4 mr-1" />
                         Approve
                       </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="border-red-500 text-red-500 hover:bg-red-50"
+                        onClick={() => setRejectDialogOpen(report)}
+                      >
+                        <XCircle className="h-4 w-4" />
+                      </Button>
                     </div>
                   </CardContent>
                 </Card>
@@ -435,6 +499,67 @@ const Reports = () => {
           </div>
         )}
 
+        {/* Rejected Reports - For Department Heads */}
+        {isDepartmentHead && rejectedReports && rejectedReports.length > 0 && (
+          <div className="mb-8">
+            <h2 className="font-serif text-xl font-semibold mb-4 flex items-center gap-2">
+              <AlertTriangle className="h-5 w-5 text-red-500" />
+              Reports Needing Revision ({rejectedReports.length})
+            </h2>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {rejectedReports.map((report) => (
+                <Card key={report.id} className="shadow-card border-red-200 bg-red-50/50">
+                  <CardHeader className="pb-2">
+                    <CardTitle className="flex items-center justify-between text-base">
+                      <span className="font-serif">
+                        {MONTHS[report.report_month - 1]} {report.report_year}
+                      </span>
+                      <Badge variant="destructive">
+                        <XCircle className="h-3 w-3 mr-1" />
+                        Rejected
+                      </Badge>
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    {report.rejection_reason && (
+                      <div className="bg-red-100 border border-red-200 rounded-md p-3 mb-3">
+                        <p className="text-sm font-medium text-red-800 mb-1">Feedback from AVD:</p>
+                        <p className="text-sm text-red-700">{report.rejection_reason}</p>
+                      </div>
+                    )}
+                    {report.rejected_at && (
+                      <p className="text-sm text-muted-foreground mb-3">
+                        Rejected: {new Date(report.rejected_at).toLocaleDateString()}
+                      </p>
+                    )}
+                    <div className="flex gap-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="flex-1"
+                        onClick={() => setViewReport(report)}
+                      >
+                        <Eye className="h-4 w-4 mr-1" />
+                        View & Edit
+                      </Button>
+                      <Button
+                        variant="default"
+                        size="sm"
+                        className="flex-1 bg-green-600 hover:bg-green-700"
+                        onClick={() => handleResubmitReport(report)}
+                        disabled={resubmitReport.isPending}
+                      >
+                        <Send className="h-4 w-4 mr-1" />
+                        Resubmit
+                      </Button>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          </div>
+        )}
+
         {/* Reports Grid */}
         {isLoading ? (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -447,6 +572,7 @@ const Reports = () => {
             {filteredReports.map((report) => {
               const isSubmitted = report.status === 'submitted';
               const isApproved = report.status === 'approved';
+              const isRejected = report.status === 'rejected';
               const canModify = isDepartmentHead ? !(isSubmitted || isApproved) : true;
               
               const getStatusBadge = () => {
@@ -463,6 +589,14 @@ const Reports = () => {
                     <Badge variant="default" className="bg-green-600 hover:bg-green-700">
                       <CheckCircle2 className="h-3 w-3 mr-1" />
                       Submitted
+                    </Badge>
+                  );
+                }
+                if (isRejected) {
+                  return (
+                    <Badge variant="destructive">
+                      <XCircle className="h-3 w-3 mr-1" />
+                      Rejected
                     </Badge>
                   );
                 }
@@ -645,6 +779,50 @@ const Reports = () => {
             </AlertDialogFooter>
           </AlertDialogContent>
         </AlertDialog>
+
+        {/* Rejection Dialog */}
+        <Dialog open={!!rejectDialogOpen} onOpenChange={() => { setRejectDialogOpen(null); setRejectionReason(''); }}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle className="font-serif text-xl flex items-center gap-2">
+                <XCircle className="h-5 w-5 text-red-500" />
+                Reject Report
+              </DialogTitle>
+              <DialogDescription>
+                This will send the report back to the department for revision.
+              </DialogDescription>
+            </DialogHeader>
+            <div className="space-y-4 py-4">
+              <div className="space-y-2">
+                <Label htmlFor="rejection-reason">Reason for rejection *</Label>
+                <Textarea
+                  id="rejection-reason"
+                  placeholder="Please explain what needs to be corrected or improved..."
+                  value={rejectionReason}
+                  onChange={(e) => setRejectionReason(e.target.value)}
+                  rows={4}
+                />
+              </div>
+              {rejectDialogOpen && (
+                <div className="text-sm text-muted-foreground">
+                  Report: {MONTHS[rejectDialogOpen.report_month - 1]} {rejectDialogOpen.report_year} - {departments?.find(d => d.id === rejectDialogOpen.department_id)?.name}
+                </div>
+              )}
+            </div>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => { setRejectDialogOpen(null); setRejectionReason(''); }}>
+                Cancel
+              </Button>
+              <Button 
+                variant="destructive" 
+                onClick={handleRejectReport}
+                disabled={!rejectionReason.trim() || rejectReport.isPending}
+              >
+                {rejectReport.isPending ? 'Rejecting...' : 'Reject Report'}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       </main>
     </div>
   );
