@@ -247,6 +247,68 @@ export const useApproveReport = () => {
   });
 };
 
+export const useRejectReport = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({ reportId, rejectionReason, userId }: { reportId: string; rejectionReason: string; userId: string }) => {
+      const { data, error } = await supabase
+        .from('monthly_reports')
+        .update({ 
+          status: 'rejected',
+          rejection_reason: rejectionReason,
+          rejected_at: new Date().toISOString(),
+          rejected_by: userId
+        })
+        .eq('id', reportId)
+        .select()
+        .single();
+
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['monthly-reports'] });
+      toast.success('Report rejected and sent back to department');
+    },
+    onError: (error) => {
+      toast.error('Failed to reject report: ' + error.message);
+    },
+  });
+};
+
+export const useResubmitReport = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({ reportId, userId }: { reportId: string; userId: string }) => {
+      const { data, error } = await supabase
+        .from('monthly_reports')
+        .update({ 
+          status: 'submitted',
+          submitted_at: new Date().toISOString(),
+          submitted_by: userId,
+          rejection_reason: null,
+          rejected_at: null,
+          rejected_by: null
+        })
+        .eq('id', reportId)
+        .select()
+        .single();
+
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['monthly-reports'] });
+      toast.success('Report resubmitted to AVD successfully');
+    },
+    onError: (error) => {
+      toast.error('Failed to resubmit report: ' + error.message);
+    },
+  });
+};
+
 export const useGenerateCollegeReport = () => {
   const queryClient = useQueryClient();
 
