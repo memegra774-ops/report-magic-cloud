@@ -221,3 +221,122 @@ export const useSubmitReport = () => {
     },
   });
 };
+
+export const useApproveReport = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (reportId: string) => {
+      const { data, error } = await supabase
+        .from('monthly_reports')
+        .update({ status: 'approved' })
+        .eq('id', reportId)
+        .select()
+        .single();
+
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['monthly-reports'] });
+      toast.success('Report approved successfully');
+    },
+    onError: (error) => {
+      toast.error('Failed to approve report: ' + error.message);
+    },
+  });
+};
+
+export const useGenerateCollegeReport = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({ month, year }: { month: number; year: number }) => {
+      // Check if a college-level report already exists
+      const { data: existingReport } = await supabase
+        .from('monthly_reports')
+        .select('id')
+        .eq('report_month', month)
+        .eq('report_year', year)
+        .is('department_id', null)
+        .maybeSingle();
+
+      if (existingReport) {
+        throw new Error('A college-level report already exists for this period.');
+      }
+
+      // Get all approved department reports for this month/year
+      const { data: approvedReports, error: reportsError } = await supabase
+        .from('monthly_reports')
+        .select('id, department_id')
+        .eq('report_month', month)
+        .eq('report_year', year)
+        .eq('status', 'approved')
+        .not('department_id', 'is', null);
+
+      if (reportsError) throw reportsError;
+
+      if (!approvedReports || approvedReports.length === 0) {
+        throw new Error('No approved department reports found. Approve at least one department report first.');
+      }
+
+      // Create the college-level report
+      const { data: report, error: reportError } = await supabase
+        .from('monthly_reports')
+        .insert({ 
+          report_month: month, 
+          report_year: year,
+          department_id: null,
+          status: 'draft'
+        })
+        .select()
+        .single();
+
+      if (reportError) throw reportError;
+
+      // Get all entries from approved department reports
+      const reportIds = approvedReports.map(r => r.id);
+      const { data: entries, error: entriesError } = await supabase
+        .from('report_entries')
+        .select('*')
+        .in('report_id', reportIds);
+
+      if (entriesError) throw entriesError;
+
+      if (entries && entries.length > 0) {
+        // Copy entries to the new college report
+        const newEntries = entries.map(entry => ({
+          report_id: report.id,
+          staff_id: entry.staff_id,
+          category: entry.category,
+          current_status: entry.current_status,
+          remark: entry.remark,
+          staff_id_number: entry.staff_id_number,
+          full_name: entry.full_name,
+          sex: entry.sex,
+          college_name: entry.college_name,
+          department_code: entry.department_code,
+          department_name: entry.department_name,
+          specialization: entry.specialization,
+          education_level: entry.education_level,
+          academic_rank: entry.academic_rank,
+        }));
+
+        const { error: insertError } = await supabase
+          .from('report_entries')
+          .insert(newEntries);
+
+        if (insertError) throw insertError;
+      }
+
+      return report;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['monthly-reports'] });
+      toast.success('College-level report generated from approved department reports');
+    },
+    onError: (error) => {
+      toast.error('Failed to generate college report: ' + error.message);
+    },
+  });
+};

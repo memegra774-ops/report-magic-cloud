@@ -1,10 +1,11 @@
 import { useState } from 'react';
-import { Plus, Calendar, Trash2, Eye, FileText, RefreshCw, GitCompare, Send, CheckCircle2 } from 'lucide-react';
+import { Plus, Calendar, Trash2, Eye, FileText, RefreshCw, GitCompare, Send, CheckCircle2, ThumbsUp, Building2 } from 'lucide-react';
 import Header from '@/components/Header';
 import ReportView from '@/components/ReportView';
 import ReportLetter from '@/components/ReportLetter';
 import ReportComparison from '@/components/ReportComparison';
-import { useMonthlyReports, useCreateReport, useDeleteReport, useSubmitReport } from '@/hooks/useReports';
+import SubmissionStatusDashboard from '@/components/SubmissionStatusDashboard';
+import { useMonthlyReports, useCreateReport, useDeleteReport, useSubmitReport, useApproveReport, useGenerateCollegeReport } from '@/hooks/useReports';
 import { useCreateNotification } from '@/hooks/useNotifications';
 import { useAuth } from '@/contexts/AuthContext';
 import { useDepartments } from '@/hooks/useStaff';
@@ -55,6 +56,8 @@ const Reports = () => {
   const createReport = useCreateReport();
   const deleteReport = useDeleteReport();
   const submitReport = useSubmitReport();
+  const approveReport = useApproveReport();
+  const generateCollegeReport = useGenerateCollegeReport();
   const createNotification = useCreateNotification();
 
   const handleCreateReport = async () => {
@@ -105,6 +108,17 @@ const Reports = () => {
     });
   };
 
+  const handleApproveReport = async (report: MonthlyReport) => {
+    await approveReport.mutateAsync(report.id);
+  };
+
+  const handleGenerateCollegeReport = async () => {
+    await generateCollegeReport.mutateAsync({ 
+      month: selectedMonth, 
+      year: selectedYear 
+    });
+  };
+
   const currentYear = new Date().getFullYear();
   const years = Array.from({ length: 5 }, (_, i) => currentYear - 2 + i);
 
@@ -127,9 +141,14 @@ const Reports = () => {
     return true;
   });
 
-  // For AVD: Get submitted department reports
+  // For AVD: Get submitted department reports (pending approval)
   const submittedDepartmentReports = (role === 'avd' || role === 'system_admin') 
     ? reports?.filter(report => report.department_id && report.status === 'submitted')
+    : [];
+
+  // For AVD: Get approved department reports
+  const approvedDepartmentReports = (role === 'avd' || role === 'system_admin')
+    ? reports?.filter(report => report.department_id && report.status === 'approved')
     : [];
 
   const isDepartmentHead = role === 'department_head';
@@ -249,12 +268,21 @@ const Reports = () => {
           </div>
         </div>
 
-        {/* Submitted Department Reports - For AVD */}
+        {/* Submission Status Dashboard - For AVD */}
+        {(role === 'avd' || role === 'system_admin') && reports && (
+          <SubmissionStatusDashboard 
+            reports={reports} 
+            selectedMonth={selectedMonth} 
+            selectedYear={selectedYear} 
+          />
+        )}
+
+        {/* Pending Approval Reports - For AVD */}
         {(role === 'avd' || role === 'system_admin') && submittedDepartmentReports && submittedDepartmentReports.length > 0 && (
           <div className="mb-8">
             <h2 className="font-serif text-xl font-semibold mb-4 flex items-center gap-2">
               <CheckCircle2 className="h-5 w-5 text-green-600" />
-              Submitted Department Reports
+              Pending Approval ({submittedDepartmentReports.length})
             </h2>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               {submittedDepartmentReports.map((report) => (
@@ -279,15 +307,27 @@ const Reports = () => {
                         Submitted: {new Date(report.submitted_at).toLocaleDateString()}
                       </p>
                     )}
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="w-full"
-                      onClick={() => setViewReport(report)}
-                    >
-                      <Eye className="h-4 w-4 mr-1" />
-                      View Report
-                    </Button>
+                    <div className="flex gap-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="flex-1"
+                        onClick={() => setViewReport(report)}
+                      >
+                        <Eye className="h-4 w-4 mr-1" />
+                        View
+                      </Button>
+                      <Button
+                        variant="default"
+                        size="sm"
+                        className="flex-1 bg-blue-600 hover:bg-blue-700"
+                        onClick={() => handleApproveReport(report)}
+                        disabled={approveReport.isPending}
+                      >
+                        <ThumbsUp className="h-4 w-4 mr-1" />
+                        Approve
+                      </Button>
+                    </div>
                   </CardContent>
                 </Card>
               ))}
@@ -295,9 +335,64 @@ const Reports = () => {
           </div>
         )}
 
-        {/* My Reports Section Header for AVD */}
-        {(role === 'avd') && filteredReports && filteredReports.length > 0 && (
-          <h2 className="font-serif text-xl font-semibold mb-4">College-Level Reports</h2>
+        {/* Generate College Report Button - For AVD */}
+        {(role === 'avd' || role === 'system_admin') && (
+          <div className="mb-8 flex items-center gap-4">
+            <h2 className="font-serif text-xl font-semibold flex items-center gap-2">
+              <Building2 className="h-5 w-5" />
+              College-Level Reports
+            </h2>
+            <Button
+              variant="outline"
+              onClick={handleGenerateCollegeReport}
+              disabled={generateCollegeReport.isPending}
+              className="border-blue-600 text-blue-600 hover:bg-blue-50"
+            >
+              <Plus className="h-4 w-4 mr-1" />
+              {generateCollegeReport.isPending ? 'Generating...' : 'Generate from Approved Reports'}
+            </Button>
+          </div>
+        )}
+
+        {/* Approved Department Reports - For AVD */}
+        {(role === 'avd' || role === 'system_admin') && approvedDepartmentReports && approvedDepartmentReports.length > 0 && (
+          <div className="mb-8">
+            <h2 className="font-serif text-xl font-semibold mb-4 flex items-center gap-2">
+              <ThumbsUp className="h-5 w-5 text-blue-600" />
+              Approved Department Reports ({approvedDepartmentReports.length})
+            </h2>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+              {approvedDepartmentReports.map((report) => (
+                <Card key={report.id} className="shadow-card border-blue-200 bg-blue-50/50">
+                  <CardHeader className="pb-2">
+                    <CardTitle className="flex items-center justify-between text-base">
+                      <span className="font-serif">
+                        {MONTHS[report.report_month - 1]} {report.report_year}
+                      </span>
+                      <Badge variant="default" className="bg-blue-600 hover:bg-blue-700">
+                        <ThumbsUp className="h-3 w-3 mr-1" />
+                        Approved
+                      </Badge>
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <p className="text-sm font-medium text-foreground mb-1">
+                      {departments?.find(d => d.id === report.department_id)?.name || 'Unknown'}
+                    </p>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="w-full mt-2"
+                      onClick={() => setViewReport(report)}
+                    >
+                      <Eye className="h-4 w-4 mr-1" />
+                      View
+                    </Button>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          </div>
         )}
 
         {/* Reports Grid */}
@@ -311,7 +406,28 @@ const Reports = () => {
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {filteredReports.map((report) => {
               const isSubmitted = report.status === 'submitted';
-              const canModify = isDepartmentHead ? !isSubmitted : true;
+              const isApproved = report.status === 'approved';
+              const canModify = isDepartmentHead ? !(isSubmitted || isApproved) : true;
+              
+              const getStatusBadge = () => {
+                if (isApproved) {
+                  return (
+                    <Badge variant="default" className="bg-blue-600 hover:bg-blue-700">
+                      <ThumbsUp className="h-3 w-3 mr-1" />
+                      Approved
+                    </Badge>
+                  );
+                }
+                if (isSubmitted) {
+                  return (
+                    <Badge variant="default" className="bg-green-600 hover:bg-green-700">
+                      <CheckCircle2 className="h-3 w-3 mr-1" />
+                      Submitted
+                    </Badge>
+                  );
+                }
+                return <Badge variant="secondary">Draft</Badge>;
+              };
               
               return (
                 <Card key={report.id} className="shadow-card hover:shadow-card-hover transition-shadow animate-fade-in">
@@ -321,14 +437,7 @@ const Reports = () => {
                         {MONTHS[report.report_month - 1]} {report.report_year}
                       </span>
                       <div className="flex items-center gap-2">
-                        {isSubmitted ? (
-                          <Badge variant="default" className="bg-green-600 hover:bg-green-700">
-                            <CheckCircle2 className="h-3 w-3 mr-1" />
-                            Submitted
-                          </Badge>
-                        ) : (
-                          <Badge variant="secondary">Draft</Badge>
-                        )}
+                        {getStatusBadge()}
                       </div>
                     </CardTitle>
                   </CardHeader>
@@ -336,9 +445,9 @@ const Reports = () => {
                     <p className="text-sm text-muted-foreground mb-1">
                       Created: {new Date(report.created_at).toLocaleDateString()}
                     </p>
-                    {isSubmitted && report.submitted_at && (
-                      <p className="text-sm text-green-600 mb-1">
-                        Submitted: {new Date(report.submitted_at).toLocaleDateString()}
+                    {(isSubmitted || isApproved) && report.submitted_at && (
+                      <p className={`text-sm ${isApproved ? 'text-blue-600' : 'text-green-600'} mb-1`}>
+                        {isApproved ? 'Approved' : 'Submitted'}: {new Date(report.submitted_at).toLocaleDateString()}
                       </p>
                     )}
                     {report.department_id && (
