@@ -44,6 +44,9 @@ export type Database = {
           created_by: string | null
           department_id: string | null
           id: string
+          rejected_at: string | null
+          rejected_by: string | null
+          rejection_reason: string | null
           report_month: number
           report_year: number
           status: string
@@ -56,6 +59,9 @@ export type Database = {
           created_by?: string | null
           department_id?: string | null
           id?: string
+          rejected_at?: string | null
+          rejected_by?: string | null
+          rejection_reason?: string | null
           report_month: number
           report_year: number
           status?: string
@@ -68,6 +74,9 @@ export type Database = {
           created_by?: string | null
           department_id?: string | null
           id?: string
+          rejected_at?: string | null
+          rejected_by?: string | null
+          rejection_reason?: string | null
           report_month?: number
           report_year?: number
           status?: string
