@@ -141,14 +141,24 @@ const Reports = () => {
     return true;
   });
 
-  // For AVD: Get submitted department reports (pending approval)
+  // For AVD: Get submitted department reports (pending approval) for selected period
   const submittedDepartmentReports = (role === 'avd' || role === 'system_admin') 
-    ? reports?.filter(report => report.department_id && report.status === 'submitted')
+    ? reports?.filter(report => 
+        report.department_id && 
+        report.status === 'submitted' &&
+        report.report_month === selectedMonth &&
+        report.report_year === selectedYear
+      )
     : [];
 
-  // For AVD: Get approved department reports
+  // For AVD: Get approved department reports for selected period
   const approvedDepartmentReports = (role === 'avd' || role === 'system_admin')
-    ? reports?.filter(report => report.department_id && report.status === 'approved')
+    ? reports?.filter(report => 
+        report.department_id && 
+        report.status === 'approved' &&
+        report.report_month === selectedMonth &&
+        report.report_year === selectedYear
+      )
     : [];
 
   const isDepartmentHead = role === 'department_head';
@@ -238,7 +248,37 @@ const Reports = () => {
                 : 'Generate and view monthly staff reports'}
             </p>
           </div>
-          <div className="flex gap-2">
+          <div className="flex gap-2 flex-wrap">
+            {/* Month/Year selector for AVD dashboard */}
+            {(role === 'avd' || role === 'system_admin') && (
+              <>
+                <Select value={String(selectedMonth)} onValueChange={(v) => setSelectedMonth(Number(v))}>
+                  <SelectTrigger className="w-[130px]">
+                    <Calendar className="h-4 w-4 mr-2" />
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {MONTHS.map((month, index) => (
+                      <SelectItem key={index} value={String(index + 1)}>
+                        {month}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <Select value={String(selectedYear)} onValueChange={(v) => setSelectedYear(Number(v))}>
+                  <SelectTrigger className="w-[100px]">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {years.map((year) => (
+                      <SelectItem key={year} value={String(year)}>
+                        {year}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </>
+            )}
             {consecutivePairs.length > 0 && (
               <Select 
                 onValueChange={(value) => {
