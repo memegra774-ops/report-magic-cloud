@@ -34,12 +34,17 @@ export interface Staff {
   departments?: Department;
 }
 
+export type ReportStatus = 'draft' | 'submitted';
+
 export interface MonthlyReport {
   id: string;
   report_month: number;
   report_year: number;
   version: number;
   department_id: string | null;
+  status: ReportStatus;
+  submitted_at: string | null;
+  submitted_by: string | null;
   created_at: string;
   created_by: string | null;
   departments?: Department;

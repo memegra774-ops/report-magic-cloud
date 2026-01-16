@@ -1,13 +1,15 @@
 import { useState } from 'react';
-import { Plus, Calendar, Trash2, Eye, FileText, RefreshCw, GitCompare } from 'lucide-react';
+import { Plus, Calendar, Trash2, Eye, FileText, RefreshCw, GitCompare, Send, CheckCircle2 } from 'lucide-react';
 import Header from '@/components/Header';
 import ReportView from '@/components/ReportView';
 import ReportLetter from '@/components/ReportLetter';
 import ReportComparison from '@/components/ReportComparison';
-import { useMonthlyReports, useCreateReport, useDeleteReport } from '@/hooks/useReports';
+import { useMonthlyReports, useCreateReport, useDeleteReport, useSubmitReport } from '@/hooks/useReports';
+import { useCreateNotification } from '@/hooks/useNotifications';
 import { useAuth } from '@/contexts/AuthContext';
 import { useDepartments } from '@/hooks/useStaff';
 import { MonthlyReport, MONTHS } from '@/types/staff';
+import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import {
   Select,
@@ -38,7 +40,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
 const Reports = () => {
-  const { role, profile } = useAuth();
+  const { role, profile, user } = useAuth();
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
   const [selectedMonth, setSelectedMonth] = useState<number>(new Date().getMonth() + 1);
   const [selectedYear, setSelectedYear] = useState<number>(new Date().getFullYear());
@@ -52,6 +54,8 @@ const Reports = () => {
   const { data: reports, isLoading } = useMonthlyReports();
   const createReport = useCreateReport();
   const deleteReport = useDeleteReport();
+  const submitReport = useSubmitReport();
+  const createNotification = useCreateNotification();
 
   const handleCreateReport = async () => {
     await createReport.mutateAsync({ 
@@ -84,6 +88,23 @@ const Reports = () => {
     }
   };
 
+  const handleSubmitReport = async (report: MonthlyReport) => {
+    if (!user) return;
+    
+    await submitReport.mutateAsync({ reportId: report.id, userId: user.id });
+    
+    // Create notification for AVD
+    const dept = departments?.find(d => d.id === report.department_id);
+    await createNotification.mutateAsync({
+      type: 'report_submitted',
+      title: 'Department Report Submitted',
+      message: `${dept?.name || 'Unknown Department'} has submitted their ${MONTHS[report.report_month - 1]} ${report.report_year} report.`,
+      department_id: report.department_id,
+      target_role: 'avd',
+      performed_by: profile?.full_name || 'Unknown'
+    });
+  };
+
   const currentYear = new Date().getFullYear();
   const years = Array.from({ length: 5 }, (_, i) => currentYear - 2 + i);
 
@@ -92,19 +113,24 @@ const Reports = () => {
   const canDelete = role === 'system_admin' || role === 'avd' || role === 'department_head';
   const canViewLetter = role === 'avd' || role === 'system_admin';
 
-  // Filter reports based on role
+  // Filter reports based on role - for AVD's own reports and department heads' reports
   const filteredReports = reports?.filter(report => {
     if (role === 'department_head') {
       // Department heads only see their own department's reports
       return report.department_id === profile?.department_id;
     }
     if (role === 'avd') {
-      // AVD only sees reports WITHOUT a department_id (their own reports, not department heads')
+      // AVD sees their own reports (no department_id)
       return !report.department_id;
     }
     // System admin and management see all
     return true;
   });
+
+  // For AVD: Get submitted department reports
+  const submittedDepartmentReports = (role === 'avd' || role === 'system_admin') 
+    ? reports?.filter(report => report.department_id && report.status === 'submitted')
+    : [];
 
   const isDepartmentHead = role === 'department_head';
 
@@ -223,6 +249,57 @@ const Reports = () => {
           </div>
         </div>
 
+        {/* Submitted Department Reports - For AVD */}
+        {(role === 'avd' || role === 'system_admin') && submittedDepartmentReports && submittedDepartmentReports.length > 0 && (
+          <div className="mb-8">
+            <h2 className="font-serif text-xl font-semibold mb-4 flex items-center gap-2">
+              <CheckCircle2 className="h-5 w-5 text-green-600" />
+              Submitted Department Reports
+            </h2>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {submittedDepartmentReports.map((report) => (
+                <Card key={report.id} className="shadow-card border-green-200 bg-green-50/50">
+                  <CardHeader className="pb-2">
+                    <CardTitle className="flex items-center justify-between text-base">
+                      <span className="font-serif">
+                        {MONTHS[report.report_month - 1]} {report.report_year}
+                      </span>
+                      <Badge variant="default" className="bg-green-600 hover:bg-green-700">
+                        <CheckCircle2 className="h-3 w-3 mr-1" />
+                        Submitted
+                      </Badge>
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <p className="text-sm font-medium text-foreground mb-1">
+                      {departments?.find(d => d.id === report.department_id)?.name || 'Unknown Department'}
+                    </p>
+                    {report.submitted_at && (
+                      <p className="text-sm text-muted-foreground mb-3">
+                        Submitted: {new Date(report.submitted_at).toLocaleDateString()}
+                      </p>
+                    )}
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="w-full"
+                      onClick={() => setViewReport(report)}
+                    >
+                      <Eye className="h-4 w-4 mr-1" />
+                      View Report
+                    </Button>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* My Reports Section Header for AVD */}
+        {(role === 'avd') && filteredReports && filteredReports.length > 0 && (
+          <h2 className="font-serif text-xl font-semibold mb-4">College-Level Reports</h2>
+        )}
+
         {/* Reports Grid */}
         {isLoading ? (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -232,76 +309,110 @@ const Reports = () => {
           </div>
         ) : filteredReports && filteredReports.length > 0 ? (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {filteredReports.map((report) => (
-              <Card key={report.id} className="shadow-card hover:shadow-card-hover transition-shadow animate-fade-in">
-                <CardHeader className="pb-2">
-                  <CardTitle className="flex items-center justify-between">
-                    <span className="font-serif">
-                      {MONTHS[report.report_month - 1]} {report.report_year}
-                    </span>
-                    <Calendar className="h-5 w-5 text-muted-foreground" />
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <p className="text-sm text-muted-foreground mb-1">
-                    Created: {new Date(report.created_at).toLocaleDateString()}
-                  </p>
-                  {report.department_id && (
-                    <p className="text-sm text-muted-foreground mb-4">
-                      Dept: {departments?.find(d => d.id === report.department_id)?.code || '-'}
+            {filteredReports.map((report) => {
+              const isSubmitted = report.status === 'submitted';
+              const canModify = isDepartmentHead ? !isSubmitted : true;
+              
+              return (
+                <Card key={report.id} className="shadow-card hover:shadow-card-hover transition-shadow animate-fade-in">
+                  <CardHeader className="pb-2">
+                    <CardTitle className="flex items-center justify-between">
+                      <span className="font-serif">
+                        {MONTHS[report.report_month - 1]} {report.report_year}
+                      </span>
+                      <div className="flex items-center gap-2">
+                        {isSubmitted ? (
+                          <Badge variant="default" className="bg-green-600 hover:bg-green-700">
+                            <CheckCircle2 className="h-3 w-3 mr-1" />
+                            Submitted
+                          </Badge>
+                        ) : (
+                          <Badge variant="secondary">Draft</Badge>
+                        )}
+                      </div>
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <p className="text-sm text-muted-foreground mb-1">
+                      Created: {new Date(report.created_at).toLocaleDateString()}
                     </p>
-                  )}
-                  {report.version > 1 && (
-                    <p className="text-sm text-primary mb-4">
-                      Version: {report.version}
-                    </p>
-                  )}
-                  <div className="flex gap-2 flex-wrap">
-                    <Button
-                      variant="default"
-                      size="sm"
-                      className="flex-1"
-                      onClick={() => setViewReport(report)}
-                    >
-                      <Eye className="h-4 w-4 mr-1" />
-                      View
-                    </Button>
-                    {canViewLetter && (
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => {
-                          setViewReport(report);
-                          setViewMode('letter');
-                        }}
-                      >
-                        <FileText className="h-4 w-4" />
-                      </Button>
+                    {isSubmitted && report.submitted_at && (
+                      <p className="text-sm text-green-600 mb-1">
+                        Submitted: {new Date(report.submitted_at).toLocaleDateString()}
+                      </p>
                     )}
-                    {canCreate && (
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => handleRegenerateReport(report)}
-                        disabled={isRegenerating}
-                        title="Regenerate report with latest data"
-                      >
-                        <RefreshCw className={`h-4 w-4 ${isRegenerating ? 'animate-spin' : ''}`} />
-                      </Button>
+                    {report.department_id && (
+                      <p className="text-sm text-muted-foreground mb-4">
+                        Dept: {departments?.find(d => d.id === report.department_id)?.code || '-'}
+                      </p>
                     )}
-                    {canDelete && (
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => setDeleteId(report.id)}
-                      >
-                        <Trash2 className="h-4 w-4 text-destructive" />
-                      </Button>
+                    {report.version > 1 && (
+                      <p className="text-sm text-primary mb-4">
+                        Version: {report.version}
+                      </p>
                     )}
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
+                    <div className="flex gap-2 flex-wrap">
+                      <Button
+                        variant="default"
+                        size="sm"
+                        className="flex-1"
+                        onClick={() => setViewReport(report)}
+                      >
+                        <Eye className="h-4 w-4 mr-1" />
+                        View
+                      </Button>
+                      {canViewLetter && (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => {
+                            setViewReport(report);
+                            setViewMode('letter');
+                          }}
+                        >
+                          <FileText className="h-4 w-4" />
+                        </Button>
+                      )}
+                      {/* Submit to AVD button - only for department heads with draft reports */}
+                      {isDepartmentHead && !isSubmitted && (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handleSubmitReport(report)}
+                          disabled={submitReport.isPending}
+                          title="Submit report to AVD"
+                          className="text-green-600 border-green-600 hover:bg-green-50"
+                        >
+                          <Send className="h-4 w-4" />
+                        </Button>
+                      )}
+                      {/* Regenerate button - only if can modify */}
+                      {canCreate && canModify && (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handleRegenerateReport(report)}
+                          disabled={isRegenerating}
+                          title="Regenerate report with latest data"
+                        >
+                          <RefreshCw className={`h-4 w-4 ${isRegenerating ? 'animate-spin' : ''}`} />
+                        </Button>
+                      )}
+                      {/* Delete button - only if can modify */}
+                      {canDelete && canModify && (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => setDeleteId(report.id)}
+                        >
+                          <Trash2 className="h-4 w-4 text-destructive" />
+                        </Button>
+                      )}
+                    </div>
+                  </CardContent>
+                </Card>
+              );
+            })}
           </div>
         ) : (
           <div className="text-center py-16 bg-card rounded-xl border shadow-card">
