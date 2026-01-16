@@ -34,7 +34,7 @@ export interface Staff {
   departments?: Department;
 }
 
-export type ReportStatus = 'draft' | 'submitted';
+export type ReportStatus = 'draft' | 'submitted' | 'approved';
 
 export interface MonthlyReport {
   id: string;
