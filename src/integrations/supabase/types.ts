@@ -46,6 +46,9 @@ export type Database = {
           id: string
           report_month: number
           report_year: number
+          status: string
+          submitted_at: string | null
+          submitted_by: string | null
           version: number
         }
         Insert: {
@@ -55,6 +58,9 @@ export type Database = {
           id?: string
           report_month: number
           report_year: number
+          status?: string
+          submitted_at?: string | null
+          submitted_by?: string | null
           version?: number
         }
         Update: {
@@ -64,6 +70,9 @@ export type Database = {
           id?: string
           report_month?: number
           report_year?: number
+          status?: string
+          submitted_at?: string | null
+          submitted_by?: string | null
           version?: number
         }
         Relationships: [

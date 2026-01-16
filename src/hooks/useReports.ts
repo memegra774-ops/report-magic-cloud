@@ -27,7 +27,7 @@ export const useCreateReport = () => {
       // Check if a report already exists for this month/year/department
       let existingQuery = supabase
         .from('monthly_reports')
-        .select('id')
+        .select('id, status')
         .eq('report_month', month)
         .eq('report_year', year);
       
@@ -41,6 +41,11 @@ export const useCreateReport = () => {
 
       if (existingReport && !regenerate) {
         throw new Error('A report already exists for this period. Use regenerate to update it.');
+      }
+
+      // Prevent regenerating a submitted report
+      if (existingReport && regenerate && existingReport.status === 'submitted') {
+        throw new Error('Cannot regenerate a submitted report. The report has already been submitted to AVD.');
       }
 
       // If regenerating, delete the existing report first (cascade will delete entries)
@@ -184,6 +189,35 @@ export const useDeleteReport = () => {
     },
     onError: (error) => {
       toast.error('Failed to delete report: ' + error.message);
+    },
+  });
+};
+
+export const useSubmitReport = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({ reportId, userId }: { reportId: string; userId: string }) => {
+      const { data, error } = await supabase
+        .from('monthly_reports')
+        .update({ 
+          status: 'submitted',
+          submitted_at: new Date().toISOString(),
+          submitted_by: userId
+        })
+        .eq('id', reportId)
+        .select()
+        .single();
+
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['monthly-reports'] });
+      toast.success('Report submitted to AVD successfully');
+    },
+    onError: (error) => {
+      toast.error('Failed to submit report: ' + error.message);
     },
   });
 };
