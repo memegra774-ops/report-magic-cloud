@@ -15,6 +15,12 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
+import {
+  ChartContainer,
+  ChartTooltip,
+  ChartTooltipContent,
+} from '@/components/ui/chart';
+import { BarChart, Bar, XAxis, YAxis, ResponsiveContainer, PieChart, Pie, Cell, Legend } from 'recharts';
 
 const Index = () => {
   const { role, profile } = useAuth();
@@ -137,50 +143,42 @@ const Index = () => {
             </CardContent>
           </Card>
 
-          <Card className="animate-fade-in md:col-span-2">
+          <Card className="animate-fade-in">
             <CardHeader>
-              <CardTitle className="text-lg">Gender Distribution by Status & Department</CardTitle>
+              <CardTitle className="text-lg">On Duty Local Instructors by Gender</CardTitle>
             </CardHeader>
             <CardContent>
               {deptStatsLoading ? (
                 <Skeleton className="h-48 w-full" />
               ) : (
                 <div className="overflow-x-auto">
-                <Table>
+                  <Table>
                     <TableHeader>
                       <TableRow className="bg-primary/5">
                         <TableHead>Department</TableHead>
                         <TableHead className="text-center" colSpan={2}>On Duty</TableHead>
-                        <TableHead className="text-center" colSpan={2}>Not On Duty</TableHead>
-                        <TableHead className="text-center" colSpan={2}>On Study</TableHead>
-                        <TableHead className="text-center" colSpan={2}>On Duty ARA</TableHead>
                       </TableRow>
                       <TableRow className="bg-muted/50">
                         <TableHead></TableHead>
                         <TableHead className="text-center text-info">M</TableHead>
-                        <TableHead className="text-center text-accent">F</TableHead>
-                        <TableHead className="text-center text-info">M</TableHead>
-                        <TableHead className="text-center text-accent">F</TableHead>
-                        <TableHead className="text-center text-info">M</TableHead>
-                        <TableHead className="text-center text-accent">F</TableHead>
-                        <TableHead className="text-center text-info">M</TableHead>
-                        <TableHead className="text-center text-accent">F</TableHead>
+                        <TableHead className="text-center text-warning">F</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
                       {filteredDeptStats?.map((dept) => (
                         <TableRow key={dept.id}>
                           <TableCell className="font-medium">{dept.code}</TableCell>
-                          <TableCell className="text-center text-info">{dept.genderByStatus?.onDuty?.M || 0}</TableCell>
-                          <TableCell className="text-center text-accent">{dept.genderByStatus?.onDuty?.F || 0}</TableCell>
-                          <TableCell className="text-center text-info">{dept.genderByStatus?.notOnDuty?.M || 0}</TableCell>
-                          <TableCell className="text-center text-accent">{dept.genderByStatus?.notOnDuty?.F || 0}</TableCell>
-                          <TableCell className="text-center text-info">{dept.genderByStatus?.onStudy?.M || 0}</TableCell>
-                          <TableCell className="text-center text-accent">{dept.genderByStatus?.onStudy?.F || 0}</TableCell>
-                          <TableCell className="text-center text-info">{dept.genderByStatus?.onDutyARA?.M || 0}</TableCell>
-                          <TableCell className="text-center text-accent">{dept.genderByStatus?.onDutyARA?.F || 0}</TableCell>
+                          <TableCell className="text-center text-info font-semibold">{dept.genderByStatus?.onDuty?.M || 0}</TableCell>
+                          <TableCell className="text-center text-warning font-semibold">{dept.genderByStatus?.onDuty?.F || 0}</TableCell>
                         </TableRow>
                       ))}
+                      {filteredDeptStats && filteredDeptStats.length > 1 && (
+                        <TableRow className="bg-muted font-bold">
+                          <TableCell>Total</TableCell>
+                          <TableCell className="text-center text-info">{filteredDeptStats.reduce((sum, d) => sum + (d.genderByStatus?.onDuty?.M || 0), 0)}</TableCell>
+                          <TableCell className="text-center text-warning">{filteredDeptStats.reduce((sum, d) => sum + (d.genderByStatus?.onDuty?.F || 0), 0)}</TableCell>
+                        </TableRow>
+                      )}
                     </TableBody>
                   </Table>
                 </div>
@@ -188,6 +186,139 @@ const Index = () => {
             </CardContent>
           </Card>
         </div>
+
+        {/* Charts Section */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+          {/* Staff Status Distribution Pie Chart */}
+          <Card className="animate-fade-in">
+            <CardHeader>
+              <CardTitle className="text-lg">Staff Status Distribution</CardTitle>
+            </CardHeader>
+            <CardContent>
+              {statsLoading ? (
+                <Skeleton className="h-64 w-full" />
+              ) : (
+                <ChartContainer
+                  config={{
+                    onDuty: { label: "On Duty", color: "hsl(var(--success))" },
+                    notOnDuty: { label: "Not On Duty", color: "hsl(var(--destructive))" },
+                    onStudy: { label: "On Study", color: "hsl(var(--info))" },
+                    other: { label: "Other", color: "hsl(var(--muted))" },
+                  }}
+                  className="h-64"
+                >
+                  <ResponsiveContainer width="100%" height="100%">
+                    <PieChart>
+                      <Pie
+                        data={stats?.byStatus ? Object.entries(stats.byStatus).map(([name, value]) => ({
+                          name,
+                          value,
+                          fill: name.toLowerCase() === 'on duty' ? 'hsl(var(--success))' :
+                                name.toLowerCase() === 'not on duty' ? 'hsl(var(--destructive))' :
+                                name.toLowerCase().includes('study') ? 'hsl(var(--info))' :
+                                'hsl(var(--muted-foreground))'
+                        })) : []}
+                        cx="50%"
+                        cy="50%"
+                        innerRadius={40}
+                        outerRadius={80}
+                        paddingAngle={2}
+                        dataKey="value"
+                        label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
+                        labelLine={false}
+                      >
+                        {stats?.byStatus && Object.entries(stats.byStatus).map(([name], index) => (
+                          <Cell 
+                            key={`cell-${index}`} 
+                            fill={name.toLowerCase() === 'on duty' ? 'hsl(var(--success))' :
+                                  name.toLowerCase() === 'not on duty' ? 'hsl(var(--destructive))' :
+                                  name.toLowerCase().includes('study') ? 'hsl(var(--info))' :
+                                  'hsl(var(--muted-foreground))'}
+                          />
+                        ))}
+                      </Pie>
+                      <ChartTooltip content={<ChartTooltipContent />} />
+                    </PieChart>
+                  </ResponsiveContainer>
+                </ChartContainer>
+              )}
+            </CardContent>
+          </Card>
+
+          {/* Academic Rank Bar Chart */}
+          <Card className="animate-fade-in">
+            <CardHeader>
+              <CardTitle className="text-lg">On Duty Staff by Academic Rank</CardTitle>
+            </CardHeader>
+            <CardContent>
+              {statsLoading ? (
+                <Skeleton className="h-64 w-full" />
+              ) : (
+                <ChartContainer
+                  config={{
+                    count: { label: "Count", color: "hsl(var(--primary))" },
+                  }}
+                  className="h-64"
+                >
+                  <ResponsiveContainer width="100%" height="100%">
+                    <BarChart
+                      data={[
+                        { rank: 'Lecturer', count: stats?.onDutyByRank?.lecturer || 0 },
+                        { rank: 'Asst. Prof.', count: stats?.onDutyByRank?.asstProf || 0 },
+                        { rank: 'Assoc. Prof.', count: stats?.onDutyByRank?.assoProf || 0 },
+                        { rank: 'Professor', count: stats?.onDutyByRank?.professor || 0 },
+                      ]}
+                      margin={{ top: 10, right: 10, left: 10, bottom: 40 }}
+                    >
+                      <XAxis dataKey="rank" tick={{ fontSize: 12 }} angle={-20} textAnchor="end" />
+                      <YAxis allowDecimals={false} />
+                      <ChartTooltip content={<ChartTooltipContent />} />
+                      <Bar dataKey="count" fill="hsl(var(--primary))" radius={[4, 4, 0, 0]} />
+                    </BarChart>
+                  </ResponsiveContainer>
+                </ChartContainer>
+              )}
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Department Gender Chart */}
+        <Card className="mb-8 animate-fade-in">
+          <CardHeader>
+            <CardTitle className="text-lg">On Duty Staff Gender by Department</CardTitle>
+          </CardHeader>
+          <CardContent>
+            {deptStatsLoading ? (
+              <Skeleton className="h-72 w-full" />
+            ) : (
+              <ChartContainer
+                config={{
+                  male: { label: "Male", color: "hsl(var(--info))" },
+                  female: { label: "Female", color: "hsl(var(--warning))" },
+                }}
+                className="h-72"
+              >
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart
+                    data={filteredDeptStats?.map(dept => ({
+                      dept: dept.code,
+                      male: dept.genderByStatus?.onDuty?.M || 0,
+                      female: dept.genderByStatus?.onDuty?.F || 0,
+                    })) || []}
+                    margin={{ top: 10, right: 30, left: 10, bottom: 40 }}
+                  >
+                    <XAxis dataKey="dept" tick={{ fontSize: 11 }} angle={-30} textAnchor="end" />
+                    <YAxis allowDecimals={false} />
+                    <ChartTooltip content={<ChartTooltipContent />} />
+                    <Legend />
+                    <Bar dataKey="male" name="Male" fill="hsl(var(--info))" radius={[4, 4, 0, 0]} />
+                    <Bar dataKey="female" name="Female" fill="hsl(var(--warning))" radius={[4, 4, 0, 0]} />
+                  </BarChart>
+                </ResponsiveContainer>
+              </ChartContainer>
+            )}
+          </CardContent>
+        </Card>
 
         {/* Quick Actions */}
         <Card className="mb-8 animate-fade-in">
