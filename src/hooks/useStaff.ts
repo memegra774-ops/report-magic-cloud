@@ -307,11 +307,13 @@ export const useDepartmentStats = () => {
       const deptStats = departments.map((dept) => {
         const deptStaff = staffData.filter((s) => s.department_id === dept.id);
         
-        // Gender by status
+        // Gender by status - On Duty excludes ARA (tracked separately), includes only academic ranks
         const genderByStatus = {
-          onDuty: { M: 0, F: 0 },
+          onDuty: { M: 0, F: 0 },        // On Duty (excluding ARA)
           notOnDuty: { M: 0, F: 0 },
           onStudy: { M: 0, F: 0 },
+          sick: { M: 0, F: 0 },
+          onStudyNotReporting: { M: 0, F: 0 },
           onDutyARA: { M: 0, F: 0 },
         };
 
@@ -319,16 +321,22 @@ export const useDepartmentStats = () => {
           const sex = staff.sex as 'M' | 'F';
           const status = staff.current_status;
           const category = (staff as any).category;
+          const isARA = category === 'ARA';
+          
           if (status === 'On Duty') {
-            genderByStatus.onDuty[sex]++;
+            if (isARA) {
+              genderByStatus.onDutyARA[sex]++;
+            } else {
+              genderByStatus.onDuty[sex]++;
+            }
           } else if (status === 'Not On Duty') {
             genderByStatus.notOnDuty[sex]++;
           } else if (status === 'On Study' || status === 'On Study Leave') {
             genderByStatus.onStudy[sex]++;
-          }
-          // On Duty ARA
-          if (category === 'ARA' && status === 'On Duty') {
-            genderByStatus.onDutyARA[sex]++;
+          } else if (status === 'Sick') {
+            genderByStatus.sick[sex]++;
+          } else if (status === 'On Study and Not Reporting') {
+            genderByStatus.onStudyNotReporting[sex]++;
           }
         });
 
