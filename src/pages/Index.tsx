@@ -111,81 +111,83 @@ const Index = () => {
           )}
         </div>
 
-        {/* Status Summary & Gender Distribution */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-          <Card className="animate-fade-in">
-            <CardHeader>
-              <CardTitle className="text-lg">Staff Status Summary</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-2 max-h-64 overflow-y-auto">
-                {stats?.byStatus && Object.entries(stats.byStatus)
-                  .sort(([, a], [, b]) => b - a)
-                  .map(([status, count]) => {
-                    // Determine color based on status
-                    const getStatusColor = (s: string) => {
-                      const lower = s.toLowerCase();
-                      if (lower === 'on duty') return { bg: 'bg-success/10', text: 'text-success' };
-                      if (lower === 'not on duty') return { bg: 'bg-destructive/10', text: 'text-destructive' };
-                      if (lower.includes('study')) return { bg: 'bg-info/10', text: 'text-info' };
-                      if (lower.includes('sick')) return { bg: 'bg-warning/10', text: 'text-warning' };
-                      return { bg: 'bg-muted', text: 'text-foreground' };
-                    };
-                    const colors = getStatusColor(status);
-                    return (
-                      <div key={status} className={`flex justify-between items-center p-2.5 ${colors.bg} rounded-lg`}>
-                        <span className="text-sm text-muted-foreground">{status}</span>
-                        <span className={`text-xl font-bold ${colors.text}`}>{count}</span>
-                      </div>
-                    );
-                  })}
+        {/* Gender Distribution by Status & Department */}
+        <Card className="mb-8 animate-fade-in">
+          <CardHeader>
+            <CardTitle className="text-lg">Gender Distribution by Status & Department</CardTitle>
+          </CardHeader>
+          <CardContent>
+            {deptStatsLoading ? (
+              <Skeleton className="h-64 w-full" />
+            ) : (
+              <div className="overflow-x-auto">
+                <Table>
+                  <TableHeader>
+                    <TableRow className="bg-primary/5">
+                      <TableHead rowSpan={2} className="align-middle">Department</TableHead>
+                      <TableHead className="text-center" colSpan={2}>On Duty</TableHead>
+                      <TableHead className="text-center" colSpan={2}>Not On Duty</TableHead>
+                      <TableHead className="text-center" colSpan={2}>On Study</TableHead>
+                      <TableHead className="text-center" colSpan={2}>Sick</TableHead>
+                      <TableHead className="text-center" colSpan={2}>On Study & Not Reporting</TableHead>
+                      <TableHead className="text-center" colSpan={2}>On Duty ARA</TableHead>
+                    </TableRow>
+                    <TableRow className="bg-muted/50">
+                      <TableHead className="text-center text-info">M</TableHead>
+                      <TableHead className="text-center text-warning">F</TableHead>
+                      <TableHead className="text-center text-info">M</TableHead>
+                      <TableHead className="text-center text-warning">F</TableHead>
+                      <TableHead className="text-center text-info">M</TableHead>
+                      <TableHead className="text-center text-warning">F</TableHead>
+                      <TableHead className="text-center text-info">M</TableHead>
+                      <TableHead className="text-center text-warning">F</TableHead>
+                      <TableHead className="text-center text-info">M</TableHead>
+                      <TableHead className="text-center text-warning">F</TableHead>
+                      <TableHead className="text-center text-info">M</TableHead>
+                      <TableHead className="text-center text-warning">F</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {filteredDeptStats?.map((dept) => (
+                      <TableRow key={dept.id}>
+                        <TableCell className="font-medium">{dept.code}</TableCell>
+                        <TableCell className="text-center text-info font-semibold">{dept.genderByStatus?.onDuty?.M || 0}</TableCell>
+                        <TableCell className="text-center text-warning font-semibold">{dept.genderByStatus?.onDuty?.F || 0}</TableCell>
+                        <TableCell className="text-center text-info">{dept.genderByStatus?.notOnDuty?.M || 0}</TableCell>
+                        <TableCell className="text-center text-warning">{dept.genderByStatus?.notOnDuty?.F || 0}</TableCell>
+                        <TableCell className="text-center text-info">{dept.genderByStatus?.onStudy?.M || 0}</TableCell>
+                        <TableCell className="text-center text-warning">{dept.genderByStatus?.onStudy?.F || 0}</TableCell>
+                        <TableCell className="text-center text-info">{dept.genderByStatus?.sick?.M || 0}</TableCell>
+                        <TableCell className="text-center text-warning">{dept.genderByStatus?.sick?.F || 0}</TableCell>
+                        <TableCell className="text-center text-info">{dept.genderByStatus?.onStudyNotReporting?.M || 0}</TableCell>
+                        <TableCell className="text-center text-warning">{dept.genderByStatus?.onStudyNotReporting?.F || 0}</TableCell>
+                        <TableCell className="text-center text-info font-semibold">{dept.genderByStatus?.onDutyARA?.M || 0}</TableCell>
+                        <TableCell className="text-center text-warning font-semibold">{dept.genderByStatus?.onDutyARA?.F || 0}</TableCell>
+                      </TableRow>
+                    ))}
+                    {filteredDeptStats && filteredDeptStats.length > 1 && (
+                      <TableRow className="bg-muted font-bold">
+                        <TableCell>Total</TableCell>
+                        <TableCell className="text-center text-info">{filteredDeptStats.reduce((sum, d) => sum + (d.genderByStatus?.onDuty?.M || 0), 0)}</TableCell>
+                        <TableCell className="text-center text-warning">{filteredDeptStats.reduce((sum, d) => sum + (d.genderByStatus?.onDuty?.F || 0), 0)}</TableCell>
+                        <TableCell className="text-center text-info">{filteredDeptStats.reduce((sum, d) => sum + (d.genderByStatus?.notOnDuty?.M || 0), 0)}</TableCell>
+                        <TableCell className="text-center text-warning">{filteredDeptStats.reduce((sum, d) => sum + (d.genderByStatus?.notOnDuty?.F || 0), 0)}</TableCell>
+                        <TableCell className="text-center text-info">{filteredDeptStats.reduce((sum, d) => sum + (d.genderByStatus?.onStudy?.M || 0), 0)}</TableCell>
+                        <TableCell className="text-center text-warning">{filteredDeptStats.reduce((sum, d) => sum + (d.genderByStatus?.onStudy?.F || 0), 0)}</TableCell>
+                        <TableCell className="text-center text-info">{filteredDeptStats.reduce((sum, d) => sum + (d.genderByStatus?.sick?.M || 0), 0)}</TableCell>
+                        <TableCell className="text-center text-warning">{filteredDeptStats.reduce((sum, d) => sum + (d.genderByStatus?.sick?.F || 0), 0)}</TableCell>
+                        <TableCell className="text-center text-info">{filteredDeptStats.reduce((sum, d) => sum + (d.genderByStatus?.onStudyNotReporting?.M || 0), 0)}</TableCell>
+                        <TableCell className="text-center text-warning">{filteredDeptStats.reduce((sum, d) => sum + (d.genderByStatus?.onStudyNotReporting?.F || 0), 0)}</TableCell>
+                        <TableCell className="text-center text-info">{filteredDeptStats.reduce((sum, d) => sum + (d.genderByStatus?.onDutyARA?.M || 0), 0)}</TableCell>
+                        <TableCell className="text-center text-warning">{filteredDeptStats.reduce((sum, d) => sum + (d.genderByStatus?.onDutyARA?.F || 0), 0)}</TableCell>
+                      </TableRow>
+                    )}
+                  </TableBody>
+                </Table>
               </div>
-            </CardContent>
-          </Card>
-
-          <Card className="animate-fade-in">
-            <CardHeader>
-              <CardTitle className="text-lg">On Duty Local Instructors by Gender</CardTitle>
-            </CardHeader>
-            <CardContent>
-              {deptStatsLoading ? (
-                <Skeleton className="h-48 w-full" />
-              ) : (
-                <div className="overflow-x-auto">
-                  <Table>
-                    <TableHeader>
-                      <TableRow className="bg-primary/5">
-                        <TableHead>Department</TableHead>
-                        <TableHead className="text-center" colSpan={2}>On Duty</TableHead>
-                      </TableRow>
-                      <TableRow className="bg-muted/50">
-                        <TableHead></TableHead>
-                        <TableHead className="text-center text-info">M</TableHead>
-                        <TableHead className="text-center text-warning">F</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {filteredDeptStats?.map((dept) => (
-                        <TableRow key={dept.id}>
-                          <TableCell className="font-medium">{dept.code}</TableCell>
-                          <TableCell className="text-center text-info font-semibold">{dept.genderByStatus?.onDuty?.M || 0}</TableCell>
-                          <TableCell className="text-center text-warning font-semibold">{dept.genderByStatus?.onDuty?.F || 0}</TableCell>
-                        </TableRow>
-                      ))}
-                      {filteredDeptStats && filteredDeptStats.length > 1 && (
-                        <TableRow className="bg-muted font-bold">
-                          <TableCell>Total</TableCell>
-                          <TableCell className="text-center text-info">{filteredDeptStats.reduce((sum, d) => sum + (d.genderByStatus?.onDuty?.M || 0), 0)}</TableCell>
-                          <TableCell className="text-center text-warning">{filteredDeptStats.reduce((sum, d) => sum + (d.genderByStatus?.onDuty?.F || 0), 0)}</TableCell>
-                        </TableRow>
-                      )}
-                    </TableBody>
-                  </Table>
-                </div>
-              )}
-            </CardContent>
-          </Card>
-        </div>
+            )}
+          </CardContent>
+        </Card>
 
         {/* Charts Section */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
