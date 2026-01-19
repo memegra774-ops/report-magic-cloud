@@ -308,7 +308,7 @@ const ReportLetter = ({ report, department, signatory = 'Associate Dean for Acad
           new Paragraph({
             children: [
               new TextRun({ text: 'To: ', bold: true }),
-              new TextRun('Competence and Human Resource Administration Executive'),
+              new TextRun(report.department_id ? 'CoEEC Vice Dean for Academic Affairs' : 'Competence and Human Resource Administration Executive'),
             ],
           }),
           new Paragraph({
@@ -326,7 +326,7 @@ const ReportLetter = ({ report, department, signatory = 'Associate Dean for Acad
             alignment: AlignmentType.RIGHT,
           }),
           new Paragraph({ spacing: { after: 100 } }),
-          new Paragraph({ text: 'College of Electrical Engineering & Computing' }),
+          new Paragraph({ text: report.department_id && department ? `Department of ${department.name}` : 'College of Electrical Engineering & Computing' }),
           new Paragraph({ text: signatory }),
           new Paragraph({ spacing: { after: 100 } }),
           new Paragraph({
@@ -334,7 +334,7 @@ const ReportLetter = ({ report, department, signatory = 'Associate Dean for Acad
           }),
           new Paragraph({ spacing: { after: 100 } }),
           new Paragraph({
-            children: [new TextRun(`The following table presents the statistics of academic staff members, including Local Instructors, Academic and Research Assistants, and MSc Sponsored Contract Students, categorized by their current status (${statusListText}) in the College of Electrical Engineering and Computing for the month of ${monthName} ${report.report_year}. Please find the detailed report attached herewith.`)],
+            children: [new TextRun(`The following table presents the statistics of academic staff members, including Local Instructors, Academic and Research Assistants, and MSc Sponsored Contract Students, categorized by their current status (${statusListText}) in the ${report.department_id && department ? `Department of ${department.name}` : 'College of Electrical Engineering and Computing'} for the month of ${monthName} ${report.report_year}. Please find the detailed report attached herewith.`)],
             alignment: AlignmentType.JUSTIFIED,
           }),
           new Paragraph({ spacing: { after: 100 } }),
@@ -407,7 +407,7 @@ const ReportLetter = ({ report, department, signatory = 'Associate Dean for Acad
         {/* Meta info */}
         <div className="flex justify-between text-xs mb-4">
           <div>
-            <p><strong>To:</strong> Competence and Human Resource Administration Executive</p>
+            <p><strong>To:</strong> {report.department_id ? 'CoEEC Vice Dean for Academic Affairs' : 'Competence and Human Resource Administration Executive'}</p>
           </div>
           <div className="text-right">
             <p><strong>Date:</strong> {dateStr}</p>
@@ -417,7 +417,7 @@ const ReportLetter = ({ report, department, signatory = 'Associate Dean for Acad
 
         {/* From */}
         <div className="mb-3 text-xs">
-          <p>College of Electrical Engineering & Computing</p>
+          <p>{report.department_id && department ? `Department of ${department.name}` : 'College of Electrical Engineering & Computing'}</p>
           <p>{signatory}</p>
         </div>
 
@@ -430,7 +430,7 @@ const ReportLetter = ({ report, department, signatory = 'Associate Dean for Acad
         <p className="text-justify mb-4 text-xs">
           The following table presents the statistics of academic staff members, including Local Instructors, 
           Academic and Research Assistants, and MSc Sponsored Contract Students, categorized by their current status 
-          ({statusListText}) in the College of Electrical Engineering and Computing for the month of {monthName} {report.report_year}. 
+          ({statusListText}) in the {report.department_id && department ? `Department of ${department.name}` : 'College of Electrical Engineering and Computing'} for the month of {monthName} {report.report_year}. 
           Please find the detailed report attached herewith.
         </p>
 
