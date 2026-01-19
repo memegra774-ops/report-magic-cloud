@@ -656,8 +656,8 @@ const Reports = () => {
                           <FileText className="h-4 w-4" />
                         </Button>
                       )}
-                      {/* Submit to AVD button - only for department heads with draft reports */}
-                      {isDepartmentHead && !isSubmitted && (
+                      {/* Submit to AVD button - only for department heads with draft reports that are not approved */}
+                      {isDepartmentHead && !isSubmitted && !isApproved && (
                         <Button
                           variant="outline"
                           size="sm"
