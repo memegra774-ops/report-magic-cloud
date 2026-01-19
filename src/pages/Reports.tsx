@@ -173,7 +173,7 @@ const Reports = () => {
   const canCreate = role === 'system_admin' || role === 'department_head' || role === 'avd';
   // Both AVD and department heads can delete their own reports
   const canDelete = role === 'system_admin' || role === 'avd' || role === 'department_head';
-  const canViewLetter = role === 'avd' || role === 'system_admin';
+  const canViewLetter = role === 'avd' || role === 'system_admin' || role === 'department_head';
 
   // Filter reports based on role - for AVD's own reports and department heads' reports
   const filteredReports = reports?.filter(report => {
