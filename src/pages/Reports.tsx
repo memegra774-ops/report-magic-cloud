@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Plus, Calendar, Trash2, Eye, FileText, RefreshCw, GitCompare, Send, CheckCircle2, ThumbsUp, Building2, XCircle, AlertTriangle } from 'lucide-react';
 import Header from '@/components/Header';
 import ReportView from '@/components/ReportView';
@@ -169,6 +169,36 @@ const Reports = () => {
 
   const currentYear = new Date().getFullYear();
   const years = Array.from({ length: 5 }, (_, i) => currentYear - 2 + i);
+
+  // Get months that already have reports for the selected year (to filter out from dropdown)
+  const existingReportMonths = reports?.filter(report => {
+    const matchesYear = report.report_year === selectedYear;
+    if (role === 'department_head') {
+      return matchesYear && report.department_id === profile?.department_id;
+    }
+    if (role === 'avd') {
+      return matchesYear && !report.department_id;
+    }
+    return false;
+  }).map(r => r.report_month) || [];
+
+  // Available months (exclude months with existing reports)
+  const availableMonths = MONTHS.map((month, index) => ({
+    name: month,
+    value: index + 1,
+    disabled: existingReportMonths.includes(index + 1)
+  }));
+
+  // Check if selected month is available, if not auto-select first available
+  const firstAvailableMonth = availableMonths.find(m => !m.disabled);
+  const hasAvailableMonths = !!firstAvailableMonth;
+
+  // When dialog opens or year changes, auto-select first available month
+  useEffect(() => {
+    if (createDialogOpen && firstAvailableMonth && existingReportMonths.includes(selectedMonth)) {
+      setSelectedMonth(firstAvailableMonth.value);
+    }
+  }, [createDialogOpen, selectedYear, existingReportMonths, selectedMonth, firstAvailableMonth]);
 
   const canCreate = role === 'system_admin' || role === 'department_head' || role === 'avd';
   // Both AVD and department heads can delete their own reports
@@ -727,9 +757,13 @@ const Reports = () => {
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    {MONTHS.map((month, index) => (
-                      <SelectItem key={index} value={String(index + 1)}>
-                        {month}
+                    {availableMonths.map((month) => (
+                      <SelectItem 
+                        key={month.value} 
+                        value={String(month.value)}
+                        disabled={month.disabled}
+                      >
+                        {month.name} {month.disabled && '(Report exists)'}
                       </SelectItem>
                     ))}
                   </SelectContent>
@@ -751,11 +785,20 @@ const Reports = () => {
                 </Select>
               </div>
             </div>
+            {!hasAvailableMonths && (
+              <p className="text-sm text-destructive flex items-center gap-2">
+                <AlertTriangle className="h-4 w-4" />
+                All months for {selectedYear} already have reports. Delete an existing report or select a different year.
+              </p>
+            )}
             <DialogFooter>
               <Button variant="outline" onClick={() => setCreateDialogOpen(false)}>
                 Cancel
               </Button>
-              <Button onClick={handleCreateReport} disabled={createReport.isPending}>
+              <Button 
+                onClick={handleCreateReport} 
+                disabled={createReport.isPending || !hasAvailableMonths}
+              >
                 {createReport.isPending ? 'Generating...' : 'Generate Report'}
               </Button>
             </DialogFooter>

@@ -348,8 +348,16 @@ const ReportLetter = ({ report, department, signatory = 'Associate Dean for Acad
           new Paragraph({ children: [new TextRun({ text: signatory, bold: true })] }),
           new Paragraph({ spacing: { after: 200 } }),
           new Paragraph({ children: [new TextRun({ text: 'CC:', bold: true })] }),
-          new Paragraph({ text: '• CoEEC Dean', bullet: { level: 0 } }),
-          new Paragraph({ text: '• CoEEC ADAA', bullet: { level: 0 } }),
+          ...(report.department_id 
+            ? [
+                new Paragraph({ text: '• Department Head', bullet: { level: 0 } }),
+                new Paragraph({ text: '• CoEEC ADAA', bullet: { level: 0 } }),
+              ]
+            : [
+                new Paragraph({ text: '• CoEEC Dean', bullet: { level: 0 } }),
+                new Paragraph({ text: '• CoEEC ADAA', bullet: { level: 0 } }),
+              ]
+          ),
         ],
       }],
     });
@@ -522,8 +530,17 @@ const ReportLetter = ({ report, department, signatory = 'Associate Dean for Acad
         <div className="mt-4 text-xs">
           <p className="font-semibold">CC:</p>
           <ul className="ml-4">
-            <li>CoEEC Dean</li>
-            <li>CoEEC ADAA</li>
+            {report.department_id ? (
+              <>
+                <li>Department Head</li>
+                <li>CoEEC ADAA</li>
+              </>
+            ) : (
+              <>
+                <li>CoEEC Dean</li>
+                <li>CoEEC ADAA</li>
+              </>
+            )}
           </ul>
         </div>
       </div>
