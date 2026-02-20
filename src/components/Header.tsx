@@ -1,9 +1,10 @@
-import { GraduationCap, FileText, Users, Settings, LogOut } from 'lucide-react';
+import { FileText, Users, Settings, LogOut } from 'lucide-react';
 import { Link, useLocation } from 'react-router-dom';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import NotificationsBell from './NotificationsBell';
+import astuLogo from '@/assets/astu-logo.png';
 
 const Header = () => {
   const location = useLocation();
@@ -23,9 +24,7 @@ const Header = () => {
       <div className="container mx-auto px-4">
         <div className="flex items-center justify-between py-4">
           <Link to="/" className="flex items-center gap-3 group">
-            <div className="p-2 bg-primary-foreground/10 rounded-lg backdrop-blur-sm group-hover:bg-primary-foreground/20 transition-colors">
-              <GraduationCap className="h-8 w-8" />
-            </div>
+            <img src={astuLogo} alt="ASTU Logo" className="h-10 w-10 rounded-full object-cover" />
             <div>
               <h1 className="font-serif text-xl font-bold tracking-tight">ASTU Staff Report</h1>
               <p className="text-xs text-primary-foreground/80">College of Electrical Engineering & Computing</p>
