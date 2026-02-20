@@ -6,8 +6,9 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { GraduationCap, Loader2, KeyRound } from 'lucide-react';
+import { Loader2, KeyRound } from 'lucide-react';
 import { toast } from 'sonner';
+import astuLogo from '@/assets/astu-logo.png';
 
 const Auth = () => {
   const [email, setEmail] = useState('');
@@ -184,8 +185,8 @@ const Auth = () => {
     <div className="min-h-screen bg-background flex items-center justify-center p-4">
       <Card className="w-full max-w-md shadow-card">
         <CardHeader className="text-center space-y-4">
-          <div className="mx-auto p-3 bg-primary/10 rounded-xl w-fit">
-            <GraduationCap className="h-12 w-12 text-primary" />
+          <div className="mx-auto w-fit">
+            <img src={astuLogo} alt="ASTU Logo" className="h-20 w-20 rounded-full object-cover" />
           </div>
           <div>
             <CardTitle className="font-serif text-2xl">ASTU Staff Report System</CardTitle>
