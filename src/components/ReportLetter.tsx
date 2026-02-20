@@ -1,10 +1,11 @@
-import { useRef } from 'react';
+import { useRef, useEffect, useState } from 'react';
 import { MonthlyReport, MONTHS, Department } from '@/types/staff';
 import { useReportEntries } from '@/hooks/useReports';
 import { Button } from '@/components/ui/button';
 import { Printer, FileText } from 'lucide-react';
 import { Document, Packer, Paragraph, Table, TableRow, TableCell, TextRun, WidthType, AlignmentType, BorderStyle } from 'docx';
 import { saveAs } from 'file-saver';
+import { supabase } from '@/integrations/supabase/client';
 import astuLogo from '@/assets/astu-logo.png';
 
 interface ReportLetterProps {
@@ -34,10 +35,46 @@ const FIXED_STATUSES = ['Not On Duty', 'On Duty', 'On Study', 'On Study and Not 
 const ReportLetter = ({ report, department, signatory }: ReportLetterProps) => {
   const { data: entries, isLoading } = useReportEntries(report.id);
   const printRef = useRef<HTMLDivElement>(null);
+  const [deptHeadName, setDeptHeadName] = useState<string>('');
+  const [deptHeadEmail, setDeptHeadEmail] = useState<string>('');
 
   const isDepartmentReport = !!report.department_id;
   const departmentName = department?.name || 'Department';
-  const headName = signatory || '<<Department Head name>>';
+
+  // Fetch department head name and email from profiles + user_roles
+  useEffect(() => {
+    const fetchDeptHead = async () => {
+      if (!report.department_id) return;
+
+      const { data } = await supabase
+        .from('profiles')
+        .select('full_name, email, id')
+        .eq('department_id', report.department_id);
+
+      if (data && data.length > 0) {
+        // Find which of these profiles has the department_head role
+        for (const profile of data) {
+          const { data: roleData } = await supabase
+            .from('user_roles')
+            .select('role')
+            .eq('user_id', profile.id)
+            .eq('role', 'department_head')
+            .single();
+
+          if (roleData) {
+            setDeptHeadName(profile.full_name || '');
+            setDeptHeadEmail(profile.email || '');
+            break;
+          }
+        }
+      }
+    };
+
+    fetchDeptHead();
+  }, [report.department_id]);
+
+  const headName = signatory || deptHeadName || '<<Department Head name>>';
+  const contactEmail = deptHeadEmail || '<<department email>>';
 
   // Calculate statistics with fixed status columns
   const calculateStats = (): CategoryStats[] => {
@@ -71,6 +108,10 @@ const ReportLetter = ({ report, department, signatory }: ReportLetterProps) => {
   };
 
   const stats = calculateStats();
+
+  // Calculate number of staff report pages (rough estimate: ~30 entries per page)
+  const totalEntries = entries?.length || 0;
+  const numberOfPages = Math.max(1, Math.ceil(totalEntries / 30));
 
   const grandTotals = {
     statuses: FIXED_STATUSES.map(status => ({
@@ -211,8 +252,6 @@ const ReportLetter = ({ report, department, signatory }: ReportLetterProps) => {
 
   const handleExportWord = async () => {
     const monthName = MONTHS[report.report_month - 1];
-    const today = new Date();
-    const dateStr = `${today.getDate()}/${today.getMonth() + 1}/${today.getFullYear()}`;
 
     const createTableRows = () => {
       const rows: TableRow[] = [];
@@ -294,7 +333,7 @@ const ReportLetter = ({ report, department, signatory }: ReportLetterProps) => {
     };
 
     const bodyText = isDepartmentReport
-      ? `The following table shows statistics of Academic staff (Local, Instructors, Academic and Research Assistants & MSc. Sponsored contract Students) on duty, absent, sick and study leave in College of Electrical Engineering and Computing for the month of ${monthName} ${report.report_year}. Please kindly find also attached here with pages is detail of the report.`
+      ? `The following table shows statistics of Academic staff (Local, Instructors, Academic and Research Assistants & MSc. Sponsored contract Students) on duty, absent, sick and study leave in ${departmentName} for the month of ${monthName} ${report.report_year}. Please kindly find also attached here with ${numberOfPages} pages is detail of the report.`
       : `The following table presents the statistics of academic staff members in the College of Electrical Engineering and Computing for the month of ${monthName} ${report.report_year}. Please find the detailed report attached herewith.`;
 
     const doc = new Document({
@@ -304,7 +343,7 @@ const ReportLetter = ({ report, department, signatory }: ReportLetterProps) => {
         },
         children: [
           new Paragraph({
-            children: [new TextRun({ text: 'P.O. Box: 1888   Tele: +251-221-100026  Fax: +251-022-112-01-50    E-mail: adaa.soeec@astu.et', size: 18, font: 'Times New Roman' })],
+            children: [new TextRun({ text: `P.O. Box: 1888   Tele: +251-221-100026  Fax: +251-022-112-01-50    E-mail: ${contactEmail}`, size: 18, font: 'Times New Roman' })],
             alignment: AlignmentType.CENTER,
           }),
           new Paragraph({
@@ -378,12 +417,12 @@ const ReportLetter = ({ report, department, signatory }: ReportLetterProps) => {
           new Paragraph({ children: [new TextRun({ text: 'CC:', bold: true, underline: {}, font: 'Times New Roman', size: 24 })] }),
           ...(isDepartmentReport
             ? [
-                new Paragraph({ children: [new TextRun({ text: `\tCoEEC Dean`, font: 'Times New Roman', size: 24 })], bullet: { level: 0 } }),
-                new Paragraph({ children: [new TextRun({ text: `\t${departmentName}`, font: 'Times New Roman', size: 24 })], bullet: { level: 0 } }),
+                new Paragraph({ children: [new TextRun({ text: `CoEEC Dean`, font: 'Times New Roman', size: 24 })], bullet: { level: 0 } }),
+                new Paragraph({ children: [new TextRun({ text: `${departmentName} Department`, font: 'Times New Roman', size: 24 })], bullet: { level: 0 } }),
               ]
             : [
-                new Paragraph({ children: [new TextRun({ text: `\tCoEEC Dean`, font: 'Times New Roman', size: 24 })], bullet: { level: 0 } }),
-                new Paragraph({ children: [new TextRun({ text: `\tCoEEC ADAA`, font: 'Times New Roman', size: 24 })], bullet: { level: 0 } }),
+                new Paragraph({ children: [new TextRun({ text: `CoEEC Dean`, font: 'Times New Roman', size: 24 })], bullet: { level: 0 } }),
+                new Paragraph({ children: [new TextRun({ text: `CoEEC ADAA`, font: 'Times New Roman', size: 24 })], bullet: { level: 0 } }),
               ]
           ),
           new Paragraph({ spacing: { after: 200 } }),
@@ -431,7 +470,7 @@ const ReportLetter = ({ report, department, signatory }: ReportLetterProps) => {
           <span><strong>P.O. Box: 1888</strong></span>
           <span>Tele: +251-<strong>221</strong>-100026</span>
           <span>Fax: +251-022-112-01-50</span>
-          <span>E-mail: adaa.soeec@astu.et</span>
+          <span>E-mail: {contactEmail}</span>
         </div>
 
         {/* Letterhead with logo */}
@@ -480,9 +519,8 @@ const ReportLetter = ({ report, department, signatory }: ReportLetterProps) => {
         {/* Body */}
         <p style={{ textAlign: 'justify', marginBottom: '15px', lineHeight: '1.6' }}>
           The following table shows statistics of Academic staff (Local, Instructors, Academic and Research
-          Assistants &amp; MSc. Sponsored contract Students) on duty, absent, sick and study leave in College of
-          Electrical Engineering and Computing for the month of <strong><u>{monthName} {report.report_year}</u></strong>.
-          Please kindly find also attached here with <strong><u>{/* number of pages */}___</u></strong> pages is detail of the report.
+          Assistants &amp; MSc. Sponsored contract Students) on duty, absent, sick and study leave in {departmentName} for the month of <strong><u>{monthName} {report.report_year}</u></strong>.
+          Please kindly find also attached here with <strong><u>{numberOfPages}</u></strong> pages is detail of the report.
         </p>
 
         {/* Statistics Table */}
@@ -569,7 +607,7 @@ const ReportLetter = ({ report, department, signatory }: ReportLetterProps) => {
             {isDepartmentReport ? (
               <>
                 <li>CoEEC Dean</li>
-                <li>{departmentName}</li>
+                <li>{departmentName} Department</li>
               </>
             ) : (
               <>
