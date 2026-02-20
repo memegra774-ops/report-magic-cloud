@@ -3,8 +3,9 @@ import { MonthlyReport, MONTHS, Department } from '@/types/staff';
 import { useReportEntries } from '@/hooks/useReports';
 import { Button } from '@/components/ui/button';
 import { Printer, FileText } from 'lucide-react';
-import { Document, Packer, Paragraph, Table, TableRow, TableCell, TextRun, WidthType, AlignmentType, BorderStyle, HeadingLevel } from 'docx';
+import { Document, Packer, Paragraph, Table, TableRow, TableCell, TextRun, WidthType, AlignmentType, BorderStyle } from 'docx';
 import { saveAs } from 'file-saver';
+import astuLogo from '@/assets/astu-logo.png';
 
 interface ReportLetterProps {
   report: MonthlyReport;
@@ -28,63 +29,51 @@ interface CategoryStats {
   total: number;
 }
 
-const ReportLetter = ({ report, department, signatory = 'Associate Dean for Academic Affairs' }: ReportLetterProps) => {
+const FIXED_STATUSES = ['Not On Duty', 'On Duty', 'On Study', 'On Study and Not Reporting', 'Sick'];
+
+const ReportLetter = ({ report, department, signatory }: ReportLetterProps) => {
   const { data: entries, isLoading } = useReportEntries(report.id);
   const printRef = useRef<HTMLDivElement>(null);
 
-  // Get unique statuses from entries
-  const getUniqueStatuses = (): string[] => {
+  const isDepartmentReport = !!report.department_id;
+  const departmentName = department?.name || 'Department';
+  const headName = signatory || '<<Department Head name>>';
+
+  // Calculate statistics with fixed status columns
+  const calculateStats = (): CategoryStats[] => {
     if (!entries) return [];
-    const statuses = new Set<string>();
-    entries.forEach(e => {
-      if (e.current_status) {
-        statuses.add(e.current_status);
-      }
-    });
-    return Array.from(statuses).sort();
-  };
 
-  // Calculate statistics with dynamic status columns
-  const calculateStats = (): { stats: CategoryStats[]; uniqueStatuses: string[] } => {
-    if (!entries) return { stats: [], uniqueStatuses: [] };
-
-    const uniqueStatuses = getUniqueStatuses();
     const categories = [
       { key: 'Local Instructors', display: 'Local Instructors' },
       { key: 'ARA', display: 'Academic and Research Assistants' },
       { key: 'ASTU Sponsor', display: 'ASTU Sponsor Students' }
     ] as const;
-    
-    const stats: CategoryStats[] = [];
 
-    categories.forEach((cat) => {
+    return categories.map((cat) => {
       const categoryEntries = entries.filter(e => e.category === cat.key);
-      
-      const statuses: StatusCount[] = uniqueStatuses.map(status => ({
+
+      const statuses: StatusCount[] = FIXED_STATUSES.map(status => ({
         status,
-        male: categoryEntries.filter(e => e.staff?.sex === 'M' && e.current_status === status).length,
-        female: categoryEntries.filter(e => e.staff?.sex === 'F' && e.current_status === status).length,
+        male: categoryEntries.filter(e => (e.sex || e.staff?.sex) === 'M' && e.current_status === status).length,
+        female: categoryEntries.filter(e => (e.sex || e.staff?.sex) === 'F' && e.current_status === status).length,
         total: categoryEntries.filter(e => e.current_status === status).length,
       }));
 
-      stats.push({
+      return {
         category: cat.key,
         displayName: cat.display,
         statuses,
-        mTotal: categoryEntries.filter(e => e.staff?.sex === 'M').length,
-        fTotal: categoryEntries.filter(e => e.staff?.sex === 'F').length,
+        mTotal: categoryEntries.filter(e => (e.sex || e.staff?.sex) === 'M').length,
+        fTotal: categoryEntries.filter(e => (e.sex || e.staff?.sex) === 'F').length,
         total: categoryEntries.length,
-      });
+      };
     });
-
-    return { stats, uniqueStatuses };
   };
 
-  const { stats, uniqueStatuses } = calculateStats();
-  
-  // Calculate grand totals
+  const stats = calculateStats();
+
   const grandTotals = {
-    statuses: uniqueStatuses.map(status => ({
+    statuses: FIXED_STATUSES.map(status => ({
       status,
       male: stats.reduce((acc, row) => acc + (row.statuses.find(s => s.status === status)?.male || 0), 0),
       female: stats.reduce((acc, row) => acc + (row.statuses.find(s => s.status === status)?.female || 0), 0),
@@ -102,93 +91,109 @@ const ReportLetter = ({ report, department, signatory = 'Associate Dean for Acad
     const printWindow = window.open('', '_blank');
     if (!printWindow) return;
 
-    const versionText = report.version > 1 ? ` (Version ${report.version})` : '';
-
     printWindow.document.write(`
       <html>
         <head>
-          <title>Staff Report Letter - ${MONTHS[report.report_month - 1]} ${report.report_year}${versionText}</title>
+          <title>Staff Report Letter - ${MONTHS[report.report_month - 1]} ${report.report_year}</title>
           <style>
-            @page { size: A4 portrait; margin: 12mm; }
+            @page { size: A4 portrait; margin: 15mm 20mm; }
+            * { margin: 0; padding: 0; box-sizing: border-box; }
             body { 
               font-family: 'Times New Roman', Times, serif; 
-              font-size: 10pt;
-              line-height: 1.3;
+              font-size: 12pt;
+              line-height: 1.5;
               color: #000;
-              margin: 0;
-              padding: 0;
             }
-            .letterhead {
-              text-align: center;
-              border-bottom: 2px solid #1e40af;
-              padding-bottom: 8px;
-              margin-bottom: 12px;
-            }
-            .letterhead h1 { 
-              font-size: 13pt; 
-              font-weight: bold; 
-              margin: 0;
-              color: #1e40af;
-            }
-            .letterhead h2 { 
-              font-size: 11pt; 
-              margin: 3px 0; 
-            }
-            .letterhead p { 
-              font-size: 8pt; 
-              color: #666; 
-              margin: 2px 0;
-            }
-            .meta-info {
+            .contact-bar {
+              background-color: #2c5aa0;
+              color: white;
+              padding: 4px 10px;
+              font-size: 9pt;
               display: flex;
               justify-content: space-between;
-              margin-bottom: 10px;
-              font-size: 10pt;
+              margin-bottom: 0;
             }
+            .letterhead {
+              display: flex;
+              align-items: center;
+              justify-content: center;
+              gap: 15px;
+              padding: 10px 0;
+              border-bottom: 3px solid #2c5aa0;
+              margin-bottom: 20px;
+            }
+            .letterhead img {
+              height: 60px;
+              width: 60px;
+            }
+            .letterhead-text {
+              text-align: center;
+            }
+            .letterhead-text h1 { 
+              font-size: 16pt; 
+              font-weight: bold;
+              letter-spacing: 1px;
+            }
+            .letterhead-text h2 { 
+              font-size: 13pt;
+              font-weight: normal;
+            }
+            .meta-section {
+              display: flex;
+              justify-content: space-between;
+              margin-bottom: 5px;
+              font-size: 12pt;
+            }
+            .meta-left { text-align: left; }
+            .meta-right { text-align: right; }
+            .meta-right p { margin-bottom: 3px; }
             .subject {
               font-weight: bold;
-              text-decoration: underline;
-              margin: 12px 0 8px;
-              font-size: 10pt;
+              margin: 20px 0 15px;
+              font-size: 12pt;
             }
-            .content {
+            .subject u { text-decoration: underline; }
+            .content-para {
               text-align: justify;
-              margin-bottom: 10px;
-              font-size: 10pt;
+              margin-bottom: 15px;
+              font-size: 12pt;
+              line-height: 1.6;
             }
             table {
               width: 100%;
               border-collapse: collapse;
-              margin: 10px 0;
-              font-size: 9pt;
+              margin: 15px 0;
+              font-size: 11pt;
             }
             th, td {
               border: 1px solid #000;
-              padding: 3px 2px;
+              padding: 4px 6px;
               text-align: center;
             }
             th {
-              background-color: #1e40af;
-              color: white;
               font-weight: bold;
-              font-size: 8pt;
+              font-size: 11pt;
             }
-            .category-cell {
-              text-align: left;
-              padding-left: 4px;
-              font-size: 8pt;
+            .cat-cell { text-align: left; }
+            .total-label { text-align: left; font-weight: bold; }
+            .bold { font-weight: bold; }
+            .regards { margin-top: 20px; font-size: 12pt; }
+            .cc-section {
+              margin-top: 40px;
+              font-size: 12pt;
             }
-            .total-row {
-              font-weight: bold;
-              background-color: #f0f0f0;
-            }
-            .signature {
-              margin-top: 15px;
-              font-size: 10pt;
-            }
-            .cc {
-              margin-top: 10px;
-              font-size: 9pt;
+            .cc-section u { text-decoration: underline; font-weight: bold; }
+            .cc-section ul { margin-left: 30px; list-style-type: disc; }
+            .footer-line {
+              position: fixed;
+              bottom: 10mm;
+              left: 0;
+              right: 0;
+              text-align: center;
+              border-top: 2px solid #000;
+              padding-top: 5px;
+              font-size: 11pt;
+              font-style: italic;
             }
             @media print { 
               body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
@@ -208,133 +213,158 @@ const ReportLetter = ({ report, department, signatory = 'Associate Dean for Acad
     const monthName = MONTHS[report.report_month - 1];
     const today = new Date();
     const dateStr = `${today.getDate()}/${today.getMonth() + 1}/${today.getFullYear()}`;
-    const statusListText = uniqueStatuses.length > 0 
-      ? uniqueStatuses.join(', ').replace(/, ([^,]*)$/, ' and $1')
-      : 'various statuses';
 
-    // Create table rows for docx
     const createTableRows = () => {
       const rows: TableRow[] = [];
-      
-      // Header row
-      const headerCells = [
-        new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: 'No', bold: true, color: 'FFFFFF', size: 18 })], alignment: AlignmentType.CENTER })], shading: { fill: '1e40af' } }),
-        new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: 'Academic Staff', bold: true, color: 'FFFFFF', size: 18 })], alignment: AlignmentType.CENTER })], shading: { fill: '1e40af' } }),
-        new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: 'Sex', bold: true, color: 'FFFFFF', size: 18 })], alignment: AlignmentType.CENTER })], shading: { fill: '1e40af' } }),
-        ...uniqueStatuses.map(status => new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: status, bold: true, color: 'FFFFFF', size: 18 })], alignment: AlignmentType.CENTER })], shading: { fill: '1e40af' } })),
-        new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: 'Total', bold: true, color: 'FFFFFF', size: 18 })], alignment: AlignmentType.CENTER })], shading: { fill: '1e40af' } }),
-      ];
-      rows.push(new TableRow({ children: headerCells }));
 
-      // Data rows
+      // Header row
+      rows.push(new TableRow({
+        children: [
+          new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: 'No', bold: true, font: 'Times New Roman', size: 22 })], alignment: AlignmentType.CENTER })] }),
+          new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: 'Academic Staff', bold: true, font: 'Times New Roman', size: 22 })], alignment: AlignmentType.CENTER })] }),
+          new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: 'Sex', bold: true, font: 'Times New Roman', size: 22 })], alignment: AlignmentType.CENTER })] }),
+          ...FIXED_STATUSES.map(status => new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: status, bold: true, font: 'Times New Roman', size: 22 })], alignment: AlignmentType.CENTER })] })),
+          new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: 'Total', bold: true, font: 'Times New Roman', size: 22 })], alignment: AlignmentType.CENTER })] }),
+        ]
+      }));
+
       stats.forEach((row, index) => {
+        const makeCell = (text: string, bold = false) => new TableCell({
+          children: [new Paragraph({ children: [new TextRun({ text, bold, font: 'Times New Roman', size: 22 })], alignment: AlignmentType.CENTER })]
+        });
+
         // Male row
         rows.push(new TableRow({
           children: [
-            new TableCell({ children: [new Paragraph({ text: String(index + 1), alignment: AlignmentType.CENTER })], rowSpan: 3 }),
-            new TableCell({ children: [new Paragraph({ text: row.displayName })], rowSpan: 3 }),
-            new TableCell({ children: [new Paragraph({ text: 'M', alignment: AlignmentType.CENTER })] }),
-            ...row.statuses.map(s => new TableCell({ children: [new Paragraph({ text: s.male ? String(s.male) : '-', alignment: AlignmentType.CENTER })] })),
-            new TableCell({ children: [new Paragraph({ text: String(row.mTotal), alignment: AlignmentType.CENTER })] }),
+            new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: String(index + 1), font: 'Times New Roman', size: 22 })], alignment: AlignmentType.CENTER })], rowSpan: 3 }),
+            new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: row.displayName, font: 'Times New Roman', size: 22 })] })], rowSpan: 3 }),
+            makeCell('M'),
+            ...row.statuses.map(s => makeCell(s.male ? String(s.male) : '-')),
+            makeCell(String(row.mTotal)),
           ]
         }));
         // Female row
         rows.push(new TableRow({
           children: [
-            new TableCell({ children: [new Paragraph({ text: 'F', alignment: AlignmentType.CENTER })] }),
-            ...row.statuses.map(s => new TableCell({ children: [new Paragraph({ text: s.female ? String(s.female) : '-', alignment: AlignmentType.CENTER })] })),
-            new TableCell({ children: [new Paragraph({ text: String(row.fTotal), alignment: AlignmentType.CENTER })] }),
+            makeCell('F'),
+            ...row.statuses.map(s => makeCell(s.female ? String(s.female) : '-')),
+            makeCell(String(row.fTotal)),
           ]
         }));
         // Total row
         rows.push(new TableRow({
           children: [
-            new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: 'T', bold: true })], alignment: AlignmentType.CENTER })] }),
-            ...row.statuses.map(s => new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: s.total ? String(s.total) : '-', bold: true })], alignment: AlignmentType.CENTER })] })),
-            new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: String(row.total), bold: true })], alignment: AlignmentType.CENTER })] }),
+            makeCell('T', true),
+            ...row.statuses.map(s => makeCell(s.total ? String(s.total) : '-', true)),
+            makeCell(String(row.total), true),
           ]
         }));
       });
 
       // Grand total rows
+      const makeBoldCell = (text: string) => new TableCell({
+        children: [new Paragraph({ children: [new TextRun({ text, bold: true, font: 'Times New Roman', size: 22 })], alignment: AlignmentType.CENTER })]
+      });
+
       rows.push(new TableRow({
         children: [
           new TableCell({ children: [new Paragraph({ text: '' })], rowSpan: 3 }),
-          new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: 'Total', bold: true })] })], rowSpan: 3 }),
-          new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: 'M', bold: true })], alignment: AlignmentType.CENTER })] }),
-          ...grandTotals.statuses.map(s => new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: String(s.male), bold: true })], alignment: AlignmentType.CENTER })] })),
-          new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: String(grandTotals.mTotal), bold: true })], alignment: AlignmentType.CENTER })] }),
+          new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: 'Total', bold: true, font: 'Times New Roman', size: 22 })] })], rowSpan: 3 }),
+          makeBoldCell('M'),
+          ...grandTotals.statuses.map(s => makeBoldCell(String(s.male))),
+          makeBoldCell(String(grandTotals.mTotal)),
         ]
       }));
       rows.push(new TableRow({
         children: [
-          new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: 'F', bold: true })], alignment: AlignmentType.CENTER })] }),
-          ...grandTotals.statuses.map(s => new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: String(s.female), bold: true })], alignment: AlignmentType.CENTER })] })),
-          new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: String(grandTotals.fTotal), bold: true })], alignment: AlignmentType.CENTER })] }),
+          makeBoldCell('F'),
+          ...grandTotals.statuses.map(s => makeBoldCell(String(s.female))),
+          makeBoldCell(String(grandTotals.fTotal)),
         ]
       }));
       rows.push(new TableRow({
         children: [
-          new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: 'T', bold: true })], alignment: AlignmentType.CENTER })] }),
-          ...grandTotals.statuses.map(s => new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: String(s.total), bold: true })], alignment: AlignmentType.CENTER })] })),
-          new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: String(grandTotals.total), bold: true })], alignment: AlignmentType.CENTER })] }),
+          makeBoldCell('T'),
+          ...grandTotals.statuses.map(s => makeBoldCell(String(s.total))),
+          makeBoldCell(String(grandTotals.total)),
         ]
       }));
 
       return rows;
     };
 
+    const bodyText = isDepartmentReport
+      ? `The following table shows statistics of Academic staff (Local, Instructors, Academic and Research Assistants & MSc. Sponsored contract Students) on duty, absent, sick and study leave in College of Electrical Engineering and Computing for the month of ${monthName} ${report.report_year}. Please kindly find also attached here with pages is detail of the report.`
+      : `The following table presents the statistics of academic staff members in the College of Electrical Engineering and Computing for the month of ${monthName} ${report.report_year}. Please find the detailed report attached herewith.`;
+
     const doc = new Document({
       sections: [{
         properties: {
-          page: { margin: { top: 720, right: 720, bottom: 720, left: 720 } }
+          page: { margin: { top: 720, right: 900, bottom: 720, left: 900 } }
         },
         children: [
           new Paragraph({
-            children: [new TextRun({ text: 'P.O. Box: 1888 | Tel: +251-221-100026 | E-mail: adaa.soeec@astu.et', size: 18 })],
+            children: [new TextRun({ text: 'P.O. Box: 1888   Tele: +251-221-100026  Fax: +251-022-112-01-50    E-mail: adaa.soeec@astu.et', size: 18, font: 'Times New Roman' })],
             alignment: AlignmentType.CENTER,
           }),
           new Paragraph({
-            children: [new TextRun({ text: 'ADAMA SCIENCE AND TECHNOLOGY UNIVERSITY', bold: true, size: 28, color: '1e40af' })],
+            children: [new TextRun({ text: 'ADAMA SCIENCE AND TECHNOLOGY UNIVERSITY', bold: true, size: 32, font: 'Times New Roman' })],
             alignment: AlignmentType.CENTER,
           }),
           new Paragraph({
-            children: [new TextRun({ text: 'አዳማ ሳይንስ እና ቴክኖሎጂ ዩኒቨርሲቲ', size: 24 })],
+            children: [new TextRun({ text: 'አዳማ ሳይንስ እና ቴክኖሎጂ ዩኒቨርሲቲ', size: 26, font: 'Times New Roman' })],
             alignment: AlignmentType.CENTER,
             spacing: { after: 200 },
-            border: { bottom: { color: '1e40af', size: 12, style: BorderStyle.SINGLE } },
+            border: { bottom: { color: '2c5aa0', size: 12, style: BorderStyle.SINGLE } },
           }),
-          new Paragraph({ spacing: { after: 100 } }),
+          new Paragraph({ spacing: { after: 200 } }),
+          // To and Date row
           new Paragraph({
             children: [
-              new TextRun({ text: 'To: ', bold: true }),
-              new TextRun(report.department_id ? 'CoEEC Vice Dean for Academic Affairs' : 'Competence and Human Resource Administration Executive'),
+              new TextRun({ text: 'To: CoEEC Vice Dean for Academic Affairs', bold: true, font: 'Times New Roman', size: 24 }),
             ],
           }),
           new Paragraph({
             children: [
-              new TextRun({ text: 'Date: ', bold: true }),
-              new TextRun(dateStr),
-            ],
-            alignment: AlignmentType.RIGHT,
-          }),
-          new Paragraph({
-            children: [
-              new TextRun({ text: 'Ref: ', bold: true }),
-              new TextRun('ASTU'),
+              new TextRun({ text: `Date: _______________`, font: 'Times New Roman', size: 24 }),
             ],
             alignment: AlignmentType.RIGHT,
           }),
-          new Paragraph({ spacing: { after: 100 } }),
-          new Paragraph({ text: report.department_id && department ? `Department of ${department.name}` : 'College of Electrical Engineering & Computing' }),
-          new Paragraph({ text: signatory }),
-          new Paragraph({ spacing: { after: 100 } }),
           new Paragraph({
-            children: [new TextRun({ text: `Subject: Academic Staff Member Report for ${monthName} ${report.report_year}`, bold: true, underline: {} })],
+            children: [
+              new TextRun({ text: 'ASTU', bold: true, underline: {}, font: 'Times New Roman', size: 24 }),
+            ],
+          }),
+          new Paragraph({
+            children: [
+              new TextRun({ text: `Ref: _______________`, font: 'Times New Roman', size: 24 }),
+            ],
+            alignment: AlignmentType.RIGHT,
           }),
           new Paragraph({ spacing: { after: 100 } }),
           new Paragraph({
-            children: [new TextRun(`The following table presents the statistics of academic staff members, including Local Instructors, Academic and Research Assistants, and MSc Sponsored Contract Students, categorized by their current status (${statusListText}) in the ${report.department_id && department ? `Department of ${department.name}` : 'College of Electrical Engineering and Computing'} for the month of ${monthName} ${report.report_year}. Please find the detailed report attached herewith.`)],
+            children: [
+              new TextRun({ text: `Head, Department of ${departmentName}`, bold: true, font: 'Times New Roman', size: 24 }),
+            ],
+            alignment: AlignmentType.RIGHT,
+          }),
+          new Paragraph({ spacing: { after: 50 } }),
+          new Paragraph({
+            children: [
+              new TextRun({ text: headName, bold: true, font: 'Times New Roman', size: 24 }),
+            ],
+            alignment: AlignmentType.RIGHT,
+          }),
+          new Paragraph({ spacing: { after: 200 } }),
+          new Paragraph({
+            children: [
+              new TextRun({ text: 'Subject: ', bold: true, font: 'Times New Roman', size: 24 }),
+              new TextRun({ text: `Academic Staff Member Report of ${monthName} ${report.report_year}`, bold: true, underline: {}, font: 'Times New Roman', size: 24 }),
+            ],
+          }),
+          new Paragraph({ spacing: { after: 200 } }),
+          new Paragraph({
+            children: [new TextRun({ text: bodyText, font: 'Times New Roman', size: 24 })],
             alignment: AlignmentType.JUSTIFIED,
           }),
           new Paragraph({ spacing: { after: 100 } }),
@@ -342,28 +372,32 @@ const ReportLetter = ({ report, department, signatory = 'Associate Dean for Acad
             width: { size: 100, type: WidthType.PERCENTAGE },
             rows: createTableRows(),
           }),
-          new Paragraph({ spacing: { after: 100 } }),
-          new Paragraph({ text: 'With regards,' }),
           new Paragraph({ spacing: { after: 200 } }),
-          new Paragraph({ children: [new TextRun({ text: signatory, bold: true })] }),
-          new Paragraph({ spacing: { after: 200 } }),
-          new Paragraph({ children: [new TextRun({ text: 'CC:', bold: true })] }),
-          ...(report.department_id 
+          new Paragraph({ children: [new TextRun({ text: 'With regards', font: 'Times New Roman', size: 24 })] }),
+          new Paragraph({ spacing: { after: 400 } }),
+          new Paragraph({ children: [new TextRun({ text: 'CC:', bold: true, underline: {}, font: 'Times New Roman', size: 24 })] }),
+          ...(isDepartmentReport
             ? [
-                new Paragraph({ text: '• Department Head', bullet: { level: 0 } }),
-                new Paragraph({ text: '• CoEEC ADAA', bullet: { level: 0 } }),
+                new Paragraph({ children: [new TextRun({ text: `\tCoEEC Dean`, font: 'Times New Roman', size: 24 })], bullet: { level: 0 } }),
+                new Paragraph({ children: [new TextRun({ text: `\t${departmentName}`, font: 'Times New Roman', size: 24 })], bullet: { level: 0 } }),
               ]
             : [
-                new Paragraph({ text: '• CoEEC Dean', bullet: { level: 0 } }),
-                new Paragraph({ text: '• CoEEC ADAA', bullet: { level: 0 } }),
+                new Paragraph({ children: [new TextRun({ text: `\tCoEEC Dean`, font: 'Times New Roman', size: 24 })], bullet: { level: 0 } }),
+                new Paragraph({ children: [new TextRun({ text: `\tCoEEC ADAA`, font: 'Times New Roman', size: 24 })], bullet: { level: 0 } }),
               ]
           ),
+          new Paragraph({ spacing: { after: 200 } }),
+          new Paragraph({
+            children: [new TextRun({ text: 'We are dedicated to Innovative Knowledge', italics: true, font: 'Times New Roman', size: 22 })],
+            alignment: AlignmentType.CENTER,
+            border: { top: { color: '000000', size: 6, style: BorderStyle.SINGLE } },
+          }),
         ],
       }],
     });
 
     const blob = await Packer.toBlob(doc);
-    saveAs(blob, `Letter_${monthName}_${report.report_year}.docx`);
+    saveAs(blob, `Letter_${monthName}_${report.report_year}${isDepartmentReport ? `_${departmentName}` : ''}.docx`);
   };
 
   if (isLoading) {
@@ -371,14 +405,7 @@ const ReportLetter = ({ report, department, signatory = 'Associate Dean for Acad
   }
 
   const monthName = MONTHS[report.report_month - 1];
-  const today = new Date();
-  const dateStr = `${today.getDate()}/${today.getMonth() + 1}/${today.getFullYear()}`;
   const versionText = report.version > 1 ? ` (Version ${report.version})` : '';
-
-  // Generate status list for letter text
-  const statusListText = uniqueStatuses.length > 0 
-    ? uniqueStatuses.join(', ').replace(/, ([^,]*)$/, ' and $1')
-    : 'various statuses';
 
   return (
     <div className="space-y-6">
@@ -398,142 +425,151 @@ const ReportLetter = ({ report, department, signatory = 'Associate Dean for Acad
         </div>
       </div>
 
-      <div ref={printRef} className="bg-white p-6 rounded-lg border shadow-sm max-w-4xl mx-auto" style={{ fontFamily: "'Times New Roman', serif", fontSize: '10pt' }}>
-        {/* Letterhead */}
-        <div className="letterhead text-center border-b-2 border-primary pb-3 mb-4">
-          <p className="text-xs text-muted-foreground">
-            P.O. Box: 1888 | Tel: +251-221-100026 | Fax: +251-022-112-01-50 | E-mail: adaa.soeec@astu.et
-          </p>
-          <h1 className="text-lg font-bold text-primary mt-1" style={{ fontFamily: "'Times New Roman', serif" }}>
-            ADAMA SCIENCE AND TECHNOLOGY UNIVERSITY
-          </h1>
-          <h2 className="text-base font-semibold" style={{ fontFamily: "'Times New Roman', serif" }}>
-            አዳማ ሳይንስ እና ቴክኖሎጂ ዩኒቨርሲቲ
-          </h2>
+      <div ref={printRef} className="bg-white text-black p-8 rounded-lg border shadow-sm max-w-4xl mx-auto" style={{ fontFamily: "'Times New Roman', serif", fontSize: '12pt', lineHeight: '1.5' }}>
+        {/* Contact bar */}
+        <div style={{ backgroundColor: '#2c5aa0', color: 'white', padding: '4px 10px', fontSize: '9pt', display: 'flex', justifyContent: 'space-between', marginBottom: 0 }}>
+          <span><strong>P.O. Box: 1888</strong></span>
+          <span>Tele: +251-<strong>221</strong>-100026</span>
+          <span>Fax: +251-022-112-01-50</span>
+          <span>E-mail: adaa.soeec@astu.et</span>
         </div>
 
-        {/* Meta info */}
-        <div className="flex justify-between text-xs mb-4">
+        {/* Letterhead with logo */}
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '15px', padding: '10px 0', borderBottom: '3px solid #2c5aa0', marginBottom: '20px' }}>
+          <img src={astuLogo} alt="ASTU Logo" style={{ height: '60px', width: '60px' }} />
+          <div style={{ textAlign: 'center' }}>
+            <h1 style={{ fontSize: '16pt', fontWeight: 'bold', fontFamily: "'Times New Roman', serif", letterSpacing: '1px', margin: 0 }}>
+              ADAMA SCIENCE AND TECHNOLOGY UNIVERSITY
+            </h1>
+            <h2 style={{ fontSize: '13pt', fontWeight: 'normal', fontFamily: "'Times New Roman', serif", margin: 0 }}>
+              አዳማ ሳይንስ እና ቴክኖሎጂ ዩኒቨርሲቲ
+            </h2>
+          </div>
+        </div>
+
+        {/* To / Date / Ref section */}
+        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '5px' }}>
           <div>
-            <p><strong>To:</strong> {report.department_id ? 'CoEEC Vice Dean for Academic Affairs' : 'Competence and Human Resource Administration Executive'}</p>
+            <p><strong>To: CoEEC Vice Dean for Academic Affairs</strong></p>
           </div>
-          <div className="text-right">
-            <p><strong>Date:</strong> {dateStr}</p>
-            <p><strong>Ref:</strong> ASTU</p>
+          <div style={{ textAlign: 'right' }}>
+            <p><strong>Date:</strong> _______________</p>
           </div>
         </div>
 
-        {/* From */}
-        <div className="mb-3 text-xs">
-          <p>{report.department_id && department ? `Department of ${department.name}` : 'College of Electrical Engineering & Computing'}</p>
-          <p>{signatory}</p>
+        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '15px' }}>
+          <div>
+            <p><strong><u>ASTU</u></strong></p>
+          </div>
+          <div style={{ textAlign: 'right' }}>
+            <p><strong>Ref:</strong> _______________</p>
+          </div>
+        </div>
+
+        {/* Head, Department info - right aligned */}
+        <div style={{ textAlign: 'right', marginBottom: '20px' }}>
+          <p><strong>Head, Department of {departmentName}</strong></p>
+          <p style={{ marginTop: '5px' }}><strong>{headName}</strong></p>
         </div>
 
         {/* Subject */}
-        <p className="font-bold underline my-3 text-xs">
-          Subject: Academic Staff Member Report for {monthName} {report.report_year}
+        <p style={{ fontWeight: 'bold', margin: '20px 0 15px' }}>
+          <strong>Subject: <u>Academic Staff Member Report of {monthName} {report.report_year}</u></strong>
         </p>
 
-        {/* Content */}
-        <p className="text-justify mb-4 text-xs">
-          The following table presents the statistics of academic staff members, including Local Instructors, 
-          Academic and Research Assistants, and MSc Sponsored Contract Students, categorized by their current status 
-          ({statusListText}) in the {report.department_id && department ? `Department of ${department.name}` : 'College of Electrical Engineering and Computing'} for the month of {monthName} {report.report_year}. 
-          Please find the detailed report attached herewith.
+        {/* Body */}
+        <p style={{ textAlign: 'justify', marginBottom: '15px', lineHeight: '1.6' }}>
+          The following table shows statistics of Academic staff (Local, Instructors, Academic and Research
+          Assistants &amp; MSc. Sponsored contract Students) on duty, absent, sick and study leave in College of
+          Electrical Engineering and Computing for the month of <strong><u>{monthName} {report.report_year}</u></strong>.
+          Please kindly find also attached here with <strong><u>{/* number of pages */}___</u></strong> pages is detail of the report.
         </p>
 
-        {/* Statistics Table with Dynamic Status Columns */}
-        <div className="overflow-x-auto mb-4">
-          <table className="w-full border-collapse text-xs">
-            <thead>
-              <tr className="bg-primary text-primary-foreground">
-                <th className="border border-foreground/30 p-1">No</th>
-                <th className="border border-foreground/30 p-1">Academic Staff</th>
-                <th className="border border-foreground/30 p-1">Sex</th>
-                {uniqueStatuses.map(status => (
-                  <th key={status} className="border border-foreground/30 p-1 text-xs">{status}</th>
-                ))}
-                <th className="border border-foreground/30 p-1">Total</th>
-              </tr>
-            </thead>
-            <tbody>
-              {stats.map((row, index) => (
-                <>
-                  <tr key={`${row.category}-m`}>
-                    <td className="border border-foreground/30 p-1 text-center" rowSpan={3}>{index + 1}</td>
-                    <td className="border border-foreground/30 p-1 text-left text-xs" rowSpan={3}>{row.displayName}</td>
-                    <td className="border border-foreground/30 p-1 text-center">M</td>
-                    {row.statuses.map(s => (
-                      <td key={`${row.category}-m-${s.status}`} className="border border-foreground/30 p-1 text-center">
-                        {s.male || '-'}
-                      </td>
-                    ))}
-                    <td className="border border-foreground/30 p-1 text-center">{row.mTotal}</td>
-                  </tr>
-                  <tr key={`${row.category}-f`}>
-                    <td className="border border-foreground/30 p-1 text-center">F</td>
-                    {row.statuses.map(s => (
-                      <td key={`${row.category}-f-${s.status}`} className="border border-foreground/30 p-1 text-center">
-                        {s.female || '-'}
-                      </td>
-                    ))}
-                    <td className="border border-foreground/30 p-1 text-center">{row.fTotal}</td>
-                  </tr>
-                  <tr key={`${row.category}-t`} className="bg-muted/30">
-                    <td className="border border-foreground/30 p-1 text-center font-semibold">T</td>
-                    {row.statuses.map(s => (
-                      <td key={`${row.category}-t-${s.status}`} className="border border-foreground/30 p-1 text-center font-semibold">
-                        {s.total || '-'}
-                      </td>
-                    ))}
-                    <td className="border border-foreground/30 p-1 text-center font-semibold">{row.total}</td>
-                  </tr>
-                </>
+        {/* Statistics Table */}
+        <table style={{ width: '100%', borderCollapse: 'collapse', margin: '15px 0', fontSize: '11pt', fontFamily: "'Times New Roman', serif" }}>
+          <thead>
+            <tr>
+              <th style={{ border: '1px solid #000', padding: '4px 6px', fontWeight: 'bold' }}>No</th>
+              <th style={{ border: '1px solid #000', padding: '4px 6px', fontWeight: 'bold' }}>Academic Staff</th>
+              <th style={{ border: '1px solid #000', padding: '4px 6px', fontWeight: 'bold' }}>Sex</th>
+              {FIXED_STATUSES.map(status => (
+                <th key={status} style={{ border: '1px solid #000', padding: '4px 6px', fontWeight: 'bold' }}>{status}</th>
               ))}
-              {/* Grand Total */}
-              <tr className="bg-muted font-bold">
-                <td className="border border-foreground/30 p-1" rowSpan={3}></td>
-                <td className="border border-foreground/30 p-1 text-left" rowSpan={3}>Total</td>
-                <td className="border border-foreground/30 p-1 text-center">M</td>
-                {grandTotals.statuses.map(s => (
-                  <td key={`total-m-${s.status}`} className="border border-foreground/30 p-1 text-center">{s.male}</td>
-                ))}
-                <td className="border border-foreground/30 p-1 text-center">{grandTotals.mTotal}</td>
-              </tr>
-              <tr className="bg-muted font-bold">
-                <td className="border border-foreground/30 p-1 text-center">F</td>
-                {grandTotals.statuses.map(s => (
-                  <td key={`total-f-${s.status}`} className="border border-foreground/30 p-1 text-center">{s.female}</td>
-                ))}
-                <td className="border border-foreground/30 p-1 text-center">{grandTotals.fTotal}</td>
-              </tr>
-              <tr className="bg-muted font-bold">
-                <td className="border border-foreground/30 p-1 text-center">T</td>
-                {grandTotals.statuses.map(s => (
-                  <td key={`total-t-${s.status}`} className="border border-foreground/30 p-1 text-center">{s.total}</td>
-                ))}
-                <td className="border border-foreground/30 p-1 text-center">{grandTotals.total}</td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
+              <th style={{ border: '1px solid #000', padding: '4px 6px', fontWeight: 'bold' }}>Total</th>
+            </tr>
+          </thead>
+          <tbody>
+            {stats.map((row, index) => (
+              <>
+                <tr key={`${row.category}-m`}>
+                  <td style={{ border: '1px solid #000', padding: '4px 6px', textAlign: 'center' }} rowSpan={3}>{index + 1}</td>
+                  <td style={{ border: '1px solid #000', padding: '4px 6px', textAlign: 'left' }} rowSpan={3}>{row.displayName}</td>
+                  <td style={{ border: '1px solid #000', padding: '4px 6px', textAlign: 'center' }}>M</td>
+                  {row.statuses.map(s => (
+                    <td key={`${row.category}-m-${s.status}`} style={{ border: '1px solid #000', padding: '4px 6px', textAlign: 'center' }}>
+                      {s.male || '-'}
+                    </td>
+                  ))}
+                  <td style={{ border: '1px solid #000', padding: '4px 6px', textAlign: 'center' }}>{row.mTotal}</td>
+                </tr>
+                <tr key={`${row.category}-f`}>
+                  <td style={{ border: '1px solid #000', padding: '4px 6px', textAlign: 'center' }}>F</td>
+                  {row.statuses.map(s => (
+                    <td key={`${row.category}-f-${s.status}`} style={{ border: '1px solid #000', padding: '4px 6px', textAlign: 'center' }}>
+                      {s.female || '-'}
+                    </td>
+                  ))}
+                  <td style={{ border: '1px solid #000', padding: '4px 6px', textAlign: 'center' }}>{row.fTotal}</td>
+                </tr>
+                <tr key={`${row.category}-t`}>
+                  <td style={{ border: '1px solid #000', padding: '4px 6px', textAlign: 'center', fontWeight: 'bold' }}>T</td>
+                  {row.statuses.map(s => (
+                    <td key={`${row.category}-t-${s.status}`} style={{ border: '1px solid #000', padding: '4px 6px', textAlign: 'center', fontWeight: 'bold' }}>
+                      {s.total || '-'}
+                    </td>
+                  ))}
+                  <td style={{ border: '1px solid #000', padding: '4px 6px', textAlign: 'center', fontWeight: 'bold' }}>{row.total}</td>
+                </tr>
+              </>
+            ))}
+            {/* Grand Total */}
+            <tr style={{ fontWeight: 'bold' }}>
+              <td style={{ border: '1px solid #000', padding: '4px 6px' }} rowSpan={3}></td>
+              <td style={{ border: '1px solid #000', padding: '4px 6px', textAlign: 'left', fontWeight: 'bold' }} rowSpan={3}>Total</td>
+              <td style={{ border: '1px solid #000', padding: '4px 6px', textAlign: 'center', fontWeight: 'bold' }}>M</td>
+              {grandTotals.statuses.map(s => (
+                <td key={`total-m-${s.status}`} style={{ border: '1px solid #000', padding: '4px 6px', textAlign: 'center', fontWeight: 'bold' }}>{s.male}</td>
+              ))}
+              <td style={{ border: '1px solid #000', padding: '4px 6px', textAlign: 'center', fontWeight: 'bold' }}>{grandTotals.mTotal}</td>
+            </tr>
+            <tr style={{ fontWeight: 'bold' }}>
+              <td style={{ border: '1px solid #000', padding: '4px 6px', textAlign: 'center', fontWeight: 'bold' }}>F</td>
+              {grandTotals.statuses.map(s => (
+                <td key={`total-f-${s.status}`} style={{ border: '1px solid #000', padding: '4px 6px', textAlign: 'center', fontWeight: 'bold' }}>{s.female}</td>
+              ))}
+              <td style={{ border: '1px solid #000', padding: '4px 6px', textAlign: 'center', fontWeight: 'bold' }}>{grandTotals.fTotal}</td>
+            </tr>
+            <tr style={{ fontWeight: 'bold' }}>
+              <td style={{ border: '1px solid #000', padding: '4px 6px', textAlign: 'center', fontWeight: 'bold' }}>T</td>
+              {grandTotals.statuses.map(s => (
+                <td key={`total-t-${s.status}`} style={{ border: '1px solid #000', padding: '4px 6px', textAlign: 'center', fontWeight: 'bold' }}>{s.total}</td>
+              ))}
+              <td style={{ border: '1px solid #000', padding: '4px 6px', textAlign: 'center', fontWeight: 'bold' }}>{grandTotals.total}</td>
+            </tr>
+          </tbody>
+        </table>
 
-        {/* Closing */}
-        <p className="mb-4 text-xs">With regards,</p>
-
-        {/* Signature */}
-        <div className="mt-6">
-          <p className="font-semibold text-xs">{signatory}</p>
-        </div>
+        {/* With regards */}
+        <p style={{ marginTop: '20px' }}>With regards</p>
 
         {/* CC */}
-        <div className="mt-4 text-xs">
-          <p className="font-semibold">CC:</p>
-          <ul className="ml-4">
-            {report.department_id ? (
+        <div style={{ marginTop: '60px' }}>
+          <p><strong><u>CC:</u></strong></p>
+          <ul style={{ marginLeft: '30px', listStyleType: 'disc' }}>
+            {isDepartmentReport ? (
               <>
-                <li>Department Head</li>
-                <li>CoEEC ADAA</li>
+                <li>CoEEC Dean</li>
+                <li>{departmentName}</li>
               </>
             ) : (
               <>
@@ -542,6 +578,11 @@ const ReportLetter = ({ report, department, signatory = 'Associate Dean for Acad
               </>
             )}
           </ul>
+        </div>
+
+        {/* Footer */}
+        <div style={{ marginTop: '40px', borderTop: '2px solid #000', paddingTop: '5px', textAlign: 'center', fontStyle: 'italic', fontSize: '11pt' }}>
+          We are dedicated to Innovative Knowledge
         </div>
       </div>
     </div>
