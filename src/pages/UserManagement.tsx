@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Trash2, UserPlus, Edit } from 'lucide-react';
+import { Trash2, UserPlus, Edit, KeyRound } from 'lucide-react';
 import Header from '@/components/Header';
 import { useAuth, AppRole } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
@@ -79,7 +79,9 @@ const UserManagement = () => {
   const [editFormData, setEditFormData] = useState({
     role: 'department_head' as AppRole,
     department_id: '',
+    full_name: '',
   });
+  const [resetPasswordUserId, setResetPasswordUserId] = useState<string | null>(null);
 
   const { data: departments } = useDepartments();
 
@@ -143,12 +145,13 @@ const UserManagement = () => {
   });
 
   const updateUserRole = useMutation({
-    mutationFn: async ({ userId, newRole, departmentId }: { userId: string; newRole: AppRole; departmentId?: string }) => {
+    mutationFn: async ({ userId, newRole, departmentId, fullName }: { userId: string; newRole: AppRole; departmentId?: string; fullName?: string }) => {
       const { data: result, error } = await supabase.functions.invoke('update-user-role', {
         body: {
           user_id: userId,
           new_role: newRole,
           department_id: departmentId,
+          full_name: fullName,
         },
       });
 
@@ -161,10 +164,10 @@ const UserManagement = () => {
       queryClient.invalidateQueries({ queryKey: ['users-with-roles'] });
       setEditDialogOpen(false);
       setEditingUser(null);
-      toast.success('User role updated successfully');
+      toast.success('User updated successfully');
     },
     onError: (error) => {
-      toast.error('Failed to update user role: ' + error.message);
+      toast.error('Failed to update user: ' + error.message);
     },
   });
 
@@ -198,6 +201,7 @@ const UserManagement = () => {
     setEditFormData({
       role: user.role || 'department_head',
       department_id: user.department_id || '',
+      full_name: user.full_name || '',
     });
     setEditDialogOpen(true);
   };
@@ -208,8 +212,27 @@ const UserManagement = () => {
       userId: editingUser.id,
       newRole: editFormData.role,
       departmentId: editFormData.department_id,
+      fullName: editFormData.full_name,
     });
   };
+
+  const resetPassword = useMutation({
+    mutationFn: async (userId: string) => {
+      const { data: result, error } = await supabase.functions.invoke('update-user-role', {
+        body: { user_id: userId, reset_password: true },
+      });
+      if (error) throw error;
+      if (result?.error) throw new Error(result.error);
+      return result;
+    },
+    onSuccess: () => {
+      setResetPasswordUserId(null);
+      toast.success('Password reset to default (12345678). User will be prompted to change it on next login.');
+    },
+    onError: (error) => {
+      toast.error('Failed to reset password: ' + error.message);
+    },
+  });
 
   if (role !== 'system_admin') {
     return (
@@ -286,13 +309,23 @@ const UserManagement = () => {
                               variant="ghost"
                               size="sm"
                               onClick={() => handleEditClick(user)}
+                              title="Edit user"
                             >
                               <Edit className="h-4 w-4 text-primary" />
                             </Button>
                             <Button
                               variant="ghost"
                               size="sm"
+                              onClick={() => setResetPasswordUserId(user.id)}
+                              title="Reset password"
+                            >
+                              <KeyRound className="h-4 w-4 text-warning" />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="sm"
                               onClick={() => setDeleteUserId(user.id)}
+                              title="Delete user"
                             >
                               <Trash2 className="h-4 w-4 text-destructive" />
                             </Button>
@@ -388,12 +421,16 @@ const UserManagement = () => {
         <Dialog open={editDialogOpen} onOpenChange={setEditDialogOpen}>
           <DialogContent>
             <DialogHeader>
-              <DialogTitle className="font-serif text-xl">Edit User Role</DialogTitle>
+              <DialogTitle className="font-serif text-xl">Edit User</DialogTitle>
             </DialogHeader>
             <div className="space-y-4 py-4">
               <div className="space-y-2">
-                <Label>User</Label>
-                <Input value={editingUser?.full_name || editingUser?.email || ''} disabled />
+                <Label>Full Name</Label>
+                <Input
+                  value={editFormData.full_name}
+                  onChange={(e) => setEditFormData({ ...editFormData, full_name: e.target.value })}
+                  placeholder="Enter full name"
+                />
               </div>
               <div className="space-y-2">
                 <Label>Role</Label>
@@ -439,7 +476,7 @@ const UserManagement = () => {
                 Cancel
               </Button>
               <Button onClick={handleUpdateRole} disabled={updateUserRole.isPending}>
-                {updateUserRole.isPending ? 'Updating...' : 'Update Role'}
+                {updateUserRole.isPending ? 'Updating...' : 'Update User'}
               </Button>
             </DialogFooter>
           </DialogContent>
@@ -461,6 +498,26 @@ const UserManagement = () => {
                 className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
               >
                 {deleteUser.isPending ? 'Deleting...' : 'Delete User'}
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+
+        {/* Reset Password Confirmation */}
+        <AlertDialog open={!!resetPasswordUserId} onOpenChange={() => setResetPasswordUserId(null)}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Reset User Password</AlertDialogTitle>
+              <AlertDialogDescription>
+                This will reset the user's password to the default (<code className="bg-muted px-1 rounded">12345678</code>). The user will be required to change their password on next login.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Cancel</AlertDialogCancel>
+              <AlertDialogAction
+                onClick={() => resetPasswordUserId && resetPassword.mutate(resetPasswordUserId)}
+              >
+                {resetPassword.isPending ? 'Resetting...' : 'Reset Password'}
               </AlertDialogAction>
             </AlertDialogFooter>
           </AlertDialogContent>

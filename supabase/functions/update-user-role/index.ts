@@ -7,7 +7,6 @@ const corsHeaders = {
 };
 
 serve(async (req: Request) => {
-  // Handle CORS preflight requests
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
@@ -23,62 +22,75 @@ serve(async (req: Request) => {
       },
     });
 
-    const { user_id, new_role, department_id } = await req.json();
+    const { user_id, new_role, department_id, full_name, reset_password } = await req.json();
 
-    if (!user_id || !new_role) {
-      throw new Error("user_id and new_role are required");
+    if (!user_id) {
+      throw new Error("user_id is required");
     }
 
-    console.log(`Updating user ${user_id} to role: ${new_role}`);
-
-    // Update or insert role
-    const { data: existingRole } = await supabaseAdmin
-      .from("user_roles")
-      .select("id")
-      .eq("user_id", user_id)
-      .maybeSingle();
-
-    if (existingRole) {
-      // Update existing role
-      const { error: roleError } = await supabaseAdmin
+    // Update role if provided
+    if (new_role) {
+      console.log(`Updating user ${user_id} to role: ${new_role}`);
+      const { data: existingRole } = await supabaseAdmin
         .from("user_roles")
-        .update({ role: new_role })
-        .eq("user_id", user_id);
+        .select("id")
+        .eq("user_id", user_id)
+        .maybeSingle();
 
-      if (roleError) {
-        console.error("Role update error:", roleError);
-        throw roleError;
-      }
-    } else {
-      // Insert new role
-      const { error: roleError } = await supabaseAdmin
-        .from("user_roles")
-        .insert({ user_id, role: new_role });
-
-      if (roleError) {
-        console.error("Role insert error:", roleError);
-        throw roleError;
+      if (existingRole) {
+        const { error: roleError } = await supabaseAdmin
+          .from("user_roles")
+          .update({ role: new_role })
+          .eq("user_id", user_id);
+        if (roleError) throw roleError;
+      } else {
+        const { error: roleError } = await supabaseAdmin
+          .from("user_roles")
+          .insert({ user_id, role: new_role });
+        if (roleError) throw roleError;
       }
     }
 
-    // Update department if provided
+    // Update profile fields (department, name)
+    const profileUpdate: Record<string, any> = {};
     if (department_id !== undefined) {
+      profileUpdate.department_id = department_id || null;
+    }
+    if (full_name !== undefined) {
+      profileUpdate.full_name = full_name;
+    }
+    if (Object.keys(profileUpdate).length > 0) {
       const { error: profileError } = await supabaseAdmin
         .from("profiles")
-        .update({ department_id: department_id || null })
+        .update(profileUpdate)
         .eq("id", user_id);
-
       if (profileError) {
         console.error("Profile update error:", profileError);
+        throw profileError;
       }
     }
 
-    console.log(`User ${user_id} role updated to ${new_role}`);
+    // Reset password if requested
+    if (reset_password) {
+      console.log(`Resetting password for user ${user_id}`);
+      const { error: passwordError } = await supabaseAdmin.auth.admin.updateUserById(user_id, {
+        password: "12345678",
+      });
+      if (passwordError) {
+        console.error("Password reset error:", passwordError);
+        throw passwordError;
+      }
+      // Set password_change_required flag
+      await supabaseAdmin
+        .from("profiles")
+        .update({ password_change_required: true })
+        .eq("id", user_id);
+    }
 
     return new Response(
       JSON.stringify({ 
         success: true, 
-        message: "User role updated successfully"
+        message: reset_password ? "User updated and password reset to default" : "User updated successfully"
       }),
       {
         status: 200,
@@ -86,12 +98,9 @@ serve(async (req: Request) => {
       }
     );
   } catch (error: any) {
-    console.error("Error updating user role:", error);
+    console.error("Error updating user:", error);
     return new Response(
-      JSON.stringify({ 
-        error: error.message,
-        details: error.details || null 
-      }),
+      JSON.stringify({ error: error.message, details: error.details || null }),
       {
         status: 400,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
