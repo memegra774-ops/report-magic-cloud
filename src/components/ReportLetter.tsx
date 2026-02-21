@@ -40,6 +40,7 @@ const ReportLetter = ({ report, department, signatory }: ReportLetterProps) => {
 
   const isDepartmentReport = !!report.department_id;
   const departmentName = department?.name || 'Department';
+  const [avdName, setAvdName] = useState<string>('');
 
   // Fetch department head name and email from profiles + user_roles
   useEffect(() => {
@@ -73,8 +74,35 @@ const ReportLetter = ({ report, department, signatory }: ReportLetterProps) => {
     fetchDeptHead();
   }, [report.department_id]);
 
+  // Fetch AVD user name for college-level reports
+  useEffect(() => {
+    const fetchAvdUser = async () => {
+      if (isDepartmentReport) return;
+
+      const { data: roleData } = await supabase
+        .from('user_roles')
+        .select('user_id')
+        .eq('role', 'avd');
+
+      if (roleData && roleData.length > 0) {
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('full_name')
+          .eq('id', roleData[0].user_id)
+          .single();
+
+        if (profile) {
+          setAvdName(profile.full_name || '');
+        }
+      }
+    };
+
+    fetchAvdUser();
+  }, [isDepartmentReport]);
+
   const headName = signatory || deptHeadName || '<<Department Head name>>';
   const contactEmail = deptHeadEmail || '<<department email>>';
+  const avdDisplayName = avdName || '<<AVD Name>>';
 
   // Calculate statistics with fixed status columns
   const calculateStats = (): CategoryStats[] => {
@@ -334,7 +362,67 @@ const ReportLetter = ({ report, department, signatory }: ReportLetterProps) => {
 
     const bodyText = isDepartmentReport
       ? `The following table shows statistics of Academic staff (Local, Instructors, Academic and Research Assistants & MSc. Sponsored contract Students) on duty, absent, sick and study leave in ${departmentName} for the month of ${monthName} ${report.report_year}. Please kindly find also attached here with ${numberOfPages} pages is detail of the report.`
-      : `The following table presents the statistics of academic staff members in the College of Electrical Engineering and Computing for the month of ${monthName} ${report.report_year}. Please find the detailed report attached herewith.`;
+      : `The following table shows statistics of Academic staff (Local, Instructors, Academic and Research Assistants & MSc. Sponsored contract Students) on duty, absent, sick and study leave in College of Electrical Engineering and Computing for the month of ${monthName} ${report.report_year}. Please kindly find also attached here with ${numberOfPages} pages is detail of the report.`;
+
+    const wordEmail = isDepartmentReport ? contactEmail : 'adaa.soeec@astu.et';
+
+    const metaParagraphs = isDepartmentReport
+      ? [
+          new Paragraph({
+            children: [new TextRun({ text: 'To: CoEEC Vice Dean for Academic Affairs', bold: true, font: 'Times New Roman', size: 24 })],
+          }),
+          new Paragraph({
+            children: [new TextRun({ text: `Date: _______________`, font: 'Times New Roman', size: 24 })],
+            alignment: AlignmentType.RIGHT,
+          }),
+          new Paragraph({
+            children: [new TextRun({ text: 'ASTU', bold: true, underline: {}, font: 'Times New Roman', size: 24 })],
+          }),
+          new Paragraph({
+            children: [new TextRun({ text: `Ref: _______________`, font: 'Times New Roman', size: 24 })],
+            alignment: AlignmentType.RIGHT,
+          }),
+          new Paragraph({ spacing: { after: 100 } }),
+          new Paragraph({
+            children: [new TextRun({ text: `Head, Department of ${departmentName}`, bold: true, font: 'Times New Roman', size: 24 })],
+            alignment: AlignmentType.RIGHT,
+          }),
+          new Paragraph({ spacing: { after: 50 } }),
+          new Paragraph({
+            children: [new TextRun({ text: headName, bold: true, font: 'Times New Roman', size: 24 })],
+            alignment: AlignmentType.RIGHT,
+          }),
+        ]
+      : [
+          new Paragraph({
+            children: [new TextRun({ text: 'To: Competence and Human Resource Administration Executive', bold: true, font: 'Times New Roman', size: 24 })],
+          }),
+          new Paragraph({
+            children: [new TextRun({ text: `Date: _______________`, font: 'Times New Roman', size: 24 })],
+            alignment: AlignmentType.RIGHT,
+          }),
+          new Paragraph({
+            children: [new TextRun({ text: 'ASTU', bold: true, underline: {}, font: 'Times New Roman', size: 24 })],
+          }),
+          new Paragraph({
+            children: [new TextRun({ text: `Ref: _______________`, font: 'Times New Roman', size: 24 })],
+            alignment: AlignmentType.RIGHT,
+          }),
+          new Paragraph({ spacing: { after: 100 } }),
+          new Paragraph({
+            children: [new TextRun({ text: 'College of Electrical Engineering & Computing', bold: true, font: 'Times New Roman', size: 24 })],
+            alignment: AlignmentType.RIGHT,
+          }),
+          new Paragraph({
+            children: [new TextRun({ text: 'Associate Dean for Academic Affairs', bold: true, font: 'Times New Roman', size: 24 })],
+            alignment: AlignmentType.RIGHT,
+          }),
+          new Paragraph({ spacing: { after: 50 } }),
+          new Paragraph({
+            children: [new TextRun({ text: avdDisplayName, bold: true, font: 'Times New Roman', size: 24 })],
+            alignment: AlignmentType.RIGHT,
+          }),
+        ];
 
     const doc = new Document({
       sections: [{
@@ -343,7 +431,7 @@ const ReportLetter = ({ report, department, signatory }: ReportLetterProps) => {
         },
         children: [
           new Paragraph({
-            children: [new TextRun({ text: `P.O. Box: 1888   Tele: +251-221-100026  Fax: +251-022-112-01-50    E-mail: ${contactEmail}`, size: 18, font: 'Times New Roman' })],
+            children: [new TextRun({ text: `P.O. Box: 1888   Tele: +251-221-100026  Fax: +251-022-112-01-50    E-mail: ${wordEmail}`, size: 18, font: 'Times New Roman' })],
             alignment: AlignmentType.CENTER,
           }),
           new Paragraph({
@@ -357,43 +445,7 @@ const ReportLetter = ({ report, department, signatory }: ReportLetterProps) => {
             border: { bottom: { color: '2c5aa0', size: 12, style: BorderStyle.SINGLE } },
           }),
           new Paragraph({ spacing: { after: 200 } }),
-          // To and Date row
-          new Paragraph({
-            children: [
-              new TextRun({ text: 'To: CoEEC Vice Dean for Academic Affairs', bold: true, font: 'Times New Roman', size: 24 }),
-            ],
-          }),
-          new Paragraph({
-            children: [
-              new TextRun({ text: `Date: _______________`, font: 'Times New Roman', size: 24 }),
-            ],
-            alignment: AlignmentType.RIGHT,
-          }),
-          new Paragraph({
-            children: [
-              new TextRun({ text: 'ASTU', bold: true, underline: {}, font: 'Times New Roman', size: 24 }),
-            ],
-          }),
-          new Paragraph({
-            children: [
-              new TextRun({ text: `Ref: _______________`, font: 'Times New Roman', size: 24 }),
-            ],
-            alignment: AlignmentType.RIGHT,
-          }),
-          new Paragraph({ spacing: { after: 100 } }),
-          new Paragraph({
-            children: [
-              new TextRun({ text: `Head, Department of ${departmentName}`, bold: true, font: 'Times New Roman', size: 24 }),
-            ],
-            alignment: AlignmentType.RIGHT,
-          }),
-          new Paragraph({ spacing: { after: 50 } }),
-          new Paragraph({
-            children: [
-              new TextRun({ text: headName, bold: true, font: 'Times New Roman', size: 24 }),
-            ],
-            alignment: AlignmentType.RIGHT,
-          }),
+          ...metaParagraphs,
           new Paragraph({ spacing: { after: 200 } }),
           new Paragraph({
             children: [
@@ -470,7 +522,7 @@ const ReportLetter = ({ report, department, signatory }: ReportLetterProps) => {
           <span><strong>P.O. Box: 1888</strong></span>
           <span>Tele: +251-<strong>221</strong>-100026</span>
           <span>Fax: +251-022-112-01-50</span>
-          <span>E-mail: {contactEmail}</span>
+          <span>E-mail: {isDepartmentReport ? contactEmail : 'adaa.soeec@astu.et'}</span>
         </div>
 
         {/* Letterhead with logo */}
@@ -487,41 +539,84 @@ const ReportLetter = ({ report, department, signatory }: ReportLetterProps) => {
         </div>
 
         {/* To / Date / Ref section */}
-        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '5px' }}>
-          <div>
-            <p><strong>To: CoEEC Vice Dean for Academic Affairs</strong></p>
-          </div>
-          <div style={{ textAlign: 'right' }}>
-            <p><strong>Date:</strong> _______________</p>
-          </div>
-        </div>
+        {isDepartmentReport ? (
+          <>
+            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '5px' }}>
+              <div>
+                <p><strong>To: CoEEC Vice Dean for Academic Affairs</strong></p>
+              </div>
+              <div style={{ textAlign: 'right' }}>
+                <p><strong>Date:</strong> _______________</p>
+              </div>
+            </div>
 
-        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '15px' }}>
-          <div>
-            <p><strong><u>ASTU</u></strong></p>
-          </div>
-          <div style={{ textAlign: 'right' }}>
-            <p><strong>Ref:</strong> _______________</p>
-          </div>
-        </div>
+            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '15px' }}>
+              <div>
+                <p><strong><u>ASTU</u></strong></p>
+              </div>
+              <div style={{ textAlign: 'right' }}>
+                <p><strong>Ref:</strong> _______________</p>
+              </div>
+            </div>
 
-        {/* Head, Department info - right aligned */}
-        <div style={{ textAlign: 'right', marginBottom: '20px' }}>
-          <p><strong>Head, Department of {departmentName}</strong></p>
-          <p style={{ marginTop: '5px' }}><strong>{headName}</strong></p>
-        </div>
+            {/* Head, Department info - right aligned */}
+            <div style={{ textAlign: 'right', marginBottom: '20px' }}>
+              <p><strong>Head, Department of {departmentName}</strong></p>
+              <p style={{ marginTop: '5px' }}><strong>{headName}</strong></p>
+            </div>
 
-        {/* Subject */}
-        <p style={{ fontWeight: 'bold', margin: '20px 0 15px' }}>
-          <strong>Subject: <u>Academic Staff Member Report of {monthName} {report.report_year}</u></strong>
-        </p>
+            {/* Subject */}
+            <p style={{ fontWeight: 'bold', margin: '20px 0 15px' }}>
+              <strong>Subject: <u>Academic Staff Member Report of {monthName} {report.report_year}</u></strong>
+            </p>
 
-        {/* Body */}
-        <p style={{ textAlign: 'justify', marginBottom: '15px', lineHeight: '1.6' }}>
-          The following table shows statistics of Academic staff (Local, Instructors, Academic and Research
-          Assistants &amp; MSc. Sponsored contract Students) on duty, absent, sick and study leave in {departmentName} for the month of <strong><u>{monthName} {report.report_year}</u></strong>.
-          Please kindly find also attached here with <strong><u>{numberOfPages}</u></strong> pages is detail of the report.
-        </p>
+            {/* Body */}
+            <p style={{ textAlign: 'justify', marginBottom: '15px', lineHeight: '1.6' }}>
+              The following table shows statistics of Academic staff (Local, Instructors, Academic and Research
+              Assistants &amp; MSc. Sponsored contract Students) on duty, absent, sick and study leave in {departmentName} for the month of <strong><u>{monthName} {report.report_year}</u></strong>.
+              Please kindly find also attached here with <strong><u>{numberOfPages}</u></strong> pages is detail of the report.
+            </p>
+          </>
+        ) : (
+          <>
+            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '5px' }}>
+              <div>
+                <p><strong>To: Competence and Human Resource Administration Executive</strong></p>
+              </div>
+              <div style={{ textAlign: 'right' }}>
+                <p><strong>Date:</strong> _______________</p>
+              </div>
+            </div>
+
+            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '15px' }}>
+              <div>
+                <p><strong><u>ASTU</u></strong></p>
+              </div>
+              <div style={{ textAlign: 'right' }}>
+                <p><strong>Ref:</strong> _______________</p>
+              </div>
+            </div>
+
+            {/* College & AVD info - right aligned */}
+            <div style={{ textAlign: 'right', marginBottom: '5px' }}>
+              <p><strong>College of Electrical Engineering &amp; Computing</strong></p>
+              <p style={{ marginTop: '5px' }}><strong>Associate Dean for Academic Affairs</strong></p>
+              <p style={{ marginTop: '5px' }}><strong>{avdDisplayName}</strong></p>
+            </div>
+
+            {/* Subject */}
+            <p style={{ fontWeight: 'bold', margin: '20px 0 15px' }}>
+              <strong>Subject: <u>Academic Staff Member Report of {monthName} {report.report_year}</u></strong>
+            </p>
+
+            {/* Body */}
+            <p style={{ textAlign: 'justify', marginBottom: '15px', lineHeight: '1.6' }}>
+              The following table shows statistics of Academic staff (Local, Instructors, Academic and Research
+              Assistants &amp; MSc. Sponsored contract Students) on duty, absent, sick and study leave in College of Electrical Engineering and Computing for the month of <strong><u>{monthName} {report.report_year}</u></strong>.
+              Please kindly find also attached here with <strong><u>{numberOfPages}</u></strong> pages is detail of the report.
+            </p>
+          </>
+        )}
 
         {/* Statistics Table */}
         <table style={{ width: '100%', borderCollapse: 'collapse', margin: '15px 0', fontSize: '11pt', fontFamily: "'Times New Roman', serif" }}>
