@@ -192,7 +192,17 @@ const UserManagement = () => {
     },
   });
 
-  const handleInvite = () => {
+  const handleInvite = async () => {
+    if (formData.role === 'department_head' && formData.department_id) {
+      // Check if department already has a head
+      const existing = users?.find(
+        u => u.role === 'department_head' && u.department_id === formData.department_id
+      );
+      if (existing) {
+        toast.error(`This department already has a head assigned (${existing.full_name || existing.email}). Remove them first.`);
+        return;
+      }
+    }
     inviteUser.mutate(formData);
   };
 
@@ -208,6 +218,15 @@ const UserManagement = () => {
 
   const handleUpdateRole = () => {
     if (!editingUser) return;
+    if (editFormData.role === 'department_head' && editFormData.department_id) {
+      const existing = users?.find(
+        u => u.role === 'department_head' && u.department_id === editFormData.department_id && u.id !== editingUser.id
+      );
+      if (existing) {
+        toast.error(`This department already has a head assigned (${existing.full_name || existing.email}). Remove them first.`);
+        return;
+      }
+    }
     updateUserRole.mutate({
       userId: editingUser.id,
       newRole: editFormData.role,
