@@ -87,6 +87,9 @@ const StaffForm = ({ open, onClose, staff, defaultDepartmentId }: StaffFormProps
         specialization: values.specialization || null,
         academic_rank: values.academic_rank || null,
         remark: values.remark || null,
+        mother_name: values.mother_name || null,
+        phone_number: values.phone_number || null,
+        fan_number: values.fan_number || null,
       };
 
       if (staff) {
