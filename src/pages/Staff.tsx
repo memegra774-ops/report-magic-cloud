@@ -4,6 +4,7 @@ import Header from '@/components/Header';
 import StaffForm from '@/components/StaffForm';
 import EditableStaffTable from '@/components/EditableStaffTable';
 import CSVImport from '@/components/CSVImport';
+import StaffExport from '@/components/StaffExport';
 import { useStaff, useDepartments } from '@/hooks/useStaff';
 import { useAuth } from '@/contexts/AuthContext';
 import { Staff as StaffType, STAFF_CATEGORIES, StaffCategory } from '@/types/staff';
@@ -61,6 +62,7 @@ const Staff = () => {
             </p>
           </div>
           <div className="flex gap-2">
+            <StaffExport staff={staff || []} />
             {canImport && (
               <Button variant="outline" onClick={() => setCsvImportOpen(true)}>
                 <Upload className="h-4 w-4 mr-2" />

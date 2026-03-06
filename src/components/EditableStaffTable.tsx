@@ -383,9 +383,6 @@ const EditableStaffTable = ({ staff, canEdit = true, canDelete = true }: Editabl
               <TableHead className="text-primary-foreground cursor-pointer select-none" onClick={() => handleSort('remark')}>
                 <span className="flex items-center">Remark {getSortIcon('remark')}</span>
               </TableHead>
-              <TableHead className="text-primary-foreground">Mother Name</TableHead>
-              <TableHead className="text-primary-foreground">Phone</TableHead>
-              <TableHead className="text-primary-foreground">FAN No.</TableHead>
               {canDelete && <TableHead className="text-primary-foreground w-12"></TableHead>}
             </TableRow>
           </TableHeader>
@@ -426,15 +423,6 @@ const EditableStaffTable = ({ staff, canEdit = true, canDelete = true }: Editabl
                 <TableCell className="max-w-[100px]">
                   {renderEditableCell(s, 'remark', s.remark || '')}
                 </TableCell>
-                <TableCell>
-                  {renderEditableCell(s, 'mother_name' as keyof Staff, (s as any).mother_name || '')}
-                </TableCell>
-                <TableCell>
-                  {renderEditableCell(s, 'phone_number' as keyof Staff, (s as any).phone_number || '')}
-                </TableCell>
-                <TableCell>
-                  {renderEditableCell(s, 'fan_number' as keyof Staff, (s as any).fan_number || '')}
-                </TableCell>
                 {canDelete && (
                   <TableCell>
                     <Button
@@ -451,7 +439,7 @@ const EditableStaffTable = ({ staff, canEdit = true, canDelete = true }: Editabl
             ))}
             {sortedStaff.length === 0 && (
               <TableRow>
-                <TableCell colSpan={canDelete ? 15 : 14} className="text-center py-8 text-muted-foreground">
+                <TableCell colSpan={canDelete ? 12 : 11} className="text-center py-8 text-muted-foreground">
                   No staff members found
                 </TableCell>
               </TableRow>
