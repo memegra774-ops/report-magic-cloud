@@ -258,10 +258,24 @@ export type Database = {
           college_name: string
           created_at: string
           current_status: string
+          date_of_birth: string | null
           department_id: string | null
           education_level: Database["public"]["Enums"]["education_level"]
+          elip_certified: boolean | null
+          email: string | null
+          emergency_contact_name: string | null
+          emergency_contact_phone: string | null
+          employment_date_astu: string | null
+          fan_number: string | null
+          first_employment_company: string | null
           full_name: string
+          hdp_certified: boolean | null
           id: string
+          marital_status: string | null
+          mc_certified: boolean | null
+          mother_name: string | null
+          phone_number: string | null
+          place_of_birth: string | null
           remark: string | null
           sex: Database["public"]["Enums"]["sex_type"]
           specialization: string | null
@@ -274,10 +288,24 @@ export type Database = {
           college_name?: string
           created_at?: string
           current_status?: string
+          date_of_birth?: string | null
           department_id?: string | null
           education_level?: Database["public"]["Enums"]["education_level"]
+          elip_certified?: boolean | null
+          email?: string | null
+          emergency_contact_name?: string | null
+          emergency_contact_phone?: string | null
+          employment_date_astu?: string | null
+          fan_number?: string | null
+          first_employment_company?: string | null
           full_name: string
+          hdp_certified?: boolean | null
           id?: string
+          marital_status?: string | null
+          mc_certified?: boolean | null
+          mother_name?: string | null
+          phone_number?: string | null
+          place_of_birth?: string | null
           remark?: string | null
           sex?: Database["public"]["Enums"]["sex_type"]
           specialization?: string | null
@@ -290,10 +318,24 @@ export type Database = {
           college_name?: string
           created_at?: string
           current_status?: string
+          date_of_birth?: string | null
           department_id?: string | null
           education_level?: Database["public"]["Enums"]["education_level"]
+          elip_certified?: boolean | null
+          email?: string | null
+          emergency_contact_name?: string | null
+          emergency_contact_phone?: string | null
+          employment_date_astu?: string | null
+          fan_number?: string | null
+          first_employment_company?: string | null
           full_name?: string
+          hdp_certified?: boolean | null
           id?: string
+          marital_status?: string | null
+          mc_certified?: boolean | null
+          mother_name?: string | null
+          phone_number?: string | null
+          place_of_birth?: string | null
           remark?: string | null
           sex?: Database["public"]["Enums"]["sex_type"]
           specialization?: string | null

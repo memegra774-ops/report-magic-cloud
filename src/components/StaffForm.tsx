@@ -40,6 +40,9 @@ const formSchema = z.object({
   current_status: z.string().default('On Duty'),
   category: z.enum(['Local Instructors', 'ARA', 'ASTU Sponsor']),
   remark: z.string().optional(),
+  mother_name: z.string().optional(),
+  phone_number: z.string().optional(),
+  fan_number: z.string().optional(),
 });
 
 interface StaffFormProps {
@@ -69,6 +72,9 @@ const StaffForm = ({ open, onClose, staff, defaultDepartmentId }: StaffFormProps
       current_status: staff?.current_status || 'On Duty',
       category: (staff?.category as StaffCategory) || 'Local Instructors',
       remark: staff?.remark || '',
+      mother_name: staff?.mother_name || '',
+      phone_number: staff?.phone_number || '',
+      fan_number: staff?.fan_number || '',
     },
   });
 
@@ -81,6 +87,9 @@ const StaffForm = ({ open, onClose, staff, defaultDepartmentId }: StaffFormProps
         specialization: values.specialization || null,
         academic_rank: values.academic_rank || null,
         remark: values.remark || null,
+        mother_name: values.mother_name || null,
+        phone_number: values.phone_number || null,
+        fan_number: values.fan_number || null,
       };
 
       if (staff) {
@@ -314,6 +323,48 @@ const StaffForm = ({ open, onClose, staff, defaultDepartmentId }: StaffFormProps
                     <FormLabel>Remark</FormLabel>
                     <FormControl>
                       <Input placeholder="Enter remark" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="mother_name"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Mother's Name</FormLabel>
+                    <FormControl>
+                      <Input placeholder="Enter mother's name" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="phone_number"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Phone Number</FormLabel>
+                    <FormControl>
+                      <Input placeholder="Enter phone number" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="fan_number"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>FAN Number</FormLabel>
+                    <FormControl>
+                      <Input placeholder="Enter FAN number" {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>

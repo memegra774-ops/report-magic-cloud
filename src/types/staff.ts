@@ -32,6 +32,21 @@ export interface Staff {
   created_at: string;
   updated_at: string;
   departments?: Department;
+  // Extended detail fields
+  mother_name: string | null;
+  phone_number: string | null;
+  fan_number: string | null;
+  employment_date_astu: string | null;
+  place_of_birth: string | null;
+  date_of_birth: string | null;
+  first_employment_company: string | null;
+  email: string | null;
+  hdp_certified: boolean | null;
+  mc_certified: boolean | null;
+  elip_certified: boolean | null;
+  marital_status: string | null;
+  emergency_contact_name: string | null;
+  emergency_contact_phone: string | null;
 }
 
 export type ReportStatus = 'draft' | 'submitted' | 'approved' | 'rejected';
