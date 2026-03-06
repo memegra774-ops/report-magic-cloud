@@ -62,6 +62,7 @@ const Staff = () => {
             </p>
           </div>
           <div className="flex gap-2">
+            <StaffExport staff={staff || []} />
             {canImport && (
               <Button variant="outline" onClick={() => setCsvImportOpen(true)}>
                 <Upload className="h-4 w-4 mr-2" />
