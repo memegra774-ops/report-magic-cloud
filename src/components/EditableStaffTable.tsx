@@ -426,6 +426,16 @@ const EditableStaffTable = ({ staff, canEdit = true, canDelete = true }: Editabl
                 <TableCell className="max-w-[100px]">
                   {renderEditableCell(s, 'remark', s.remark || '')}
                 </TableCell>
+                <TableCell>
+                  {renderEditableCell(s, 'mother_name' as keyof Staff, (s as any).mother_name || '')}
+                </TableCell>
+                <TableCell>
+                  {renderEditableCell(s, 'phone_number' as keyof Staff, (s as any).phone_number || '')}
+                </TableCell>
+                <TableCell>
+                  {renderEditableCell(s, 'fan_number' as keyof Staff, (s as any).fan_number || '')}
+                </TableCell>
+                </TableCell>
                 {canDelete && (
                   <TableCell>
                     <Button
