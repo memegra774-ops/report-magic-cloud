@@ -435,7 +435,6 @@ const EditableStaffTable = ({ staff, canEdit = true, canDelete = true }: Editabl
                 <TableCell>
                   {renderEditableCell(s, 'fan_number' as keyof Staff, (s as any).fan_number || '')}
                 </TableCell>
-                </TableCell>
                 {canDelete && (
                   <TableCell>
                     <Button
