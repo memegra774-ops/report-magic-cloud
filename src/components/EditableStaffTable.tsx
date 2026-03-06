@@ -70,6 +70,7 @@ const EditableStaffTable = ({ staff, canEdit = true, canDelete = true }: Editabl
   const { profile } = useAuth();
   const [editingCell, setEditingCell] = useState<EditingCell | null>(null);
   const [deleteStaffMember, setDeleteStaffMember] = useState<Staff | null>(null);
+  const [selectedStaff, setSelectedStaff] = useState<Staff | null>(null);
   const [columnFilters, setColumnFilters] = useState<ColumnFilters>({});
   const [sortConfig, setSortConfig] = useState<SortConfig>({ field: null, direction: null });
   const updateStaff = useUpdateStaff();
