@@ -383,9 +383,6 @@ const EditableStaffTable = ({ staff, canEdit = true, canDelete = true }: Editabl
               <TableHead className="text-primary-foreground cursor-pointer select-none" onClick={() => handleSort('remark')}>
                 <span className="flex items-center">Remark {getSortIcon('remark')}</span>
               </TableHead>
-              <TableHead className="text-primary-foreground">Mother Name</TableHead>
-              <TableHead className="text-primary-foreground">Phone</TableHead>
-              <TableHead className="text-primary-foreground">FAN No.</TableHead>
               {canDelete && <TableHead className="text-primary-foreground w-12"></TableHead>}
             </TableRow>
           </TableHeader>
