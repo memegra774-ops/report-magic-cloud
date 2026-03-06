@@ -1,6 +1,7 @@
 import { useState, useMemo } from 'react';
 import { Staff, STAFF_CATEGORIES, EDUCATION_LEVELS, STAFF_STATUSES, StaffCategory, EducationLevel, ACADEMIC_RANKS } from '@/types/staff';
 import { useUpdateStaff, useDeleteStaff, useDepartments } from '@/hooks/useStaff';
+import StaffDetailDialog from '@/components/StaffDetailDialog';
 import { useAuth } from '@/contexts/AuthContext';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
