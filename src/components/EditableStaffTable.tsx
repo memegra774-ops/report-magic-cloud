@@ -397,7 +397,12 @@ const EditableStaffTable = ({ staff, canEdit = true, canDelete = true }: Editabl
                   {renderEditableCell(s, 'staff_id', s.staff_id || '')}
                 </TableCell>
                 <TableCell className="font-medium">
-                  {renderEditableCell(s, 'full_name', s.full_name)}
+                  <span
+                    className="cursor-pointer text-primary hover:underline"
+                    onClick={() => setSelectedStaff(s)}
+                  >
+                    {s.full_name}
+                  </span>
                 </TableCell>
                 <TableCell className="text-center">
                   {renderEditableCell(s, 'sex', s.sex, 'select', ['M', 'F'])}
