@@ -40,6 +40,9 @@ const formSchema = z.object({
   current_status: z.string().default('On Duty'),
   category: z.enum(['Local Instructors', 'ARA', 'ASTU Sponsor']),
   remark: z.string().optional(),
+  mother_name: z.string().optional(),
+  phone_number: z.string().optional(),
+  fan_number: z.string().optional(),
 });
 
 interface StaffFormProps {
