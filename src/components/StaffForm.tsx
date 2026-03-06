@@ -328,6 +328,48 @@ const StaffForm = ({ open, onClose, staff, defaultDepartmentId }: StaffFormProps
                   </FormItem>
                 )}
               />
+
+              <FormField
+                control={form.control}
+                name="mother_name"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Mother's Name</FormLabel>
+                    <FormControl>
+                      <Input placeholder="Enter mother's name" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="phone_number"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Phone Number</FormLabel>
+                    <FormControl>
+                      <Input placeholder="Enter phone number" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="fan_number"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>FAN Number</FormLabel>
+                    <FormControl>
+                      <Input placeholder="Enter FAN number" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
             </div>
 
             <div className="flex justify-end gap-3 pt-4">
