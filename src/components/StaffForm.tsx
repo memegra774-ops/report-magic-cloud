@@ -72,6 +72,9 @@ const StaffForm = ({ open, onClose, staff, defaultDepartmentId }: StaffFormProps
       current_status: staff?.current_status || 'On Duty',
       category: (staff?.category as StaffCategory) || 'Local Instructors',
       remark: staff?.remark || '',
+      mother_name: staff?.mother_name || '',
+      phone_number: staff?.phone_number || '',
+      fan_number: staff?.fan_number || '',
     },
   });
 
