@@ -1,11 +1,13 @@
 import { useState, useMemo } from 'react';
 import { Staff, STAFF_CATEGORIES, EDUCATION_LEVELS, STAFF_STATUSES, StaffCategory, EducationLevel, ACADEMIC_RANKS } from '@/types/staff';
 import { useUpdateStaff, useDeleteStaff, useDepartments } from '@/hooks/useStaff';
+import { usePendingChanges } from '@/hooks/useStaffChanges';
 import StaffDetailDialog from '@/components/StaffDetailDialog';
 import { useAuth } from '@/contexts/AuthContext';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { Trash2, Check, X, Filter, ArrowUpDown, ArrowUp, ArrowDown } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
+import { Trash2, Check, X, Filter, ArrowUpDown, ArrowUp, ArrowDown, Clock } from 'lucide-react';
 import {
   Select,
   SelectContent,
@@ -36,6 +38,12 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from '@/components/ui/popover';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/components/ui/tooltip';
 
 interface EditableStaffTableProps {
   staff: Staff[];
@@ -67,15 +75,31 @@ interface SortConfig {
 }
 
 const EditableStaffTable = ({ staff, canEdit = true, canDelete = true }: EditableStaffTableProps) => {
-  const { profile } = useAuth();
+  const { profile, role, user } = useAuth();
   const [editingCell, setEditingCell] = useState<EditingCell | null>(null);
   const [deleteStaffMember, setDeleteStaffMember] = useState<Staff | null>(null);
   const [selectedStaff, setSelectedStaff] = useState<Staff | null>(null);
   const [columnFilters, setColumnFilters] = useState<ColumnFilters>({});
   const [sortConfig, setSortConfig] = useState<SortConfig>({ field: null, direction: null });
-  const updateStaff = useUpdateStaff();
+  
+  const isAdmin = role === 'system_admin';
+  const updateStaff = useUpdateStaff({
+    isAdmin,
+    userId: user?.id,
+    performedBy: profile?.full_name || profile?.email || 'User',
+  });
   const deleteStaff = useDeleteStaff();
   const { data: departments } = useDepartments();
+  const { data: pendingChanges } = usePendingChanges();
+
+  // Build set of staff IDs that have pending changes
+  const pendingStaffIds = useMemo(() => {
+    const ids = new Set<string>();
+    pendingChanges?.forEach((ch) => {
+      if (ch.staff_id) ids.add(ch.staff_id);
+    });
+    return ids;
+  }, [pendingChanges]);
 
   // Get unique values for filters
   const uniqueRanks = useMemo(() => {
@@ -110,46 +134,16 @@ const EditableStaffTable = ({ staff, canEdit = true, canDelete = true }: Editabl
       let bValue: string = '';
       
       switch (sortConfig.field) {
-        case 'staff_id':
-          aValue = a.staff_id || '';
-          bValue = b.staff_id || '';
-          break;
-        case 'full_name':
-          aValue = a.full_name || '';
-          bValue = b.full_name || '';
-          break;
-        case 'sex':
-          aValue = a.sex || '';
-          bValue = b.sex || '';
-          break;
-        case 'department':
-          aValue = a.departments?.code || '';
-          bValue = b.departments?.code || '';
-          break;
-        case 'specialization':
-          aValue = a.specialization || '';
-          bValue = b.specialization || '';
-          break;
-        case 'education_level':
-          aValue = a.education_level || '';
-          bValue = b.education_level || '';
-          break;
-        case 'academic_rank':
-          aValue = a.academic_rank || '';
-          bValue = b.academic_rank || '';
-          break;
-        case 'category':
-          aValue = a.category || '';
-          bValue = b.category || '';
-          break;
-        case 'current_status':
-          aValue = a.current_status || '';
-          bValue = b.current_status || '';
-          break;
-        case 'remark':
-          aValue = a.remark || '';
-          bValue = b.remark || '';
-          break;
+        case 'staff_id': aValue = a.staff_id || ''; bValue = b.staff_id || ''; break;
+        case 'full_name': aValue = a.full_name || ''; bValue = b.full_name || ''; break;
+        case 'sex': aValue = a.sex || ''; bValue = b.sex || ''; break;
+        case 'department': aValue = a.departments?.code || ''; bValue = b.departments?.code || ''; break;
+        case 'specialization': aValue = a.specialization || ''; bValue = b.specialization || ''; break;
+        case 'education_level': aValue = a.education_level || ''; bValue = b.education_level || ''; break;
+        case 'academic_rank': aValue = a.academic_rank || ''; bValue = b.academic_rank || ''; break;
+        case 'category': aValue = a.category || ''; bValue = b.category || ''; break;
+        case 'current_status': aValue = a.current_status || ''; bValue = b.current_status || ''; break;
+        case 'remark': aValue = a.remark || ''; bValue = b.remark || ''; break;
       }
       
       const comparison = aValue.localeCompare(bValue);
@@ -200,6 +194,8 @@ const EditableStaffTable = ({ staff, canEdit = true, canDelete = true }: Editabl
           staffName: deleteStaffMember.full_name,
           departmentName: deleteStaffMember.departments?.name,
           performedBy: profile?.full_name || profile?.email || 'Department User',
+          isAdmin,
+          userId: user?.id,
         },
       });
       setDeleteStaffMember(null);
@@ -321,161 +317,181 @@ const EditableStaffTable = ({ staff, canEdit = true, canDelete = true }: Editabl
   const activeFiltersCount = Object.keys(columnFilters).length;
 
   return (
-    <>
-      {activeFiltersCount > 0 && (
-        <div className="flex items-center gap-2 mb-2 text-sm">
-          <span className="text-muted-foreground">Active filters: {activeFiltersCount}</span>
-          <Button variant="ghost" size="sm" onClick={() => setColumnFilters({})}>
-            Clear all
-          </Button>
-        </div>
-      )}
-      <div className="rounded-lg border overflow-hidden">
-        <Table>
-          <TableHeader>
-            <TableRow className="bg-primary hover:bg-primary">
-              <TableHead className="text-primary-foreground w-12">#</TableHead>
-              <TableHead className="text-primary-foreground cursor-pointer select-none" onClick={() => handleSort('staff_id')}>
-                <span className="flex items-center">Staff ID {getSortIcon('staff_id')}</span>
-              </TableHead>
-              <TableHead className="text-primary-foreground cursor-pointer select-none" onClick={() => handleSort('full_name')}>
-                <span className="flex items-center">Full Name {getSortIcon('full_name')}</span>
-              </TableHead>
-              <TableHead className="text-primary-foreground text-center cursor-pointer select-none" onClick={() => handleSort('sex')}>
-                <span className="flex items-center justify-center">
-                  Sex {getSortIcon('sex')}
-                  {renderFilterPopover('Sex', 'sex', ['M', 'F'])}
-                </span>
-              </TableHead>
-              <TableHead className="text-primary-foreground cursor-pointer select-none" onClick={() => handleSort('department')}>
-                <span className="flex items-center">
-                  Dept {getSortIcon('department')}
-                  {renderFilterPopover('Department', 'department', uniqueDepts)}
-                </span>
-              </TableHead>
-              <TableHead className="text-primary-foreground cursor-pointer select-none" onClick={() => handleSort('specialization')}>
-                <span className="flex items-center">Specialization {getSortIcon('specialization')}</span>
-              </TableHead>
-              <TableHead className="text-primary-foreground text-center cursor-pointer select-none" onClick={() => handleSort('education_level')}>
-                <span className="flex items-center justify-center">
-                  Edu. {getSortIcon('education_level')}
-                  {renderFilterPopover('Education', 'education_level', EDUCATION_LEVELS as unknown as string[])}
-                </span>
-              </TableHead>
-              <TableHead className="text-primary-foreground cursor-pointer select-none" onClick={() => handleSort('academic_rank')}>
-                <span className="flex items-center">
-                  Academic Rank {getSortIcon('academic_rank')}
-                  {renderFilterPopover('Rank', 'academic_rank', uniqueRanks)}
-                </span>
-              </TableHead>
-              <TableHead className="text-primary-foreground cursor-pointer select-none" onClick={() => handleSort('category')}>
-                <span className="flex items-center">
-                  Category {getSortIcon('category')}
-                  {renderFilterPopover('Category', 'category', STAFF_CATEGORIES as unknown as string[])}
-                </span>
-              </TableHead>
-              <TableHead className="text-primary-foreground cursor-pointer select-none" onClick={() => handleSort('current_status')}>
-                <span className="flex items-center">
-                  Status {getSortIcon('current_status')}
-                  {renderFilterPopover('Status', 'current_status', STAFF_STATUSES as unknown as string[])}
-                </span>
-              </TableHead>
-              <TableHead className="text-primary-foreground cursor-pointer select-none" onClick={() => handleSort('remark')}>
-                <span className="flex items-center">Remark {getSortIcon('remark')}</span>
-              </TableHead>
-              {canDelete && <TableHead className="text-primary-foreground w-12"></TableHead>}
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {sortedStaff.map((s, index) => (
-              <TableRow key={s.id} className="hover:bg-muted/50">
-                <TableCell className="font-medium text-muted-foreground">{index + 1}</TableCell>
-                <TableCell className="font-mono text-xs">
-                  {renderEditableCell(s, 'staff_id', s.staff_id || '')}
-                </TableCell>
-                <TableCell className="font-medium">
-                  <span
-                    className="cursor-pointer text-primary hover:underline"
-                    onClick={() => setSelectedStaff(s)}
-                  >
-                    {s.full_name}
+    <TooltipProvider>
+      <>
+        {activeFiltersCount > 0 && (
+          <div className="flex items-center gap-2 mb-2 text-sm">
+            <span className="text-muted-foreground">Active filters: {activeFiltersCount}</span>
+            <Button variant="ghost" size="sm" onClick={() => setColumnFilters({})}>
+              Clear all
+            </Button>
+          </div>
+        )}
+        <div className="rounded-lg border overflow-hidden">
+          <Table>
+            <TableHeader>
+              <TableRow className="bg-primary hover:bg-primary">
+                <TableHead className="text-primary-foreground w-12">#</TableHead>
+                <TableHead className="text-primary-foreground cursor-pointer select-none" onClick={() => handleSort('staff_id')}>
+                  <span className="flex items-center">Staff ID {getSortIcon('staff_id')}</span>
+                </TableHead>
+                <TableHead className="text-primary-foreground cursor-pointer select-none" onClick={() => handleSort('full_name')}>
+                  <span className="flex items-center">Full Name {getSortIcon('full_name')}</span>
+                </TableHead>
+                <TableHead className="text-primary-foreground text-center cursor-pointer select-none" onClick={() => handleSort('sex')}>
+                  <span className="flex items-center justify-center">
+                    Sex {getSortIcon('sex')}
+                    {renderFilterPopover('Sex', 'sex', ['M', 'F'])}
                   </span>
-                </TableCell>
-                <TableCell className="text-center">
-                  {renderEditableCell(s, 'sex', s.sex, 'select', ['M', 'F'])}
-                </TableCell>
-                <TableCell>{s.departments?.code || '-'}</TableCell>
-                <TableCell className="max-w-[120px]">
-                  {renderEditableCell(s, 'specialization', s.specialization || '')}
-                </TableCell>
-                <TableCell className="text-center">
-                  {renderEditableCell(s, 'education_level', s.education_level, 'select', EDUCATION_LEVELS as unknown as string[])}
-                </TableCell>
-                <TableCell>
-                  {renderEditableCell(s, 'academic_rank', s.academic_rank || '', 'select', ACADEMIC_RANKS)}
-                </TableCell>
-                <TableCell>
-                  {renderEditableCell(s, 'category', s.category, 'select', STAFF_CATEGORIES as unknown as string[])}
-                </TableCell>
-                <TableCell>
-                  {renderEditableCell(s, 'current_status', s.current_status, 'select', STAFF_STATUSES as unknown as string[])}
-                </TableCell>
-                <TableCell className="max-w-[100px]">
-                  {renderEditableCell(s, 'remark', s.remark || '')}
-                </TableCell>
-                {canDelete && (
-                  <TableCell>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="h-8 w-8 p-0"
-                      onClick={() => setDeleteStaffMember(s)}
-                    >
-                      <Trash2 className="h-4 w-4 text-destructive" />
-                    </Button>
+                </TableHead>
+                <TableHead className="text-primary-foreground cursor-pointer select-none" onClick={() => handleSort('department')}>
+                  <span className="flex items-center">
+                    Dept {getSortIcon('department')}
+                    {renderFilterPopover('Department', 'department', uniqueDepts)}
+                  </span>
+                </TableHead>
+                <TableHead className="text-primary-foreground cursor-pointer select-none" onClick={() => handleSort('specialization')}>
+                  <span className="flex items-center">Specialization {getSortIcon('specialization')}</span>
+                </TableHead>
+                <TableHead className="text-primary-foreground text-center cursor-pointer select-none" onClick={() => handleSort('education_level')}>
+                  <span className="flex items-center justify-center">
+                    Edu. {getSortIcon('education_level')}
+                    {renderFilterPopover('Education', 'education_level', EDUCATION_LEVELS as unknown as string[])}
+                  </span>
+                </TableHead>
+                <TableHead className="text-primary-foreground cursor-pointer select-none" onClick={() => handleSort('academic_rank')}>
+                  <span className="flex items-center">
+                    Academic Rank {getSortIcon('academic_rank')}
+                    {renderFilterPopover('Rank', 'academic_rank', uniqueRanks)}
+                  </span>
+                </TableHead>
+                <TableHead className="text-primary-foreground cursor-pointer select-none" onClick={() => handleSort('category')}>
+                  <span className="flex items-center">
+                    Category {getSortIcon('category')}
+                    {renderFilterPopover('Category', 'category', STAFF_CATEGORIES as unknown as string[])}
+                  </span>
+                </TableHead>
+                <TableHead className="text-primary-foreground cursor-pointer select-none" onClick={() => handleSort('current_status')}>
+                  <span className="flex items-center">
+                    Status {getSortIcon('current_status')}
+                    {renderFilterPopover('Status', 'current_status', STAFF_STATUSES as unknown as string[])}
+                  </span>
+                </TableHead>
+                <TableHead className="text-primary-foreground cursor-pointer select-none" onClick={() => handleSort('remark')}>
+                  <span className="flex items-center">Remark {getSortIcon('remark')}</span>
+                </TableHead>
+                {canDelete && <TableHead className="text-primary-foreground w-12"></TableHead>}
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {sortedStaff.map((s, index) => {
+                const hasPending = pendingStaffIds.has(s.id);
+                return (
+                  <TableRow key={s.id} className={`hover:bg-muted/50 ${hasPending ? 'bg-amber-50/40' : ''}`}>
+                    <TableCell className="font-medium text-muted-foreground">{index + 1}</TableCell>
+                    <TableCell className="font-mono text-xs">
+                      {renderEditableCell(s, 'staff_id', s.staff_id || '')}
+                    </TableCell>
+                    <TableCell className="font-medium">
+                      <div className="flex items-center gap-1.5">
+                        <span
+                          className="cursor-pointer text-primary hover:underline"
+                          onClick={() => setSelectedStaff(s)}
+                        >
+                          {s.full_name}
+                        </span>
+                        {hasPending && (
+                          <Tooltip>
+                            <TooltipTrigger>
+                              <Badge variant="outline" className="h-5 px-1.5 text-[10px] border-amber-400 text-amber-700 bg-amber-50">
+                                <Clock className="h-3 w-3 mr-0.5" />
+                                Pending
+                              </Badge>
+                            </TooltipTrigger>
+                            <TooltipContent>
+                              <p>Changes pending admin approval</p>
+                            </TooltipContent>
+                          </Tooltip>
+                        )}
+                      </div>
+                    </TableCell>
+                    <TableCell className="text-center">
+                      {renderEditableCell(s, 'sex', s.sex, 'select', ['M', 'F'])}
+                    </TableCell>
+                    <TableCell>{s.departments?.code || '-'}</TableCell>
+                    <TableCell className="max-w-[120px]">
+                      {renderEditableCell(s, 'specialization', s.specialization || '')}
+                    </TableCell>
+                    <TableCell className="text-center">
+                      {renderEditableCell(s, 'education_level', s.education_level, 'select', EDUCATION_LEVELS as unknown as string[])}
+                    </TableCell>
+                    <TableCell>
+                      {renderEditableCell(s, 'academic_rank', s.academic_rank || '', 'select', ACADEMIC_RANKS)}
+                    </TableCell>
+                    <TableCell>
+                      {renderEditableCell(s, 'category', s.category, 'select', STAFF_CATEGORIES as unknown as string[])}
+                    </TableCell>
+                    <TableCell>
+                      {renderEditableCell(s, 'current_status', s.current_status, 'select', STAFF_STATUSES as unknown as string[])}
+                    </TableCell>
+                    <TableCell className="max-w-[100px]">
+                      {renderEditableCell(s, 'remark', s.remark || '')}
+                    </TableCell>
+                    {canDelete && (
+                      <TableCell>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="h-8 w-8 p-0"
+                          onClick={() => setDeleteStaffMember(s)}
+                        >
+                          <Trash2 className="h-4 w-4 text-destructive" />
+                        </Button>
+                      </TableCell>
+                    )}
+                  </TableRow>
+                );
+              })}
+              {sortedStaff.length === 0 && (
+                <TableRow>
+                  <TableCell colSpan={canDelete ? 12 : 11} className="text-center py-8 text-muted-foreground">
+                    No staff members found
                   </TableCell>
-                )}
-              </TableRow>
-            ))}
-            {sortedStaff.length === 0 && (
-              <TableRow>
-                <TableCell colSpan={canDelete ? 12 : 11} className="text-center py-8 text-muted-foreground">
-                  No staff members found
-                </TableCell>
-              </TableRow>
-            )}
-          </TableBody>
-        </Table>
-      </div>
+                </TableRow>
+              )}
+            </TableBody>
+          </Table>
+        </div>
 
-      {/* Delete Confirmation */}
-      <AlertDialog open={!!deleteStaffMember} onOpenChange={(open) => !open && setDeleteStaffMember(null)}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Delete Staff Member</AlertDialogTitle>
-            <AlertDialogDescription>
-              Are you sure you want to delete this staff member? This action cannot be undone.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction
-              onClick={confirmDelete}
-              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-            >
-              Delete
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+        {/* Delete Confirmation */}
+        <AlertDialog open={!!deleteStaffMember} onOpenChange={(open) => !open && setDeleteStaffMember(null)}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Delete Staff Member</AlertDialogTitle>
+              <AlertDialogDescription>
+                Are you sure you want to delete <strong>{deleteStaffMember?.full_name}</strong>?
+                {!isAdmin && ' This action will be submitted for system admin approval.'}
+                {isAdmin && ' This action cannot be undone.'}
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Cancel</AlertDialogCancel>
+              <AlertDialogAction onClick={confirmDelete} className="bg-destructive hover:bg-destructive/90">
+                {isAdmin ? 'Delete' : 'Submit for Approval'}
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
 
-      <StaffDetailDialog
-        staff={selectedStaff}
-        open={!!selectedStaff}
-        onClose={() => setSelectedStaff(null)}
-        canEdit={canEdit}
-      />
-    </>
+        {/* Staff Detail Dialog */}
+        <StaffDetailDialog
+          staff={selectedStaff}
+          open={!!selectedStaff}
+          onClose={() => setSelectedStaff(null)}
+          canEdit={canEdit}
+        />
+      </>
+    </TooltipProvider>
   );
 };
 

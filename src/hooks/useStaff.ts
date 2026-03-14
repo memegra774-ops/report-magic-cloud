@@ -28,6 +28,41 @@ const createAVDNotification = async (
   }
 };
 
+// Helper to create a staff change request
+const createChangeRequest = async (params: {
+  action_type: 'add' | 'update' | 'delete';
+  staff_id?: string | null;
+  department_id: string | null;
+  old_data?: Record<string, any> | null;
+  new_data?: Record<string, any> | null;
+  staff_name: string;
+  performed_by_id: string;
+  performed_by_name: string;
+}) => {
+  const { error } = await supabase.from('staff_changes').insert({
+    action_type: params.action_type,
+    staff_id: params.staff_id || null,
+    department_id: params.department_id,
+    old_data: params.old_data || null,
+    new_data: params.new_data || null,
+    staff_name: params.staff_name,
+    performed_by_id: params.performed_by_id,
+    performed_by_name: params.performed_by_name,
+  });
+  if (error) console.error('Failed to create change request:', error);
+
+  // Notify system admin
+  await supabase.from('notifications').insert({
+    type: `change_${params.action_type}`,
+    title: `Staff ${params.action_type === 'add' ? 'Addition' : params.action_type === 'update' ? 'Update' : 'Deletion'} Pending`,
+    message: `${params.performed_by_name} wants to ${params.action_type} ${params.staff_name}. Awaiting approval.`,
+    department_id: params.department_id,
+    staff_name: params.staff_name,
+    performed_by: params.performed_by_name,
+    target_role: 'system_admin' as const,
+  });
+};
+
 export const useStaff = (filters?: {
   category?: StaffCategory;
   departmentId?: string;
@@ -79,6 +114,8 @@ interface CreateStaffOptions {
   departmentName?: string;
   performedBy?: string;
   skipNotification?: boolean;
+  isAdmin?: boolean;
+  userId?: string;
 }
 
 export const useCreateStaff = (options?: CreateStaffOptions) => {
@@ -89,6 +126,24 @@ export const useCreateStaff = (options?: CreateStaffOptions) => {
       notificationOptions?: CreateStaffOptions 
     }) => {
       const { notificationOptions, ...staffData } = staff;
+      const opts = notificationOptions || options;
+      const isAdmin = opts?.isAdmin ?? false;
+
+      if (!isAdmin) {
+        // Non-admin: create pending change request, don't insert staff yet
+        await createChangeRequest({
+          action_type: 'add',
+          department_id: staffData.department_id || null,
+          new_data: staffData,
+          staff_name: staffData.full_name,
+          performed_by_id: opts?.userId || '',
+          performed_by_name: opts?.performedBy || 'Department User',
+        });
+        toast.info('Staff addition submitted for admin approval');
+        return null;
+      }
+
+      // Admin: insert directly
       const { data, error } = await supabase
         .from('staff')
         .insert(staffData)
@@ -97,28 +152,26 @@ export const useCreateStaff = (options?: CreateStaffOptions) => {
 
       if (error) throw error;
       
-      // Send notification to AVD
-      const opts = notificationOptions || options;
       if (!opts?.skipNotification) {
         const deptName = (data as any)?.departments?.name || opts?.departmentName || 'Unknown Department';
         const deptId = (data as any)?.department_id || null;
-        const performer = opts?.performedBy || 'Department User';
+        const performer = opts?.performedBy || 'System Admin';
         
-        // Create database notification for AVD dashboard
         createAVDNotification('staff_added', data.full_name, deptId, deptName, performer);
-        
-        // Send email notification asynchronously (don't await)
         sendStaffNotificationToAVD('added', data.full_name, deptName, performer)
           .catch(err => console.error('Failed to send AVD notification:', err));
       }
       
       return data;
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ['staff'] });
       queryClient.invalidateQueries({ queryKey: ['staff-stats'] });
       queryClient.invalidateQueries({ queryKey: ['department-stats'] });
-      toast.success('Staff member added successfully');
+      queryClient.invalidateQueries({ queryKey: ['staff-changes'] });
+      queryClient.invalidateQueries({ queryKey: ['staff-changes-pending-count'] });
+      queryClient.invalidateQueries({ queryKey: ['notifications'] });
+      if (data) toast.success('Staff member added successfully');
     },
     onError: (error) => {
       toast.error('Failed to add staff member: ' + error.message);
@@ -126,14 +179,64 @@ export const useCreateStaff = (options?: CreateStaffOptions) => {
   });
 };
 
-export const useUpdateStaff = () => {
+interface UpdateStaffOptions {
+  isAdmin?: boolean;
+  userId?: string;
+  performedBy?: string;
+}
+
+export const useUpdateStaff = (updateOptions?: UpdateStaffOptions) => {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async ({ id, ...staff }: Partial<Staff> & { id: string }) => {
+    mutationFn: async ({ id, _updateOpts, ...staffUpdate }: Partial<Staff> & { id: string; _updateOpts?: UpdateStaffOptions }) => {
+      const opts = _updateOpts || updateOptions;
+      const isAdmin = opts?.isAdmin ?? false;
+
+      if (!isAdmin) {
+        // Hybrid: apply the edit immediately but track for undo
+        // First get old data
+        const { data: oldStaff, error: fetchErr } = await supabase
+          .from('staff')
+          .select('*')
+          .eq('id', id)
+          .single();
+        if (fetchErr) throw fetchErr;
+
+        // Build old_data with only the changed fields
+        const oldData: Record<string, any> = {};
+        for (const key of Object.keys(staffUpdate)) {
+          oldData[key] = (oldStaff as any)[key];
+        }
+
+        // Apply the update
+        const { data, error } = await supabase
+          .from('staff')
+          .update(staffUpdate)
+          .eq('id', id)
+          .select()
+          .single();
+        if (error) throw error;
+
+        // Create change request for tracking / undo
+        await createChangeRequest({
+          action_type: 'update',
+          staff_id: id,
+          department_id: oldStaff.department_id,
+          old_data: oldData,
+          new_data: staffUpdate as Record<string, any>,
+          staff_name: oldStaff.full_name,
+          performed_by_id: opts?.userId || '',
+          performed_by_name: opts?.performedBy || 'Department User',
+        });
+
+        return data;
+      }
+
+      // Admin: update directly, no tracking
       const { data, error } = await supabase
         .from('staff')
-        .update(staff)
+        .update(staffUpdate)
         .eq('id', id)
         .select()
         .single();
@@ -145,6 +248,9 @@ export const useUpdateStaff = () => {
       queryClient.invalidateQueries({ queryKey: ['staff'] });
       queryClient.invalidateQueries({ queryKey: ['staff-stats'] });
       queryClient.invalidateQueries({ queryKey: ['department-stats'] });
+      queryClient.invalidateQueries({ queryKey: ['staff-changes'] });
+      queryClient.invalidateQueries({ queryKey: ['staff-changes-pending-count'] });
+      queryClient.invalidateQueries({ queryKey: ['notifications'] });
       toast.success('Staff member updated successfully');
     },
     onError: (error) => {
@@ -157,6 +263,8 @@ interface DeleteStaffOptions {
   staffName?: string;
   departmentName?: string;
   performedBy?: string;
+  isAdmin?: boolean;
+  userId?: string;
 }
 
 export const useDeleteStaff = () => {
@@ -164,16 +272,38 @@ export const useDeleteStaff = () => {
 
   return useMutation({
     mutationFn: async ({ id, options }: { id: string; options?: DeleteStaffOptions }) => {
-      // First get the staff details for notification (including department_id)
+      const isAdmin = options?.isAdmin ?? false;
+
+      // Get staff details
       const { data: staffData, error: fetchError } = await supabase
         .from('staff')
-        .select('full_name, department_id, departments(name)')
+        .select('*, departments(name)')
         .eq('id', id)
         .single();
       
       if (fetchError) throw fetchError;
-      
-      // Then delete
+
+      const staffName = options?.staffName || staffData?.full_name || 'Unknown Staff';
+      const deptName = options?.departmentName || (staffData as any)?.departments?.name || 'Unknown Department';
+      const deptId = staffData?.department_id || null;
+      const performer = options?.performedBy || 'Department User';
+
+      if (!isAdmin) {
+        // Non-admin: create pending deletion request, don't delete yet
+        await createChangeRequest({
+          action_type: 'delete',
+          staff_id: id,
+          department_id: deptId,
+          old_data: staffData as any,
+          staff_name: staffName,
+          performed_by_id: options?.userId || '',
+          performed_by_name: performer,
+        });
+        toast.info('Staff deletion submitted for admin approval');
+        return;
+      }
+
+      // Admin: delete directly
       const { error } = await supabase
         .from('staff')
         .delete()
@@ -181,16 +311,7 @@ export const useDeleteStaff = () => {
 
       if (error) throw error;
       
-      // Send notification to AVD
-      const staffName = options?.staffName || staffData?.full_name || 'Unknown Staff';
-      const deptName = options?.departmentName || (staffData as any)?.departments?.name || 'Unknown Department';
-      const deptId = staffData?.department_id || null;
-      const performer = options?.performedBy || 'Department User';
-      
-      // Create database notification for AVD dashboard
       createAVDNotification('staff_deleted', staffName, deptId, deptName, performer);
-      
-      // Send email notification asynchronously (don't await)
       sendStaffNotificationToAVD('deleted', staffName, deptName, performer)
         .catch(err => console.error('Failed to send AVD notification:', err));
     },
@@ -198,6 +319,9 @@ export const useDeleteStaff = () => {
       queryClient.invalidateQueries({ queryKey: ['staff'] });
       queryClient.invalidateQueries({ queryKey: ['staff-stats'] });
       queryClient.invalidateQueries({ queryKey: ['department-stats'] });
+      queryClient.invalidateQueries({ queryKey: ['staff-changes'] });
+      queryClient.invalidateQueries({ queryKey: ['staff-changes-pending-count'] });
+      queryClient.invalidateQueries({ queryKey: ['notifications'] });
       toast.success('Staff member deleted successfully');
     },
     onError: (error) => {
@@ -250,16 +374,13 @@ export const useStaffStats = (departmentId?: string) => {
         const edu = staff.education_level as string;
         stats.byEducation[edu] = (stats.byEducation[edu] || 0) + 1;
         
-        // Count by status - normalize case and count all statuses dynamically
         const rawStatus = staff.current_status || 'Unknown';
-        // Normalize common variations
         let status = rawStatus;
         if (rawStatus.toLowerCase() === 'on duty') status = 'On Duty';
         else if (rawStatus.toLowerCase() === 'not on duty') status = 'Not On Duty';
         
         stats.byStatus[status] = (stats.byStatus[status] || 0) + 1;
         
-        // Count by academic rank (normalize variations)
         const rank = staff.academic_rank?.toLowerCase() || '';
         if (rank.includes('lecturer') && !rank.includes('senior') && !rank.includes('s.')) {
           stats.byRank['Lecturer']++;
@@ -275,7 +396,6 @@ export const useStaffStats = (departmentId?: string) => {
           if (status === 'On Duty') stats.onDutyByRank.professor++;
         }
         
-        // Count on duty total
         if (status === 'On Duty') {
           stats.onDutyByRank.total++;
         }
@@ -286,7 +406,6 @@ export const useStaffStats = (departmentId?: string) => {
   });
 };
 
-// Hook for department-wise statistics with gender by status and on-duty by rank
 export const useDepartmentStats = () => {
   return useQuery({
     queryKey: ['department-stats'],
@@ -307,9 +426,8 @@ export const useDepartmentStats = () => {
       const deptStats = departments.map((dept) => {
         const deptStaff = staffData.filter((s) => s.department_id === dept.id);
         
-        // Gender by status - On Duty excludes ARA (tracked separately), includes only academic ranks
         const genderByStatus = {
-          onDuty: { M: 0, F: 0 },        // On Duty (excluding ARA)
+          onDuty: { M: 0, F: 0 },
           notOnDuty: { M: 0, F: 0 },
           onStudy: { M: 0, F: 0 },
           sick: { M: 0, F: 0 },
@@ -340,7 +458,6 @@ export const useDepartmentStats = () => {
           }
         });
 
-        // On duty staff by rank
         const onDutyStaff = deptStaff.filter((s) => s.current_status === 'On Duty');
         const onDutyByRank = {
           total: onDutyStaff.length,
@@ -363,7 +480,6 @@ export const useDepartmentStats = () => {
           }
         });
 
-        // On Duty ARA count for department-wise table
         const onDutyARACount = deptStaff.filter((s) => 
           (s as any).category === 'ARA' && s.current_status === 'On Duty'
         ).length;

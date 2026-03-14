@@ -5,6 +5,7 @@ import StaffForm from '@/components/StaffForm';
 import EditableStaffTable from '@/components/EditableStaffTable';
 import CSVImport from '@/components/CSVImport';
 import StaffExport from '@/components/StaffExport';
+import PendingChangesPanel from '@/components/PendingChangesPanel';
 import { useStaff, useDepartments } from '@/hooks/useStaff';
 import { useAuth } from '@/contexts/AuthContext';
 import { Staff as StaffType, STAFF_CATEGORIES, StaffCategory } from '@/types/staff';
@@ -29,7 +30,6 @@ const Staff = () => {
 
   const { data: departments } = useDepartments();
   
-  // Department heads only see their department's staff
   const departmentId = role === 'department_head' ? profile?.department_id : undefined;
   
   const { data: staff, isLoading } = useStaff({
@@ -77,6 +77,11 @@ const Staff = () => {
             )}
           </div>
         </div>
+
+        {/* Pending Changes Panel - visible to all who can see changes */}
+        {(role === 'system_admin' || role === 'department_head' || role === 'avd') && (
+          <PendingChangesPanel />
+        )}
 
         {/* Filters */}
         <div className="bg-card rounded-xl border p-4 mb-6 shadow-card animate-fade-in">
