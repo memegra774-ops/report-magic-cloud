@@ -119,10 +119,10 @@ const CSVImport = ({ open, onClose }: CSVImportProps) => {
       }
 
       const headers = lines[0].split(',').map(h => h.trim().toLowerCase());
-      setCsvFields(headers.filter(h => CSV_HEADERS.includes(h)));
+      setCsvFields(headers.filter(h => (CSV_HEADERS as readonly string[]).includes(h)));
 
       // Auto-select only fields present in CSV + full_name always
-      const presentFields = new Set(headers.filter(h => CSV_HEADERS.includes(h)));
+      const presentFields = new Set(headers.filter(h => (CSV_HEADERS as readonly string[]).includes(h)));
       presentFields.add('full_name');
       setSelectedFields(presentFields);
 
