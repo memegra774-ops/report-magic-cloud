@@ -488,6 +488,7 @@ const EditableStaffTable = ({ staff, canEdit = true, canDelete = true }: Editabl
           staff={selectedStaff}
           open={!!selectedStaff}
           onClose={() => setSelectedStaff(null)}
+          canEdit={canEdit}
         />
       </>
     </TooltipProvider>
