@@ -100,7 +100,6 @@ const StaffForm = ({ open, onClose, staff, defaultDepartmentId }: StaffFormProps
       if (staff) {
         await updateStaff.mutateAsync({ id: staff.id, ...data });
       } else {
-        // Get department name for notification
         const deptId = values.department_id || defaultDepartmentId;
         const dept = departments?.find(d => d.id === deptId);
         
@@ -109,6 +108,8 @@ const StaffForm = ({ open, onClose, staff, defaultDepartmentId }: StaffFormProps
           notificationOptions: {
             departmentName: dept?.name,
             performedBy: profile?.full_name || profile?.email || 'Department User',
+            isAdmin,
+            userId: user?.id,
           },
         } as any);
       }
