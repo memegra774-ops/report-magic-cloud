@@ -247,6 +247,8 @@ const CSVImport = ({ open, onClose }: CSVImportProps) => {
               departmentName,
               performedBy,
               skipNotification: createdCount > 0,
+              isAdmin,
+              userId: user?.id,
             },
           } as any);
           createdCount++;
