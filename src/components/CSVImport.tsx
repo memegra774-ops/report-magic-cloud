@@ -63,6 +63,8 @@ const CSVImport = ({ open, onClose }: CSVImportProps) => {
   const auth = useAuth();
   const profile = auth?.profile;
   const role = auth?.role;
+  const user = auth?.user;
+  const isAdmin = role === 'system_admin';
   const [file, setFile] = useState<File | null>(null);
   const [parsedData, setParsedData] = useState<ParsedRow[]>([]);
   const [importing, setImporting] = useState(false);
@@ -70,7 +72,11 @@ const CSVImport = ({ open, onClose }: CSVImportProps) => {
   const [selectedDepartmentId, setSelectedDepartmentId] = useState<string>('');
   const fileInputRef = useRef<HTMLInputElement>(null);
   const createStaff = useCreateStaff();
-  const updateStaff = useUpdateStaff();
+  const updateStaff = useUpdateStaff({
+    isAdmin,
+    userId: user?.id,
+    performedBy: profile?.full_name || profile?.email || 'User',
+  });
   const { data: departments } = useDepartments();
 
   const needsDepartmentSelect = role === 'system_admin' || role === 'avd';
