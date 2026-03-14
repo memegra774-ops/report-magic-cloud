@@ -352,6 +352,72 @@ export type Database = {
           },
         ]
       }
+      staff_changes: {
+        Row: {
+          action_type: string
+          created_at: string
+          department_id: string | null
+          id: string
+          new_data: Json | null
+          old_data: Json | null
+          performed_by_id: string
+          performed_by_name: string
+          review_note: string | null
+          reviewed_at: string | null
+          reviewed_by_id: string | null
+          staff_id: string | null
+          staff_name: string
+          status: string
+        }
+        Insert: {
+          action_type: string
+          created_at?: string
+          department_id?: string | null
+          id?: string
+          new_data?: Json | null
+          old_data?: Json | null
+          performed_by_id: string
+          performed_by_name: string
+          review_note?: string | null
+          reviewed_at?: string | null
+          reviewed_by_id?: string | null
+          staff_id?: string | null
+          staff_name: string
+          status?: string
+        }
+        Update: {
+          action_type?: string
+          created_at?: string
+          department_id?: string | null
+          id?: string
+          new_data?: Json | null
+          old_data?: Json | null
+          performed_by_id?: string
+          performed_by_name?: string
+          review_note?: string | null
+          reviewed_at?: string | null
+          reviewed_by_id?: string | null
+          staff_id?: string | null
+          staff_name?: string
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "staff_changes_department_id_fkey"
+            columns: ["department_id"]
+            isOneToOne: false
+            referencedRelation: "departments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "staff_changes_staff_id_fkey"
+            columns: ["staff_id"]
+            isOneToOne: false
+            referencedRelation: "staff"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       user_roles: {
         Row: {
           created_at: string
