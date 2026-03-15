@@ -127,9 +127,10 @@ const CSVImport = ({ open, onClose }: CSVImportProps) => {
       const headers = lines[0].split(',').map(h => h.trim().toLowerCase());
       setCsvFields(headers.filter(h => (CSV_HEADERS as readonly string[]).includes(h)));
 
-      // Auto-select only fields present in CSV + full_name always
+      // Auto-select only fields present in CSV + reference keys always
       const presentFields = new Set(headers.filter(h => (CSV_HEADERS as readonly string[]).includes(h)));
-      presentFields.add('full_name');
+      presentFields.add('staff_id');
+      presentFields.add('fan_number');
       setSelectedFields(presentFields);
 
       const data: ParsedRow[] = [];
@@ -139,7 +140,8 @@ const CSVImport = ({ open, onClose }: CSVImportProps) => {
         headers.forEach((header, index) => {
           row[header] = values[index] || '';
         });
-        if (row.full_name) data.push(row);
+        // Require at least one reference key (staff_id or fan_number) or full_name for new records
+        if (row.staff_id || row.fan_number || row.full_name) data.push(row);
       }
       setParsedData(data);
     };
