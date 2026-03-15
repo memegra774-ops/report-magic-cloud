@@ -425,10 +425,11 @@ const CSVImport = ({ open, onClose }: CSVImportProps) => {
                   </thead>
                   <tbody>
                     {parsedData.slice(0, 10).map((row, index) => {
-                      const fieldCount = [...selectedFields].filter(f => f !== 'full_name' && row[f]).length;
+                      const fieldCount = [...selectedFields].filter(f => f !== 'staff_id' && f !== 'fan_number' && row[f]).length;
                       return (
                         <tr key={index} className="border-t">
-                          <td className="px-3 py-2 font-medium">{row.full_name}</td>
+                          <td className="px-3 py-2 font-medium text-xs">{row.staff_id || row.fan_number || '—'}</td>
+                          <td className="px-3 py-2 font-medium">{row.full_name || '—'}</td>
                           <td className="px-3 py-2 text-xs text-muted-foreground">{fieldCount} field{fieldCount !== 1 ? 's' : ''}</td>
                           <td className="px-3 py-2 text-xs text-muted-foreground">Create / Update</td>
                         </tr>
