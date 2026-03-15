@@ -187,19 +187,34 @@ const CSVImport = ({ open, onClose }: CSVImportProps) => {
 
     for (const row of parsedData) {
       try {
-        // Match by full_name within the target department
-        const { data: existingStaff } = await supabase
-          .from('staff')
-          .select('id')
-          .eq('full_name', row.full_name)
-          .eq('department_id', effectiveDepartmentId)
-          .maybeSingle();
+        // Match by staff_id or fan_number within the target department
+        let existingStaff: { id: string } | null = null;
 
-        // Build payload with only selected fields
+        if (row.staff_id) {
+          const { data } = await supabase
+            .from('staff')
+            .select('id')
+            .eq('staff_id', row.staff_id)
+            .eq('department_id', effectiveDepartmentId)
+            .maybeSingle();
+          existingStaff = data;
+        }
+
+        if (!existingStaff && row.fan_number) {
+          const { data } = await supabase
+            .from('staff')
+            .select('id')
+            .eq('fan_number', row.fan_number)
+            .eq('department_id', effectiveDepartmentId)
+            .maybeSingle();
+          existingStaff = data;
+        }
+
+        // Build payload with only selected fields (exclude reference keys on existing)
         const payload: Record<string, any> = {};
 
         for (const field of selectedFields) {
-          if (field === 'full_name' && existingStaff) continue; // don't update the reference key itself on existing
+          if ((field === 'staff_id' || field === 'fan_number') && existingStaff) continue;
           if (!(field in row) || row[field] === '') continue;
 
           const val = row[field];
@@ -235,9 +250,12 @@ const CSVImport = ({ open, onClose }: CSVImportProps) => {
             updatedCount++;
           }
         } else {
-          // Create new staff
+          // Create new staff - require full_name for creation
+          const fullName = row.full_name || row.staff_id || 'Unknown';
           await createStaff.mutateAsync({
-            full_name: row.full_name,
+            full_name: fullName,
+            staff_id: row.staff_id || null,
+            fan_number: row.fan_number || null,
             college_name: 'CoEEC',
             department_id: effectiveDepartmentId,
             sex: payload.sex || 'M',
