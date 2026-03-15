@@ -417,6 +417,7 @@ const CSVImport = ({ open, onClose }: CSVImportProps) => {
                 <table className="w-full text-sm">
                   <thead className="bg-muted/50 sticky top-0">
                     <tr>
+                      <th className="px-3 py-2 text-left">Staff ID / FAN</th>
                       <th className="px-3 py-2 text-left">Full Name</th>
                       <th className="px-3 py-2 text-left">Fields to Update</th>
                       <th className="px-3 py-2 text-left">Action</th>
