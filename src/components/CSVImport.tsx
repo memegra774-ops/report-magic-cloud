@@ -30,8 +30,9 @@ interface CSVImportProps {
 
 // All importable fields with labels
 const IMPORTABLE_FIELDS = [
-  { key: 'staff_id', label: 'Staff ID' },
-  { key: 'full_name', label: 'Full Name (Reference)', required: true },
+  { key: 'staff_id', label: 'Staff ID (Reference Key)', required: true },
+  { key: 'fan_number', label: 'FAN Number (Reference Key)', required: true },
+  { key: 'full_name', label: 'Full Name' },
   { key: 'sex', label: 'Sex' },
   { key: 'specialization', label: 'Specialization' },
   { key: 'education_level', label: 'Education Level' },
@@ -41,7 +42,6 @@ const IMPORTABLE_FIELDS = [
   { key: 'remark', label: 'Remark' },
   { key: 'mother_name', label: 'Mother Name' },
   { key: 'phone_number', label: 'Phone Number' },
-  { key: 'fan_number', label: 'FAN Number' },
   { key: 'email', label: 'Email' },
   { key: 'date_of_birth', label: 'Date of Birth' },
   { key: 'place_of_birth', label: 'Place of Birth' },
@@ -127,9 +127,10 @@ const CSVImport = ({ open, onClose }: CSVImportProps) => {
       const headers = lines[0].split(',').map(h => h.trim().toLowerCase());
       setCsvFields(headers.filter(h => (CSV_HEADERS as readonly string[]).includes(h)));
 
-      // Auto-select only fields present in CSV + full_name always
+      // Auto-select only fields present in CSV + reference keys always
       const presentFields = new Set(headers.filter(h => (CSV_HEADERS as readonly string[]).includes(h)));
-      presentFields.add('full_name');
+      presentFields.add('staff_id');
+      presentFields.add('fan_number');
       setSelectedFields(presentFields);
 
       const data: ParsedRow[] = [];
@@ -139,7 +140,8 @@ const CSVImport = ({ open, onClose }: CSVImportProps) => {
         headers.forEach((header, index) => {
           row[header] = values[index] || '';
         });
-        if (row.full_name) data.push(row);
+        // Require at least one reference key (staff_id or fan_number) or full_name for new records
+        if (row.staff_id || row.fan_number || row.full_name) data.push(row);
       }
       setParsedData(data);
     };
@@ -147,7 +149,7 @@ const CSVImport = ({ open, onClose }: CSVImportProps) => {
   };
 
   const toggleField = (key: string) => {
-    if (key === 'full_name') return; // always required
+    if (key === 'staff_id' || key === 'fan_number') return; // reference keys always included
     const next = new Set(selectedFields);
     if (next.has(key)) next.delete(key);
     else next.add(key);
@@ -155,7 +157,7 @@ const CSVImport = ({ open, onClose }: CSVImportProps) => {
   };
 
   const selectAll = () => setSelectedFields(new Set(csvFields.length ? csvFields : CSV_HEADERS));
-  const deselectAll = () => setSelectedFields(new Set(['full_name']));
+  const deselectAll = () => setSelectedFields(new Set(['staff_id', 'fan_number']));
 
   const parseBool = (val: string): boolean =>
     ['y', 'yes', 'true', '1'].includes(val.toLowerCase().trim());
@@ -185,19 +187,34 @@ const CSVImport = ({ open, onClose }: CSVImportProps) => {
 
     for (const row of parsedData) {
       try {
-        // Match by full_name within the target department
-        const { data: existingStaff } = await supabase
-          .from('staff')
-          .select('id')
-          .eq('full_name', row.full_name)
-          .eq('department_id', effectiveDepartmentId)
-          .maybeSingle();
+        // Match by staff_id or fan_number within the target department
+        let existingStaff: { id: string } | null = null;
 
-        // Build payload with only selected fields
+        if (row.staff_id) {
+          const { data } = await supabase
+            .from('staff')
+            .select('id')
+            .eq('staff_id', row.staff_id)
+            .eq('department_id', effectiveDepartmentId)
+            .maybeSingle();
+          existingStaff = data;
+        }
+
+        if (!existingStaff && row.fan_number) {
+          const { data } = await supabase
+            .from('staff')
+            .select('id')
+            .eq('fan_number', row.fan_number)
+            .eq('department_id', effectiveDepartmentId)
+            .maybeSingle();
+          existingStaff = data;
+        }
+
+        // Build payload with only selected fields (exclude reference keys on existing)
         const payload: Record<string, any> = {};
 
         for (const field of selectedFields) {
-          if (field === 'full_name' && existingStaff) continue; // don't update the reference key itself on existing
+          if ((field === 'staff_id' || field === 'fan_number') && existingStaff) continue;
           if (!(field in row) || row[field] === '') continue;
 
           const val = row[field];
@@ -233,9 +250,12 @@ const CSVImport = ({ open, onClose }: CSVImportProps) => {
             updatedCount++;
           }
         } else {
-          // Create new staff
+          // Create new staff - require full_name for creation
+          const fullName = row.full_name || row.staff_id || 'Unknown';
           await createStaff.mutateAsync({
-            full_name: row.full_name,
+            full_name: fullName,
+            staff_id: row.staff_id || null,
+            fan_number: row.fan_number || null,
             college_name: 'CoEEC',
             department_id: effectiveDepartmentId,
             sex: payload.sex || 'M',
@@ -348,7 +368,7 @@ const CSVImport = ({ open, onClose }: CSVImportProps) => {
               <>
                 <Upload className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
                 <p className="font-medium">Click to upload CSV file</p>
-                <p className="text-sm text-muted-foreground">Existing staff (matched by Full Name) will be updated</p>
+                <p className="text-sm text-muted-foreground">Existing staff matched by Staff ID or FAN Number will be updated</p>
               </>
             )}
           </div>
@@ -376,7 +396,7 @@ const CSVImport = ({ open, onClose }: CSVImportProps) => {
                       id={`field-${field.key}`}
                       checked={selectedFields.has(field.key)}
                       onCheckedChange={() => toggleField(field.key)}
-                      disabled={field.key === 'full_name'}
+                      disabled={field.key === 'staff_id' || field.key === 'fan_number'}
                     />
                     <Label htmlFor={`field-${field.key}`} className="text-xs cursor-pointer">
                       {field.label}
@@ -397,6 +417,7 @@ const CSVImport = ({ open, onClose }: CSVImportProps) => {
                 <table className="w-full text-sm">
                   <thead className="bg-muted/50 sticky top-0">
                     <tr>
+                      <th className="px-3 py-2 text-left">Staff ID / FAN</th>
                       <th className="px-3 py-2 text-left">Full Name</th>
                       <th className="px-3 py-2 text-left">Fields to Update</th>
                       <th className="px-3 py-2 text-left">Action</th>
@@ -404,10 +425,11 @@ const CSVImport = ({ open, onClose }: CSVImportProps) => {
                   </thead>
                   <tbody>
                     {parsedData.slice(0, 10).map((row, index) => {
-                      const fieldCount = [...selectedFields].filter(f => f !== 'full_name' && row[f]).length;
+                      const fieldCount = [...selectedFields].filter(f => f !== 'staff_id' && f !== 'fan_number' && row[f]).length;
                       return (
                         <tr key={index} className="border-t">
-                          <td className="px-3 py-2 font-medium">{row.full_name}</td>
+                          <td className="px-3 py-2 font-medium text-xs">{row.staff_id || row.fan_number || '—'}</td>
+                          <td className="px-3 py-2 font-medium">{row.full_name || '—'}</td>
                           <td className="px-3 py-2 text-xs text-muted-foreground">{fieldCount} field{fieldCount !== 1 ? 's' : ''}</td>
                           <td className="px-3 py-2 text-xs text-muted-foreground">Create / Update</td>
                         </tr>
