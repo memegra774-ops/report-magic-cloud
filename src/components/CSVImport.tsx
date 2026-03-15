@@ -396,7 +396,7 @@ const CSVImport = ({ open, onClose }: CSVImportProps) => {
                       id={`field-${field.key}`}
                       checked={selectedFields.has(field.key)}
                       onCheckedChange={() => toggleField(field.key)}
-                      disabled={field.key === 'full_name'}
+                      disabled={field.key === 'staff_id' || field.key === 'fan_number'}
                     />
                     <Label htmlFor={`field-${field.key}`} className="text-xs cursor-pointer">
                       {field.label}
