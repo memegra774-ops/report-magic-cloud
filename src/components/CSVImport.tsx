@@ -368,7 +368,7 @@ const CSVImport = ({ open, onClose }: CSVImportProps) => {
               <>
                 <Upload className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
                 <p className="font-medium">Click to upload CSV file</p>
-                <p className="text-sm text-muted-foreground">Existing staff (matched by Full Name) will be updated</p>
+                <p className="text-sm text-muted-foreground">Existing staff matched by Staff ID or FAN Number will be updated</p>
               </>
             )}
           </div>
