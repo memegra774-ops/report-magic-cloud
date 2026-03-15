@@ -157,7 +157,7 @@ const CSVImport = ({ open, onClose }: CSVImportProps) => {
   };
 
   const selectAll = () => setSelectedFields(new Set(csvFields.length ? csvFields : CSV_HEADERS));
-  const deselectAll = () => setSelectedFields(new Set(['full_name']));
+  const deselectAll = () => setSelectedFields(new Set(['staff_id', 'fan_number']));
 
   const parseBool = (val: string): boolean =>
     ['y', 'yes', 'true', '1'].includes(val.toLowerCase().trim());
