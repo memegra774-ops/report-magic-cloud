@@ -43,9 +43,9 @@ export const useCreateReport = () => {
         throw new Error('A report already exists for this period. Use regenerate to update it.');
       }
 
-      // Prevent regenerating a submitted report
-      if (existingReport && regenerate && existingReport.status === 'submitted') {
-        throw new Error('Cannot regenerate a submitted report. The report has already been submitted to AVD.');
+      // Prevent regenerating an approved report
+      if (existingReport && regenerate && existingReport.status === 'approved') {
+        throw new Error('Cannot regenerate an approved report.');
       }
 
       // If regenerating, delete the existing report first (cascade will delete entries)

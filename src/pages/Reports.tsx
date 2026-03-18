@@ -618,7 +618,7 @@ const Reports = () => {
               const isSubmitted = report.status === 'submitted';
               const isApproved = report.status === 'approved';
               const isRejected = report.status === 'rejected';
-              const canModify = isDepartmentHead ? !(isSubmitted || isApproved) : true;
+              const canModify = isDepartmentHead ? !isApproved : true;
               
               const getStatusBadge = () => {
                 if (isApproved) {
