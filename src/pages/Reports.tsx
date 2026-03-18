@@ -5,7 +5,7 @@ import ReportView from '@/components/ReportView';
 import ReportLetter from '@/components/ReportLetter';
 import ReportComparison from '@/components/ReportComparison';
 import SubmissionStatusDashboard from '@/components/SubmissionStatusDashboard';
-import { useMonthlyReports, useCreateReport, useDeleteReport, useSubmitReport, useApproveReport, useRejectReport, useResubmitReport, useGenerateCollegeReport } from '@/hooks/useReports';
+import { useMonthlyReports, useCreateReport, useDeleteReport, useSubmitReport, useApproveReport, useRejectReport, useResubmitReport, useGenerateCollegeReport, useUndoApproval } from '@/hooks/useReports';
 import { useCreateNotification } from '@/hooks/useNotifications';
 import { useAuth } from '@/contexts/AuthContext';
 import { useDepartments } from '@/hooks/useStaff';
@@ -65,6 +65,7 @@ const Reports = () => {
   const rejectReport = useRejectReport();
   const resubmitReport = useResubmitReport();
   const generateCollegeReport = useGenerateCollegeReport();
+  const undoApproval = useUndoApproval();
   const createNotification = useCreateNotification();
 
   const handleCreateReport = async () => {
@@ -513,15 +514,29 @@ const Reports = () => {
                     <p className="text-sm font-medium text-foreground mb-1">
                       {departments?.find(d => d.id === report.department_id)?.name || 'Unknown'}
                     </p>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="w-full mt-2"
-                      onClick={() => setViewReport(report)}
-                    >
-                      <Eye className="h-4 w-4 mr-1" />
-                      View
-                    </Button>
+                    <div className="flex gap-2 mt-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="flex-1"
+                        onClick={() => setViewReport(report)}
+                      >
+                        <Eye className="h-4 w-4 mr-1" />
+                        View
+                      </Button>
+                      {role === 'system_admin' && (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="flex-1 border-amber-500 text-amber-600 hover:bg-amber-50"
+                          onClick={() => undoApproval.mutate(report.id)}
+                          disabled={undoApproval.isPending}
+                        >
+                          <RefreshCw className="h-4 w-4 mr-1" />
+                          Undo
+                        </Button>
+                      )}
+                    </div>
                   </CardContent>
                 </Card>
               ))}
