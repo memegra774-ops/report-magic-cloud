@@ -367,14 +367,14 @@ export const useGenerateCollegeReport = () => {
         throw new Error('No approved department reports found. Approve at least one department report first.');
       }
 
-      // Create the college-level report
+      // Create the college-level report (auto-approved since AVD generates it)
       const { data: report, error: reportError } = await supabase
         .from('monthly_reports')
         .insert({ 
           report_month: month, 
           report_year: year,
           department_id: null,
-          status: 'draft'
+          status: 'approved'
         })
         .select()
         .single();

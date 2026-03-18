@@ -213,8 +213,9 @@ const Reports = () => {
       return report.department_id === profile?.department_id;
     }
     if (role === 'avd') {
-      // AVD sees their own reports (no department_id)
-      return !report.department_id;
+      // AVD sees their own college-level reports AND individual department reports (submitted/approved)
+      if (!report.department_id) return true;
+      return report.department_id && (report.status === 'submitted' || report.status === 'approved');
     }
     // System admin and management see all
     return true;

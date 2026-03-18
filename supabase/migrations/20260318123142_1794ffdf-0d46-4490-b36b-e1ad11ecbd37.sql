@@ -1,0 +1,1 @@
+UPDATE public.monthly_reports SET status = 'approved' WHERE department_id IS NULL AND status = 'draft';
