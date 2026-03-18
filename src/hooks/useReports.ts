@@ -309,6 +309,31 @@ export const useResubmitReport = () => {
   });
 };
 
+export const useUndoApproval = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (reportId: string) => {
+      const { data, error } = await supabase
+        .from('monthly_reports')
+        .update({ status: 'submitted' })
+        .eq('id', reportId)
+        .select()
+        .single();
+
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['monthly-reports'] });
+      toast.success('Report reverted to submitted status');
+    },
+    onError: (error) => {
+      toast.error('Failed to undo approval: ' + error.message);
+    },
+  });
+};
+
 export const useGenerateCollegeReport = () => {
   const queryClient = useQueryClient();
 
