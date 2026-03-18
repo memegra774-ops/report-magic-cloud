@@ -1,0 +1,2 @@
+DROP INDEX IF EXISTS public.monthly_reports_month_year_dept_idx;
+CREATE UNIQUE INDEX monthly_reports_month_year_dept_version_idx ON public.monthly_reports USING btree (report_month, report_year, COALESCE(department_id, '00000000-0000-0000-0000-000000000000'::uuid), version);
