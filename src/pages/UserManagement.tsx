@@ -77,10 +77,12 @@ const UserManagement = () => {
     full_name: '',
     role: 'department_head' as AppRole,
     department_id: '',
+    college_id: '',
   });
   const [editFormData, setEditFormData] = useState({
     role: 'department_head' as AppRole,
     department_id: '',
+    college_id: '',
     full_name: '',
   });
   const [resetPasswordUserId, setResetPasswordUserId] = useState<string | null>(null);
