@@ -518,6 +518,26 @@ const UserManagement = () => {
                   </Select>
                 </div>
               )}
+              {editFormData.role === 'avd' && (
+                <div className="space-y-2">
+                  <Label>College</Label>
+                  <Select
+                    value={editFormData.college_id}
+                    onValueChange={(v) => setEditFormData({ ...editFormData, college_id: v })}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select college" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {colleges?.map((college) => (
+                        <SelectItem key={college.id} value={college.id}>
+                          {college.code} - {college.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
             </div>
             <DialogFooter>
               <Button variant="outline" onClick={() => setEditDialogOpen(false)}>
