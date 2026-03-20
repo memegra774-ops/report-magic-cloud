@@ -199,11 +199,11 @@ const CSVImport = ({ open, onClose }: CSVImportProps) => {
           existingStaff = data;
         }
 
-        // Build payload with only selected fields (exclude reference keys on existing)
+        // Build payload with only selected fields (exclude primary key on existing)
         const payload: Record<string, any> = {};
 
         for (const field of selectedFields) {
-          if ((field === 'staff_id' || field === 'fan_number') && existingStaff) continue;
+          if (field === 'staff_id' && existingStaff) continue;
           if (!(field in row) || row[field] === '') continue;
 
           const val = row[field];
