@@ -151,12 +151,13 @@ const UserManagement = () => {
   });
 
   const updateUserRole = useMutation({
-    mutationFn: async ({ userId, newRole, departmentId, fullName }: { userId: string; newRole: AppRole; departmentId?: string; fullName?: string }) => {
+    mutationFn: async ({ userId, newRole, departmentId, collegeId, fullName }: { userId: string; newRole: AppRole; departmentId?: string; collegeId?: string; fullName?: string }) => {
       const { data: result, error } = await supabase.functions.invoke('update-user-role', {
         body: {
           user_id: userId,
           new_role: newRole,
           department_id: departmentId,
+          college_id: collegeId,
           full_name: fullName,
         },
       });
