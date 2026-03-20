@@ -186,7 +186,7 @@ const CSVImport = ({ open, onClose }: CSVImportProps) => {
 
     for (const row of parsedData) {
       try {
-        // Match by staff_id or fan_number within the target department
+        // Match by staff_id within the target department
         let existingStaff: { id: string } | null = null;
 
         if (row.staff_id) {
@@ -194,16 +194,6 @@ const CSVImport = ({ open, onClose }: CSVImportProps) => {
             .from('staff')
             .select('id')
             .eq('staff_id', row.staff_id)
-            .eq('department_id', effectiveDepartmentId)
-            .maybeSingle();
-          existingStaff = data;
-        }
-
-        if (!existingStaff && row.fan_number) {
-          const { data } = await supabase
-            .from('staff')
-            .select('id')
-            .eq('fan_number', row.fan_number)
             .eq('department_id', effectiveDepartmentId)
             .maybeSingle();
           existingStaff = data;
