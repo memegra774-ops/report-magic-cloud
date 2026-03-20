@@ -123,6 +123,7 @@ const UserManagement = () => {
           role: data.role,
           full_name: data.full_name,
           department_id: data.department_id || null,
+          college_id: data.college_id || null,
         },
       });
 
