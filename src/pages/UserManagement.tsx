@@ -86,6 +86,7 @@ const UserManagement = () => {
   const [resetPasswordUserId, setResetPasswordUserId] = useState<string | null>(null);
 
   const { data: departments } = useDepartments();
+  const { data: colleges } = useColleges();
 
   const { data: users, isLoading } = useQuery({
     queryKey: ['users-with-roles'],
