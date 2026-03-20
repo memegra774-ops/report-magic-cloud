@@ -14,9 +14,31 @@ export type Database = {
   }
   public: {
     Tables: {
+      colleges: {
+        Row: {
+          code: string
+          created_at: string
+          id: string
+          name: string
+        }
+        Insert: {
+          code: string
+          created_at?: string
+          id?: string
+          name: string
+        }
+        Update: {
+          code?: string
+          created_at?: string
+          id?: string
+          name?: string
+        }
+        Relationships: []
+      }
       departments: {
         Row: {
           code: string
+          college_id: string | null
           college_name: string
           created_at: string
           id: string
@@ -24,6 +46,7 @@ export type Database = {
         }
         Insert: {
           code: string
+          college_id?: string | null
           college_name?: string
           created_at?: string
           id?: string
@@ -31,12 +54,21 @@ export type Database = {
         }
         Update: {
           code?: string
+          college_id?: string | null
           college_name?: string
           created_at?: string
           id?: string
           name?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "departments_college_id_fkey"
+            columns: ["college_id"]
+            isOneToOne: false
+            referencedRelation: "colleges"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       monthly_reports: {
         Row: {
@@ -143,6 +175,7 @@ export type Database = {
       }
       profiles: {
         Row: {
+          college_id: string | null
           created_at: string
           department_id: string | null
           email: string
@@ -152,6 +185,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          college_id?: string | null
           created_at?: string
           department_id?: string | null
           email: string
@@ -161,6 +195,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          college_id?: string | null
           created_at?: string
           department_id?: string | null
           email?: string
@@ -170,6 +205,13 @@ export type Database = {
           updated_at?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "profiles_college_id_fkey"
+            columns: ["college_id"]
+            isOneToOne: false
+            referencedRelation: "colleges"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "profiles_department_id_fkey"
             columns: ["department_id"]
