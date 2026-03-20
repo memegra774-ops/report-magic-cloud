@@ -130,7 +130,6 @@ const CSVImport = ({ open, onClose }: CSVImportProps) => {
       // Auto-select only fields present in CSV + reference keys always
       const presentFields = new Set(headers.filter(h => (CSV_HEADERS as readonly string[]).includes(h)));
       presentFields.add('staff_id');
-      presentFields.add('fan_number');
       setSelectedFields(presentFields);
 
       const data: ParsedRow[] = [];
