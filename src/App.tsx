@@ -10,6 +10,7 @@ import Staff from "./pages/Staff";
 import Reports from "./pages/Reports";
 import Auth from "./pages/Auth";
 import UserManagement from "./pages/UserManagement";
+import CollegeManagement from "./pages/CollegeManagement";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
