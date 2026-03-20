@@ -30,8 +30,8 @@ interface CSVImportProps {
 
 // All importable fields with labels
 const IMPORTABLE_FIELDS = [
-  { key: 'staff_id', label: 'Staff ID (Reference Key)', required: true },
-  { key: 'fan_number', label: 'FAN Number (Reference Key)', required: true },
+  { key: 'staff_id', label: 'Staff ID (Primary Key)', required: true },
+  { key: 'fan_number', label: 'FAN Number' },
   { key: 'full_name', label: 'Full Name' },
   { key: 'sex', label: 'Sex' },
   { key: 'specialization', label: 'Specialization' },
@@ -130,7 +130,6 @@ const CSVImport = ({ open, onClose }: CSVImportProps) => {
       // Auto-select only fields present in CSV + reference keys always
       const presentFields = new Set(headers.filter(h => (CSV_HEADERS as readonly string[]).includes(h)));
       presentFields.add('staff_id');
-      presentFields.add('fan_number');
       setSelectedFields(presentFields);
 
       const data: ParsedRow[] = [];
@@ -140,8 +139,8 @@ const CSVImport = ({ open, onClose }: CSVImportProps) => {
         headers.forEach((header, index) => {
           row[header] = values[index] || '';
         });
-        // Require at least one reference key (staff_id or fan_number) or full_name for new records
-        if (row.staff_id || row.fan_number || row.full_name) data.push(row);
+        // Require staff_id or full_name for records
+        if (row.staff_id || row.full_name) data.push(row);
       }
       setParsedData(data);
     };
@@ -149,7 +148,7 @@ const CSVImport = ({ open, onClose }: CSVImportProps) => {
   };
 
   const toggleField = (key: string) => {
-    if (key === 'staff_id' || key === 'fan_number') return; // reference keys always included
+    if (key === 'staff_id') return; // primary key always included
     const next = new Set(selectedFields);
     if (next.has(key)) next.delete(key);
     else next.add(key);
@@ -157,7 +156,7 @@ const CSVImport = ({ open, onClose }: CSVImportProps) => {
   };
 
   const selectAll = () => setSelectedFields(new Set(csvFields.length ? csvFields : CSV_HEADERS));
-  const deselectAll = () => setSelectedFields(new Set(['staff_id', 'fan_number']));
+  const deselectAll = () => setSelectedFields(new Set(['staff_id']));
 
   const parseBool = (val: string): boolean =>
     ['y', 'yes', 'true', '1'].includes(val.toLowerCase().trim());
@@ -187,7 +186,7 @@ const CSVImport = ({ open, onClose }: CSVImportProps) => {
 
     for (const row of parsedData) {
       try {
-        // Match by staff_id or fan_number within the target department
+        // Match by staff_id within the target department
         let existingStaff: { id: string } | null = null;
 
         if (row.staff_id) {
@@ -200,21 +199,11 @@ const CSVImport = ({ open, onClose }: CSVImportProps) => {
           existingStaff = data;
         }
 
-        if (!existingStaff && row.fan_number) {
-          const { data } = await supabase
-            .from('staff')
-            .select('id')
-            .eq('fan_number', row.fan_number)
-            .eq('department_id', effectiveDepartmentId)
-            .maybeSingle();
-          existingStaff = data;
-        }
-
-        // Build payload with only selected fields (exclude reference keys on existing)
+        // Build payload with only selected fields (exclude primary key on existing)
         const payload: Record<string, any> = {};
 
         for (const field of selectedFields) {
-          if ((field === 'staff_id' || field === 'fan_number') && existingStaff) continue;
+          if (field === 'staff_id' && existingStaff) continue;
           if (!(field in row) || row[field] === '') continue;
 
           const val = row[field];
@@ -368,7 +357,7 @@ const CSVImport = ({ open, onClose }: CSVImportProps) => {
               <>
                 <Upload className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
                 <p className="font-medium">Click to upload CSV file</p>
-                <p className="text-sm text-muted-foreground">Existing staff matched by Staff ID or FAN Number will be updated</p>
+                <p className="text-sm text-muted-foreground">Existing staff matched by Staff ID will be updated</p>
               </>
             )}
           </div>
@@ -396,7 +385,7 @@ const CSVImport = ({ open, onClose }: CSVImportProps) => {
                       id={`field-${field.key}`}
                       checked={selectedFields.has(field.key)}
                       onCheckedChange={() => toggleField(field.key)}
-                      disabled={field.key === 'staff_id' || field.key === 'fan_number'}
+                      disabled={field.key === 'staff_id'}
                     />
                     <Label htmlFor={`field-${field.key}`} className="text-xs cursor-pointer">
                       {field.label}
