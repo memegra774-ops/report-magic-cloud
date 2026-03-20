@@ -607,13 +607,21 @@ const Reports = () => {
 
         {/* Reports Grid */}
         {isLoading ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {[...Array(6)].map((_, i) => (
-              <Skeleton key={i} className="h-40 rounded-xl" />
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+            {[...Array(4)].map((_, i) => (
+              <Skeleton key={i} className="h-24 rounded-lg" />
             ))}
           </div>
         ) : filteredReports && filteredReports.length > 0 ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <div className="space-y-1">
+            <div className="hidden md:grid grid-cols-[1fr_1fr_120px_120px_80px_auto] gap-4 px-4 py-2 text-xs font-semibold text-muted-foreground uppercase tracking-wider border-b">
+              <span>Report Period</span>
+              <span>Department</span>
+              <span>Status</span>
+              <span>Date</span>
+              <span>Version</span>
+              <span className="text-right">Actions</span>
+            </div>
             {filteredReports.map((report) => {
               const isSubmitted = report.status === 'submitted';
               const isApproved = report.status === 'approved';
@@ -621,124 +629,58 @@ const Reports = () => {
               const canModify = isDepartmentHead ? !isApproved : true;
               
               const getStatusBadge = () => {
-                if (isApproved) {
-                  return (
-                    <Badge variant="default" className="bg-blue-600 hover:bg-blue-700">
-                      <ThumbsUp className="h-3 w-3 mr-1" />
-                      Approved
-                    </Badge>
-                  );
-                }
-                if (isSubmitted) {
-                  return (
-                    <Badge variant="default" className="bg-green-600 hover:bg-green-700">
-                      <CheckCircle2 className="h-3 w-3 mr-1" />
-                      Submitted
-                    </Badge>
-                  );
-                }
-                if (isRejected) {
-                  return (
-                    <Badge variant="destructive">
-                      <XCircle className="h-3 w-3 mr-1" />
-                      Rejected
-                    </Badge>
-                  );
-                }
-                return <Badge variant="secondary">Draft</Badge>;
+                if (isApproved) return <Badge variant="default" className="bg-blue-600 hover:bg-blue-700 text-xs"><ThumbsUp className="h-3 w-3 mr-1" />Approved</Badge>;
+                if (isSubmitted) return <Badge variant="default" className="bg-green-600 hover:bg-green-700 text-xs"><CheckCircle2 className="h-3 w-3 mr-1" />Submitted</Badge>;
+                if (isRejected) return <Badge variant="destructive" className="text-xs"><XCircle className="h-3 w-3 mr-1" />Rejected</Badge>;
+                return <Badge variant="secondary" className="text-xs">Draft</Badge>;
               };
               
               return (
-                <Card key={report.id} className="shadow-card hover:shadow-card-hover transition-shadow animate-fade-in">
-                  <CardHeader className="pb-2">
-                    <CardTitle className="flex items-center justify-between">
-                      <span className="font-serif">
-                        {MONTHS[report.report_month - 1]} {report.report_year}
-                      </span>
-                      <div className="flex items-center gap-2">
-                        {getStatusBadge()}
-                      </div>
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <p className="text-sm text-muted-foreground mb-1">
-                      Created: {new Date(report.created_at).toLocaleDateString()}
-                    </p>
-                    {(isSubmitted || isApproved) && report.submitted_at && (
-                      <p className={`text-sm ${isApproved ? 'text-blue-600' : 'text-green-600'} mb-1`}>
-                        {isApproved ? 'Approved' : 'Submitted'}: {new Date(report.submitted_at).toLocaleDateString()}
-                      </p>
-                    )}
-                    {report.department_id && (
-                      <p className="text-sm text-muted-foreground mb-4">
-                        Dept: {departments?.find(d => d.id === report.department_id)?.code || '-'}
-                      </p>
-                    )}
-                    {report.version > 1 && (
-                      <p className="text-sm text-primary mb-4">
-                        Version: {report.version}
-                      </p>
-                    )}
-                    <div className="flex gap-2 flex-wrap">
-                      <Button
-                        variant="default"
-                        size="sm"
-                        className="flex-1"
-                        onClick={() => setViewReport(report)}
-                      >
-                        <Eye className="h-4 w-4 mr-1" />
-                        View
+                <div 
+                  key={report.id} 
+                  className="grid grid-cols-1 md:grid-cols-[1fr_1fr_120px_120px_80px_auto] gap-2 md:gap-4 items-center px-4 py-3 rounded-lg border bg-card hover:bg-accent/30 transition-colors animate-fade-in"
+                >
+                  <div className="font-serif font-semibold text-foreground">
+                    {MONTHS[report.report_month - 1]} {report.report_year}
+                  </div>
+                  <div className="text-sm text-muted-foreground">
+                    {report.department_id 
+                      ? departments?.find(d => d.id === report.department_id)?.name || 'Unknown' 
+                      : 'College-Level'}
+                  </div>
+                  <div>{getStatusBadge()}</div>
+                  <div className="text-xs text-muted-foreground">
+                    {new Date(report.created_at).toLocaleDateString()}
+                  </div>
+                  <div className="text-xs text-muted-foreground">
+                    {report.version > 1 ? `v${report.version}` : '—'}
+                  </div>
+                  <div className="flex gap-1 justify-end flex-wrap">
+                    <Button variant="outline" size="sm" onClick={() => setViewReport(report)}>
+                      <Eye className="h-3.5 w-3.5 mr-1" />View
+                    </Button>
+                    {canViewLetter && (
+                      <Button variant="ghost" size="sm" onClick={() => { setViewReport(report); setViewMode('letter'); }}>
+                        <FileText className="h-3.5 w-3.5" />
                       </Button>
-                      {canViewLetter && (
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => {
-                            setViewReport(report);
-                            setViewMode('letter');
-                          }}
-                        >
-                          <FileText className="h-4 w-4" />
-                        </Button>
-                      )}
-                      {/* Submit to AVD button - only for department heads with draft reports that are not approved */}
-                      {isDepartmentHead && !isSubmitted && !isApproved && (
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => handleSubmitReport(report)}
-                          disabled={submitReport.isPending}
-                          title="Submit report to AVD"
-                          className="text-green-600 border-green-600 hover:bg-green-50"
-                        >
-                          <Send className="h-4 w-4" />
-                        </Button>
-                      )}
-                      {/* Regenerate button - only if can modify */}
-                      {canCreate && canModify && (
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => handleRegenerateReport(report)}
-                          disabled={isRegenerating}
-                          title="Regenerate report with latest data"
-                        >
-                          <RefreshCw className={`h-4 w-4 ${isRegenerating ? 'animate-spin' : ''}`} />
-                        </Button>
-                      )}
-                      {/* Delete button - only if can modify */}
-                      {canDelete && canModify && (
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => setDeleteId(report.id)}
-                        >
-                          <Trash2 className="h-4 w-4 text-destructive" />
-                        </Button>
-                      )}
-                    </div>
-                  </CardContent>
-                </Card>
+                    )}
+                    {isDepartmentHead && !isSubmitted && !isApproved && (
+                      <Button variant="ghost" size="sm" onClick={() => handleSubmitReport(report)} disabled={submitReport.isPending} className="text-green-600">
+                        <Send className="h-3.5 w-3.5" />
+                      </Button>
+                    )}
+                    {canCreate && canModify && (
+                      <Button variant="ghost" size="sm" onClick={() => handleRegenerateReport(report)} disabled={isRegenerating}>
+                        <RefreshCw className={`h-3.5 w-3.5 ${isRegenerating ? 'animate-spin' : ''}`} />
+                      </Button>
+                    )}
+                    {canDelete && canModify && (
+                      <Button variant="ghost" size="sm" onClick={() => setDeleteId(report.id)}>
+                        <Trash2 className="h-3.5 w-3.5 text-destructive" />
+                      </Button>
+                    )}
+                  </div>
+                </div>
               );
             })}
           </div>
