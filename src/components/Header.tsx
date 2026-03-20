@@ -1,4 +1,4 @@
-import { FileText, Users, Settings, LogOut } from 'lucide-react';
+import { FileText, Users, Settings, LogOut, Building2 } from 'lucide-react';
 import { Link, useLocation } from 'react-router-dom';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/contexts/AuthContext';
@@ -14,7 +14,8 @@ const Header = () => {
     { path: '/', label: 'Dashboard', icon: FileText, roles: ['system_admin', 'department_head', 'avd', 'management'] },
     { path: '/staff', label: 'Staff Directory', icon: Users, roles: ['system_admin', 'department_head', 'avd', 'management'] },
     { path: '/reports', label: 'Monthly Reports', icon: FileText, roles: ['system_admin', 'department_head', 'avd', 'management'] },
-    { path: '/users', label: 'User Management', icon: Settings, roles: ['system_admin'] },
+    { path: '/colleges', label: 'Colleges', icon: Building2, roles: ['system_admin'] },
+    { path: '/users', label: 'Users', icon: Settings, roles: ['system_admin'] },
   ];
 
   const filteredNavItems = navItems.filter(item => !role || item.roles.includes(role));
@@ -27,7 +28,7 @@ const Header = () => {
             <img src={astuLogo} alt="ASTU Logo" className="h-10 w-10 rounded-full object-cover" />
             <div>
               <h1 className="font-serif text-xl font-bold tracking-tight">ASTU Staff Report</h1>
-              <p className="text-xs text-primary-foreground/80">College of Electrical Engineering & Computing</p>
+              <p className="text-xs text-primary-foreground/80">University Staff Management System</p>
             </div>
           </Link>
 

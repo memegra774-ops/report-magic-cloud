@@ -10,6 +10,7 @@ import Staff from "./pages/Staff";
 import Reports from "./pages/Reports";
 import Auth from "./pages/Auth";
 import UserManagement from "./pages/UserManagement";
+import CollegeManagement from "./pages/CollegeManagement";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -27,6 +28,7 @@ const App = () => (
             <Route path="/staff" element={<ProtectedRoute><Staff /></ProtectedRoute>} />
             <Route path="/reports" element={<ProtectedRoute><Reports /></ProtectedRoute>} />
             <Route path="/users" element={<ProtectedRoute allowedRoles={['system_admin']}><UserManagement /></ProtectedRoute>} />
+            <Route path="/colleges" element={<ProtectedRoute allowedRoles={['system_admin']}><CollegeManagement /></ProtectedRoute>} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </BrowserRouter>

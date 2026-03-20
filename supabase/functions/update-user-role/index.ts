@@ -22,7 +22,7 @@ serve(async (req: Request) => {
       },
     });
 
-    const { user_id, new_role, department_id, full_name, reset_password } = await req.json();
+    const { user_id, new_role, department_id, college_id, full_name, reset_password } = await req.json();
 
     if (!user_id) {
       throw new Error("user_id is required");
@@ -55,6 +55,9 @@ serve(async (req: Request) => {
     const profileUpdate: Record<string, any> = {};
     if (department_id !== undefined) {
       profileUpdate.department_id = department_id || null;
+    }
+    if (college_id !== undefined) {
+      profileUpdate.college_id = college_id || null;
     }
     if (full_name !== undefined) {
       profileUpdate.full_name = full_name;

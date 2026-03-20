@@ -5,6 +5,7 @@ import { useAuth, AppRole } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useDepartments } from '@/hooks/useStaff';
+import { useColleges } from '@/hooks/useColleges';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -56,6 +57,7 @@ interface UserWithRole {
   email: string;
   full_name: string | null;
   department_id: string | null;
+  college_id: string | null;
   departments?: { code: string; name: string } | null;
   role: AppRole | null;
 }
@@ -75,15 +77,18 @@ const UserManagement = () => {
     full_name: '',
     role: 'department_head' as AppRole,
     department_id: '',
+    college_id: '',
   });
   const [editFormData, setEditFormData] = useState({
     role: 'department_head' as AppRole,
     department_id: '',
+    college_id: '',
     full_name: '',
   });
   const [resetPasswordUserId, setResetPasswordUserId] = useState<string | null>(null);
 
   const { data: departments } = useDepartments();
+  const { data: colleges } = useColleges();
 
   const { data: users, isLoading } = useQuery({
     queryKey: ['users-with-roles'],
@@ -118,6 +123,7 @@ const UserManagement = () => {
           role: data.role,
           full_name: data.full_name,
           department_id: data.department_id || null,
+          college_id: data.college_id || null,
         },
       });
 
@@ -132,7 +138,7 @@ const UserManagement = () => {
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ['users-with-roles'] });
       setInviteDialogOpen(false);
-      setFormData({ email: '', full_name: '', role: 'department_head', department_id: '' });
+      setFormData({ email: '', full_name: '', role: 'department_head', department_id: '', college_id: '' });
       if (data?.email_sent) {
         toast.success('User invited successfully. Email notification sent with login credentials.');
       } else {
@@ -145,12 +151,13 @@ const UserManagement = () => {
   });
 
   const updateUserRole = useMutation({
-    mutationFn: async ({ userId, newRole, departmentId, fullName }: { userId: string; newRole: AppRole; departmentId?: string; fullName?: string }) => {
+    mutationFn: async ({ userId, newRole, departmentId, collegeId, fullName }: { userId: string; newRole: AppRole; departmentId?: string; collegeId?: string; fullName?: string }) => {
       const { data: result, error } = await supabase.functions.invoke('update-user-role', {
         body: {
           user_id: userId,
           new_role: newRole,
           department_id: departmentId,
+          college_id: collegeId,
           full_name: fullName,
         },
       });
@@ -211,6 +218,7 @@ const UserManagement = () => {
     setEditFormData({
       role: user.role || 'department_head',
       department_id: user.department_id || '',
+      college_id: user.college_id || '',
       full_name: user.full_name || '',
     });
     setEditDialogOpen(true);
@@ -231,6 +239,7 @@ const UserManagement = () => {
       userId: editingUser.id,
       newRole: editFormData.role,
       departmentId: editFormData.department_id,
+      collegeId: editFormData.college_id,
       fullName: editFormData.full_name,
     });
   };
@@ -300,7 +309,7 @@ const UserManagement = () => {
                     <TableHead>Name</TableHead>
                     <TableHead>Email</TableHead>
                     <TableHead>Role</TableHead>
-                    <TableHead>Department</TableHead>
+                    <TableHead>Department / College</TableHead>
                     <TableHead className="text-right">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
@@ -319,7 +328,9 @@ const UserManagement = () => {
                         )}
                       </TableCell>
                       <TableCell>
-                        {user.departments?.code || '-'}
+                        {user.role === 'avd'
+                          ? (colleges?.find(c => c.id === user.college_id)?.code || '-')
+                          : (user.departments?.code || '-')}
                       </TableCell>
                       <TableCell className="text-right">
                         {user.role !== 'system_admin' && (
@@ -421,6 +432,26 @@ const UserManagement = () => {
                   </Select>
                 </div>
               )}
+              {formData.role === 'avd' && (
+                <div className="space-y-2">
+                  <Label>College</Label>
+                  <Select
+                    value={formData.college_id}
+                    onValueChange={(v) => setFormData({ ...formData, college_id: v })}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select college" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {colleges?.map((college) => (
+                        <SelectItem key={college.id} value={college.id}>
+                          {college.code} - {college.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
               <p className="text-sm text-muted-foreground">
                 An email will be sent to the user with login credentials. Default password: <code className="bg-muted px-1 rounded">12345678</code>
               </p>
@@ -483,6 +514,26 @@ const UserManagement = () => {
                       {departments?.map((dept) => (
                         <SelectItem key={dept.id} value={dept.id}>
                           {dept.code} - {dept.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
+              {editFormData.role === 'avd' && (
+                <div className="space-y-2">
+                  <Label>College</Label>
+                  <Select
+                    value={editFormData.college_id}
+                    onValueChange={(v) => setEditFormData({ ...editFormData, college_id: v })}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select college" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {colleges?.map((college) => (
+                        <SelectItem key={college.id} value={college.id}>
+                          {college.code} - {college.name}
                         </SelectItem>
                       ))}
                     </SelectContent>

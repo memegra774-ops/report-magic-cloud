@@ -23,7 +23,7 @@ serve(async (req: Request) => {
       },
     });
 
-    const { email, password, role, full_name, department_id } = await req.json();
+    const { email, password, role, full_name, department_id, college_id } = await req.json();
 
     console.log(`Creating user: ${email} with role: ${role}`);
 
@@ -53,8 +53,9 @@ serve(async (req: Request) => {
       .from("profiles")
       .update({
         department_id: department_id || null,
+        college_id: college_id || null,
         full_name: full_name || null,
-        password_change_required: true, // New users must change password
+        password_change_required: true,
       })
       .eq("id", authData.user.id);
 
