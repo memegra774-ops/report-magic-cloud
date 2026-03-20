@@ -148,7 +148,7 @@ const CSVImport = ({ open, onClose }: CSVImportProps) => {
   };
 
   const toggleField = (key: string) => {
-    if (key === 'staff_id' || key === 'fan_number') return; // reference keys always included
+    if (key === 'staff_id') return; // primary key always included
     const next = new Set(selectedFields);
     if (next.has(key)) next.delete(key);
     else next.add(key);
