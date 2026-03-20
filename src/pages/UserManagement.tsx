@@ -57,6 +57,7 @@ interface UserWithRole {
   email: string;
   full_name: string | null;
   department_id: string | null;
+  college_id: string | null;
   departments?: { code: string; name: string } | null;
   role: AppRole | null;
 }
