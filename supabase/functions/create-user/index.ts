@@ -23,7 +23,7 @@ serve(async (req: Request) => {
       },
     });
 
-    const { email, password, role, full_name, department_id } = await req.json();
+    const { email, password, role, full_name, department_id, college_id } = await req.json();
 
     console.log(`Creating user: ${email} with role: ${role}`);
 
