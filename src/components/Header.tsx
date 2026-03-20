@@ -14,7 +14,8 @@ const Header = () => {
     { path: '/', label: 'Dashboard', icon: FileText, roles: ['system_admin', 'department_head', 'avd', 'management'] },
     { path: '/staff', label: 'Staff Directory', icon: Users, roles: ['system_admin', 'department_head', 'avd', 'management'] },
     { path: '/reports', label: 'Monthly Reports', icon: FileText, roles: ['system_admin', 'department_head', 'avd', 'management'] },
-    { path: '/users', label: 'User Management', icon: Settings, roles: ['system_admin'] },
+    { path: '/colleges', label: 'Colleges', icon: Building2, roles: ['system_admin'] },
+    { path: '/users', label: 'Users', icon: Settings, roles: ['system_admin'] },
   ];
 
   const filteredNavItems = navItems.filter(item => !role || item.roles.includes(role));

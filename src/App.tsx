@@ -28,6 +28,7 @@ const App = () => (
             <Route path="/staff" element={<ProtectedRoute><Staff /></ProtectedRoute>} />
             <Route path="/reports" element={<ProtectedRoute><Reports /></ProtectedRoute>} />
             <Route path="/users" element={<ProtectedRoute allowedRoles={['system_admin']}><UserManagement /></ProtectedRoute>} />
+            <Route path="/colleges" element={<ProtectedRoute allowedRoles={['system_admin']}><CollegeManagement /></ProtectedRoute>} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </BrowserRouter>
