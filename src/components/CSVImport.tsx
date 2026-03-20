@@ -139,8 +139,8 @@ const CSVImport = ({ open, onClose }: CSVImportProps) => {
         headers.forEach((header, index) => {
           row[header] = values[index] || '';
         });
-        // Require at least one reference key (staff_id or fan_number) or full_name for new records
-        if (row.staff_id || row.fan_number || row.full_name) data.push(row);
+        // Require staff_id or full_name for records
+        if (row.staff_id || row.full_name) data.push(row);
       }
       setParsedData(data);
     };
