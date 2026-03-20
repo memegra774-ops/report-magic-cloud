@@ -239,6 +239,7 @@ const UserManagement = () => {
       userId: editingUser.id,
       newRole: editFormData.role,
       departmentId: editFormData.department_id,
+      collegeId: editFormData.college_id,
       fullName: editFormData.full_name,
     });
   };
