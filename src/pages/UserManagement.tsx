@@ -137,7 +137,7 @@ const UserManagement = () => {
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ['users-with-roles'] });
       setInviteDialogOpen(false);
-      setFormData({ email: '', full_name: '', role: 'department_head', department_id: '' });
+      setFormData({ email: '', full_name: '', role: 'department_head', department_id: '', college_id: '' });
       if (data?.email_sent) {
         toast.success('User invited successfully. Email notification sent with login credentials.');
       } else {
