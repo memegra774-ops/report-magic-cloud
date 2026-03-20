@@ -30,8 +30,8 @@ interface CSVImportProps {
 
 // All importable fields with labels
 const IMPORTABLE_FIELDS = [
-  { key: 'staff_id', label: 'Staff ID (Reference Key)', required: true },
-  { key: 'fan_number', label: 'FAN Number (Reference Key)', required: true },
+  { key: 'staff_id', label: 'Staff ID (Primary Key)', required: true },
+  { key: 'fan_number', label: 'FAN Number' },
   { key: 'full_name', label: 'Full Name' },
   { key: 'sex', label: 'Sex' },
   { key: 'specialization', label: 'Specialization' },
