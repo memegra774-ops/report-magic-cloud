@@ -216,6 +216,7 @@ const UserManagement = () => {
     setEditFormData({
       role: user.role || 'department_head',
       department_id: user.department_id || '',
+      college_id: user.college_id || '',
       full_name: user.full_name || '',
     });
     setEditDialogOpen(true);
