@@ -328,7 +328,9 @@ const UserManagement = () => {
                         )}
                       </TableCell>
                       <TableCell>
-                        {user.departments?.code || '-'}
+                        {user.role === 'avd'
+                          ? (colleges?.find(c => c.id === user.college_id)?.code || '-')
+                          : (user.departments?.code || '-')}
                       </TableCell>
                       <TableCell className="text-right">
                         {user.role !== 'system_admin' && (
