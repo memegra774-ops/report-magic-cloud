@@ -22,7 +22,7 @@ serve(async (req: Request) => {
       },
     });
 
-    const { user_id, new_role, department_id, full_name, reset_password } = await req.json();
+    const { user_id, new_role, department_id, college_id, full_name, reset_password } = await req.json();
 
     if (!user_id) {
       throw new Error("user_id is required");
