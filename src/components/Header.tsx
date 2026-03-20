@@ -1,4 +1,4 @@
-import { FileText, Users, Settings, LogOut } from 'lucide-react';
+import { FileText, Users, Settings, LogOut, Building2 } from 'lucide-react';
 import { Link, useLocation } from 'react-router-dom';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/contexts/AuthContext';
