@@ -430,6 +430,26 @@ const UserManagement = () => {
                   </Select>
                 </div>
               )}
+              {formData.role === 'avd' && (
+                <div className="space-y-2">
+                  <Label>College</Label>
+                  <Select
+                    value={formData.college_id}
+                    onValueChange={(v) => setFormData({ ...formData, college_id: v })}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select college" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {colleges?.map((college) => (
+                        <SelectItem key={college.id} value={college.id}>
+                          {college.code} - {college.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
               <p className="text-sm text-muted-foreground">
                 An email will be sent to the user with login credentials. Default password: <code className="bg-muted px-1 rounded">12345678</code>
               </p>
