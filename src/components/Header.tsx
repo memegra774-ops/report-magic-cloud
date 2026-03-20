@@ -28,7 +28,7 @@ const Header = () => {
             <img src={astuLogo} alt="ASTU Logo" className="h-10 w-10 rounded-full object-cover" />
             <div>
               <h1 className="font-serif text-xl font-bold tracking-tight">ASTU Staff Report</h1>
-              <p className="text-xs text-primary-foreground/80">College of Electrical Engineering & Computing</p>
+              <p className="text-xs text-primary-foreground/80">University Staff Management System</p>
             </div>
           </Link>
 
