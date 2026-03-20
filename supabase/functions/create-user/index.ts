@@ -53,8 +53,9 @@ serve(async (req: Request) => {
       .from("profiles")
       .update({
         department_id: department_id || null,
+        college_id: college_id || null,
         full_name: full_name || null,
-        password_change_required: true, // New users must change password
+        password_change_required: true,
       })
       .eq("id", authData.user.id);
 

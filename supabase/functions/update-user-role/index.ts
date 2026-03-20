@@ -56,6 +56,9 @@ serve(async (req: Request) => {
     if (department_id !== undefined) {
       profileUpdate.department_id = department_id || null;
     }
+    if (college_id !== undefined) {
+      profileUpdate.college_id = college_id || null;
+    }
     if (full_name !== undefined) {
       profileUpdate.full_name = full_name;
     }
