@@ -303,9 +303,9 @@ const ReportView = ({ report, isDepartmentHead = false, collegeName }: ReportVie
                   Adama Science & Technology University
                 </h1>
                 <h2 style={{ fontFamily: "'Times New Roman', serif", fontSize: '12pt' }}>
-                  College of Electrical Engineering & Computing
+                  {resolvedCollegeName}
                 </h2>
-                {isDepartmentHead && departmentInfo && (
+                {departmentInfo && (
                   <h3 style={{ fontFamily: "'Times New Roman', serif", fontSize: '12pt' }}>
                     Department: {departmentInfo.name} ({departmentInfo.code})
                   </h3>
