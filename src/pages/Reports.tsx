@@ -56,7 +56,10 @@ const Reports = () => {
   const [rejectDialogOpen, setRejectDialogOpen] = useState<MonthlyReport | null>(null);
   const [rejectionReason, setRejectionReason] = useState('');
 
-  const { data: departments } = useDepartments();
+  // AVD sees only departments under their college
+  const collegeId = role === 'avd' ? profile?.college_id : undefined;
+  const { data: departments } = useDepartments(collegeId);
+  const collegeDeptIds = role === 'avd' && departments ? departments.map(d => d.id) : undefined;
   const { data: reports, isLoading } = useMonthlyReports();
   const createReport = useCreateReport();
   const deleteReport = useDeleteReport();
