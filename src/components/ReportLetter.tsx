@@ -614,7 +614,7 @@ const ReportLetter = ({ report, department, signatory, collegeName }: ReportLett
             {/* Body */}
             <p style={{ textAlign: 'justify', marginBottom: '15px', lineHeight: '1.6' }}>
               The following table shows statistics of Academic staff (Local, Instructors, Academic and Research
-              Assistants &amp; MSc. Sponsored contract Students) on duty, absent, sick and study leave in College of Electrical Engineering and Computing for the month of <strong><u>{monthName} {report.report_year}</u></strong>.
+              Assistants &amp; MSc. Sponsored contract Students) on duty, absent, sick and study leave in {resolvedCollegeName} for the month of <strong><u>{monthName} {report.report_year}</u></strong>.
               Please kindly find also attached here with <strong><u>{numberOfPages}</u></strong> pages is detail of the report.
             </p>
           </>
