@@ -101,16 +101,29 @@ export const useCreateStaffChange = () => {
 
       if (error) throw error;
 
-      // Create notification for system admin
-      await supabase.from('notifications').insert({
-        type: `change_${change.action_type}`,
-        title: `Staff ${change.action_type === 'add' ? 'Addition' : change.action_type === 'update' ? 'Update' : 'Deletion'} Pending`,
-        message: `${change.performed_by_name} wants to ${change.action_type} ${change.staff_name}. Awaiting your approval.`,
-        department_id: change.department_id,
-        staff_name: change.staff_name,
-        performed_by: change.performed_by_name,
-        target_role: 'system_admin' as const,
-      });
+      // Create notification for system admin and AVD
+      const notifications = [
+        {
+          type: `change_${change.action_type}`,
+          title: `Staff ${change.action_type === 'add' ? 'Addition' : change.action_type === 'update' ? 'Update' : 'Deletion'} Pending`,
+          message: `${change.performed_by_name} wants to ${change.action_type} ${change.staff_name}. Awaiting your approval.`,
+          department_id: change.department_id,
+          staff_name: change.staff_name,
+          performed_by: change.performed_by_name,
+          target_role: 'system_admin' as const,
+        },
+        {
+          type: `change_${change.action_type}`,
+          title: `Staff ${change.action_type === 'add' ? 'Addition' : change.action_type === 'update' ? 'Update' : 'Deletion'} Pending`,
+          message: `${change.performed_by_name} wants to ${change.action_type} ${change.staff_name}. Awaiting your approval.`,
+          department_id: change.department_id,
+          staff_name: change.staff_name,
+          performed_by: change.performed_by_name,
+          target_role: 'avd' as const,
+        },
+      ];
+
+      await supabase.from('notifications').insert(notifications);
 
       return data;
     },

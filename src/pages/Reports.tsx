@@ -167,7 +167,8 @@ const Reports = () => {
   const handleGenerateCollegeReport = async () => {
     await generateCollegeReport.mutateAsync({ 
       month: selectedMonth, 
-      year: selectedYear 
+      year: selectedYear,
+      collegeId: profile?.college_id
     });
   };
 
