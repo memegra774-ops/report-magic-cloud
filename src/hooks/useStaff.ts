@@ -351,9 +351,9 @@ export const useDeleteStaff = () => {
   });
 };
 
-export const useStaffStats = (departmentId?: string) => {
+export const useStaffStats = (departmentId?: string, departmentIds?: string[]) => {
   return useQuery({
-    queryKey: ['staff-stats', departmentId],
+    queryKey: ['staff-stats', departmentId, departmentIds],
     queryFn: async () => {
       let query = supabase
         .from('staff')
@@ -361,6 +361,8 @@ export const useStaffStats = (departmentId?: string) => {
       
       if (departmentId) {
         query = query.eq('department_id', departmentId);
+      } else if (departmentIds && departmentIds.length > 0) {
+        query = query.in('department_id', departmentIds);
       }
 
       const { data, error } = await query;

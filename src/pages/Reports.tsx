@@ -9,6 +9,7 @@ import { useMonthlyReports, useCreateReport, useDeleteReport, useSubmitReport, u
 import { useCreateNotification } from '@/hooks/useNotifications';
 import { useAuth } from '@/contexts/AuthContext';
 import { useDepartments } from '@/hooks/useStaff';
+import { useColleges } from '@/hooks/useColleges';
 import { MonthlyReport, MONTHS } from '@/types/staff';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -59,7 +60,10 @@ const Reports = () => {
   // AVD sees only departments under their college
   const collegeId = role === 'avd' ? profile?.college_id : undefined;
   const { data: departments } = useDepartments(collegeId);
+  const { data: colleges } = useColleges();
   const collegeDeptIds = role === 'avd' && departments ? departments.map(d => d.id) : undefined;
+  const userCollege = colleges?.find(c => c.id === profile?.college_id);
+  const collegeName = userCollege?.name || departments?.[0]?.college_name || 'College';
   const { data: reports, isLoading } = useMonthlyReports();
   const createReport = useCreateReport();
   const deleteReport = useDeleteReport();
@@ -210,14 +214,15 @@ const Reports = () => {
   const canDelete = role === 'system_admin' || role === 'avd' || role === 'department_head';
   const canViewLetter = role === 'avd' || role === 'system_admin' || role === 'department_head';
 
-  // Filter reports based on role - for AVD's own reports and department heads' reports
+  // Filter reports based on role
   const filteredReports = reports?.filter(report => {
     if (role === 'department_head') {
       return report.department_id === profile?.department_id;
     }
     if (role === 'avd') {
-      // AVD sees only their own college-level reports in the main grid
-      return !report.department_id;
+      // AVD sees their own college-level reports AND department reports from their college
+      if (!report.department_id) return true; // college-level reports
+      return collegeDeptIds?.includes(report.department_id);
     }
     // System admin and management see all
     return true;
@@ -315,17 +320,18 @@ const Reports = () => {
                 <TabsTrigger value="letter">Official Letter</TabsTrigger>
               </TabsList>
               <TabsContent value="report">
-                <ReportView report={viewReport} isDepartmentHead={isDepartmentHead} />
+                <ReportView report={viewReport} isDepartmentHead={isDepartmentHead} collegeName={collegeName} />
               </TabsContent>
               <TabsContent value="letter">
                 <ReportLetter 
                   report={viewReport} 
                   department={departments?.find(d => d.id === viewReport.department_id)}
+                  collegeName={collegeName}
                 />
               </TabsContent>
             </Tabs>
           ) : (
-            <ReportView report={viewReport} isDepartmentHead={isDepartmentHead} />
+            <ReportView report={viewReport} isDepartmentHead={isDepartmentHead} collegeName={collegeName} />
           )}
         </main>
       </div>

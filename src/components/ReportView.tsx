@@ -17,6 +17,7 @@ import {
 interface ReportViewProps {
   report: MonthlyReport;
   isDepartmentHead?: boolean;
+  collegeName?: string;
 }
 
 // Report sections matching the PDF template exactly
@@ -40,7 +41,7 @@ const REPORT_SECTIONS: ReportSection[] = [
   { id: 'astu-sponsor', title: 'ASTU Sponsors Report', categoryFilter: 'ASTU Sponsor' },
 ];
 
-const ReportView = ({ report, isDepartmentHead = false }: ReportViewProps) => {
+const ReportView = ({ report, isDepartmentHead = false, collegeName }: ReportViewProps) => {
   const { data: entries, isLoading } = useReportEntries(report.id);
   const printRef = useRef<HTMLDivElement>(null);
 
@@ -50,6 +51,9 @@ const ReportView = ({ report, isDepartmentHead = false }: ReportViewProps) => {
     : report.departments
       ? { code: report.departments.code, name: report.departments.name }
       : null;
+
+  // Resolve college name: prop > first entry > fallback
+  const resolvedCollegeName = collegeName || entries?.[0]?.college_name || 'College';
 
   const handlePrint = () => {
     const printContent = printRef.current;
@@ -187,7 +191,7 @@ const ReportView = ({ report, isDepartmentHead = false }: ReportViewProps) => {
       
       // Add header rows
       XLSX.utils.sheet_add_aoa(ws, [['Adama Science & Technology University']], { origin: 'A1' });
-      XLSX.utils.sheet_add_aoa(ws, [['College of Electrical Engineering & Computing']], { origin: 'A2' });
+      XLSX.utils.sheet_add_aoa(ws, [[resolvedCollegeName]], { origin: 'A2' });
       
       let dataStartRow = 4;
       if (isDepartmentHead && departmentInfo) {
@@ -226,7 +230,7 @@ const ReportView = ({ report, isDepartmentHead = false }: ReportViewProps) => {
     // Create summary worksheet with header rows
     const summaryWs = XLSX.utils.aoa_to_sheet([]);
     XLSX.utils.sheet_add_aoa(summaryWs, [['Adama Science & Technology University']], { origin: 'A1' });
-    XLSX.utils.sheet_add_aoa(summaryWs, [['College of Electrical Engineering & Computing']], { origin: 'A2' });
+    XLSX.utils.sheet_add_aoa(summaryWs, [[resolvedCollegeName]], { origin: 'A2' });
     
     let summaryDataStartRow = 4;
     if (isDepartmentHead && departmentInfo) {
@@ -299,9 +303,9 @@ const ReportView = ({ report, isDepartmentHead = false }: ReportViewProps) => {
                   Adama Science & Technology University
                 </h1>
                 <h2 style={{ fontFamily: "'Times New Roman', serif", fontSize: '12pt' }}>
-                  College of Electrical Engineering & Computing
+                  {resolvedCollegeName}
                 </h2>
-                {isDepartmentHead && departmentInfo && (
+                {departmentInfo && (
                   <h3 style={{ fontFamily: "'Times New Roman', serif", fontSize: '12pt' }}>
                     Department: {departmentInfo.name} ({departmentInfo.code})
                   </h3>

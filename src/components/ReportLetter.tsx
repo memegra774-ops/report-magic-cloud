@@ -12,6 +12,7 @@ interface ReportLetterProps {
   report: MonthlyReport;
   department?: Department | null;
   signatory?: string;
+  collegeName?: string;
 }
 
 interface StatusCount {
@@ -32,7 +33,7 @@ interface CategoryStats {
 
 const FIXED_STATUSES = ['Not On Duty', 'On Duty', 'On Study', 'On Study and Not Reporting', 'Sick'];
 
-const ReportLetter = ({ report, department, signatory }: ReportLetterProps) => {
+const ReportLetter = ({ report, department, signatory, collegeName }: ReportLetterProps) => {
   const { data: entries, isLoading } = useReportEntries(report.id);
   const printRef = useRef<HTMLDivElement>(null);
   const [deptHeadName, setDeptHeadName] = useState<string>('');
@@ -40,6 +41,7 @@ const ReportLetter = ({ report, department, signatory }: ReportLetterProps) => {
 
   const isDepartmentReport = !!report.department_id;
   const departmentName = department?.name || 'Department';
+  const resolvedCollegeName = collegeName || entries?.[0]?.college_name || 'College';
   const [avdName, setAvdName] = useState<string>('');
 
   // Fetch department head name and email from profiles + user_roles
@@ -362,7 +364,7 @@ const ReportLetter = ({ report, department, signatory }: ReportLetterProps) => {
 
     const bodyText = isDepartmentReport
       ? `The following table shows statistics of Academic staff (Local, Instructors, Academic and Research Assistants & MSc. Sponsored contract Students) on duty, absent, sick and study leave in ${departmentName} for the month of ${monthName} ${report.report_year}. Please kindly find also attached here with ${numberOfPages} pages is detail of the report.`
-      : `The following table shows statistics of Academic staff (Local, Instructors, Academic and Research Assistants & MSc. Sponsored contract Students) on duty, absent, sick and study leave in College of Electrical Engineering and Computing for the month of ${monthName} ${report.report_year}. Please kindly find also attached here with ${numberOfPages} pages is detail of the report.`;
+      : `The following table shows statistics of Academic staff (Local, Instructors, Academic and Research Assistants & MSc. Sponsored contract Students) on duty, absent, sick and study leave in ${resolvedCollegeName} for the month of ${monthName} ${report.report_year}. Please kindly find also attached here with ${numberOfPages} pages is detail of the report.`;
 
     const wordEmail = isDepartmentReport ? contactEmail : 'adaa.soeec@astu.et';
 
@@ -408,15 +410,15 @@ const ReportLetter = ({ report, department, signatory }: ReportLetterProps) => {
             children: [new TextRun({ text: `Ref: _______________`, font: 'Times New Roman', size: 24 })],
             alignment: AlignmentType.RIGHT,
           }),
-          new Paragraph({ spacing: { after: 100 } }),
-          new Paragraph({
-            children: [new TextRun({ text: 'College of Electrical Engineering & Computing', bold: true, font: 'Times New Roman', size: 24 })],
-            alignment: AlignmentType.RIGHT,
-          }),
-          new Paragraph({
-            children: [new TextRun({ text: 'Associate Dean for Academic Affairs', bold: true, font: 'Times New Roman', size: 24 })],
-            alignment: AlignmentType.RIGHT,
-          }),
+           new Paragraph({ spacing: { after: 100 } }),
+           new Paragraph({
+             children: [new TextRun({ text: resolvedCollegeName, bold: true, font: 'Times New Roman', size: 24 })],
+             alignment: AlignmentType.RIGHT,
+           }),
+           new Paragraph({
+             children: [new TextRun({ text: 'Associate Dean for Academic Affairs', bold: true, font: 'Times New Roman', size: 24 })],
+             alignment: AlignmentType.RIGHT,
+           }),
           new Paragraph({ spacing: { after: 50 } }),
           new Paragraph({
             children: [new TextRun({ text: avdDisplayName, bold: true, font: 'Times New Roman', size: 24 })],
@@ -469,12 +471,12 @@ const ReportLetter = ({ report, department, signatory }: ReportLetterProps) => {
           new Paragraph({ children: [new TextRun({ text: 'CC:', bold: true, underline: {}, font: 'Times New Roman', size: 24 })] }),
           ...(isDepartmentReport
             ? [
-                new Paragraph({ children: [new TextRun({ text: `CoEEC Dean`, font: 'Times New Roman', size: 24 })], bullet: { level: 0 } }),
+                new Paragraph({ children: [new TextRun({ text: `${resolvedCollegeName} Dean`, font: 'Times New Roman', size: 24 })], bullet: { level: 0 } }),
                 new Paragraph({ children: [new TextRun({ text: `${departmentName} Department`, font: 'Times New Roman', size: 24 })], bullet: { level: 0 } }),
               ]
             : [
-                new Paragraph({ children: [new TextRun({ text: `CoEEC Dean`, font: 'Times New Roman', size: 24 })], bullet: { level: 0 } }),
-                new Paragraph({ children: [new TextRun({ text: `CoEEC ADAA`, font: 'Times New Roman', size: 24 })], bullet: { level: 0 } }),
+                new Paragraph({ children: [new TextRun({ text: `${resolvedCollegeName} Dean`, font: 'Times New Roman', size: 24 })], bullet: { level: 0 } }),
+                new Paragraph({ children: [new TextRun({ text: `${resolvedCollegeName} ADAA`, font: 'Times New Roman', size: 24 })], bullet: { level: 0 } }),
               ]
           ),
           new Paragraph({ spacing: { after: 200 } }),
@@ -543,7 +545,7 @@ const ReportLetter = ({ report, department, signatory }: ReportLetterProps) => {
           <>
             <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '5px' }}>
               <div>
-                <p><strong>To: CoEEC Vice Dean for Academic Affairs</strong></p>
+                <p><strong>To: {resolvedCollegeName} Vice Dean for Academic Affairs</strong></p>
               </div>
               <div style={{ textAlign: 'right' }}>
                 <p><strong>Date:</strong> _______________</p>
@@ -599,7 +601,7 @@ const ReportLetter = ({ report, department, signatory }: ReportLetterProps) => {
 
             {/* College & AVD info - right aligned */}
             <div style={{ textAlign: 'right', marginBottom: '5px' }}>
-              <p><strong>College of Electrical Engineering &amp; Computing</strong></p>
+              <p><strong>{resolvedCollegeName}</strong></p>
               <p style={{ marginTop: '5px' }}><strong>Associate Dean for Academic Affairs</strong></p>
               <p style={{ marginTop: '5px' }}><strong>{avdDisplayName}</strong></p>
             </div>
@@ -612,7 +614,7 @@ const ReportLetter = ({ report, department, signatory }: ReportLetterProps) => {
             {/* Body */}
             <p style={{ textAlign: 'justify', marginBottom: '15px', lineHeight: '1.6' }}>
               The following table shows statistics of Academic staff (Local, Instructors, Academic and Research
-              Assistants &amp; MSc. Sponsored contract Students) on duty, absent, sick and study leave in College of Electrical Engineering and Computing for the month of <strong><u>{monthName} {report.report_year}</u></strong>.
+              Assistants &amp; MSc. Sponsored contract Students) on duty, absent, sick and study leave in {resolvedCollegeName} for the month of <strong><u>{monthName} {report.report_year}</u></strong>.
               Please kindly find also attached here with <strong><u>{numberOfPages}</u></strong> pages is detail of the report.
             </p>
           </>
@@ -701,13 +703,13 @@ const ReportLetter = ({ report, department, signatory }: ReportLetterProps) => {
           <ul style={{ marginLeft: '30px', listStyleType: 'disc' }}>
             {isDepartmentReport ? (
               <>
-                <li>CoEEC Dean</li>
+                <li>{resolvedCollegeName} Dean</li>
                 <li>{departmentName} Department</li>
               </>
             ) : (
               <>
-                <li>CoEEC Dean</li>
-                <li>CoEEC ADAA</li>
+                <li>{resolvedCollegeName} Dean</li>
+                <li>{resolvedCollegeName} ADAA</li>
               </>
             )}
           </ul>
