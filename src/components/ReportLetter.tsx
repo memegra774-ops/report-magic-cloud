@@ -410,15 +410,15 @@ const ReportLetter = ({ report, department, signatory, collegeName }: ReportLett
             children: [new TextRun({ text: `Ref: _______________`, font: 'Times New Roman', size: 24 })],
             alignment: AlignmentType.RIGHT,
           }),
-          new Paragraph({ spacing: { after: 100 } }),
-          new Paragraph({
-            children: [new TextRun({ text: 'College of Electrical Engineering & Computing', bold: true, font: 'Times New Roman', size: 24 })],
-            alignment: AlignmentType.RIGHT,
-          }),
-          new Paragraph({
-            children: [new TextRun({ text: 'Associate Dean for Academic Affairs', bold: true, font: 'Times New Roman', size: 24 })],
-            alignment: AlignmentType.RIGHT,
-          }),
+           new Paragraph({ spacing: { after: 100 } }),
+           new Paragraph({
+             children: [new TextRun({ text: resolvedCollegeName, bold: true, font: 'Times New Roman', size: 24 })],
+             alignment: AlignmentType.RIGHT,
+           }),
+           new Paragraph({
+             children: [new TextRun({ text: 'Associate Dean for Academic Affairs', bold: true, font: 'Times New Roman', size: 24 })],
+             alignment: AlignmentType.RIGHT,
+           }),
           new Paragraph({ spacing: { after: 50 } }),
           new Paragraph({
             children: [new TextRun({ text: avdDisplayName, bold: true, font: 'Times New Roman', size: 24 })],
