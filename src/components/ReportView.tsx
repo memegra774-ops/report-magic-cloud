@@ -230,7 +230,7 @@ const ReportView = ({ report, isDepartmentHead = false, collegeName }: ReportVie
     // Create summary worksheet with header rows
     const summaryWs = XLSX.utils.aoa_to_sheet([]);
     XLSX.utils.sheet_add_aoa(summaryWs, [['Adama Science & Technology University']], { origin: 'A1' });
-    XLSX.utils.sheet_add_aoa(summaryWs, [['College of Electrical Engineering & Computing']], { origin: 'A2' });
+    XLSX.utils.sheet_add_aoa(summaryWs, [[resolvedCollegeName]], { origin: 'A2' });
     
     let summaryDataStartRow = 4;
     if (isDepartmentHead && departmentInfo) {
