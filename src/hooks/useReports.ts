@@ -338,7 +338,7 @@ export const useGenerateCollegeReport = () => {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async ({ month, year }: { month: number; year: number }) => {
+    mutationFn: async ({ month, year, collegeId }: { month: number; year: number; collegeId?: string | null }) => {
       // Check if a college-level report already exists
       const { data: existingReport } = await supabase
         .from('monthly_reports')
@@ -352,14 +352,30 @@ export const useGenerateCollegeReport = () => {
         throw new Error('A college-level report already exists for this period.');
       }
 
-      // Get all approved department reports for this month/year
-      const { data: approvedReports, error: reportsError } = await supabase
+      // Get departments for this college to scope the query
+      let deptIds: string[] | null = null;
+      if (collegeId) {
+        const { data: depts } = await supabase
+          .from('departments')
+          .select('id')
+          .eq('college_id', collegeId);
+        deptIds = depts?.map(d => d.id) || [];
+      }
+
+      // Get all approved department reports for this month/year (scoped to college)
+      let reportsQuery = supabase
         .from('monthly_reports')
         .select('id, department_id')
         .eq('report_month', month)
         .eq('report_year', year)
         .eq('status', 'approved')
         .not('department_id', 'is', null);
+
+      if (deptIds && deptIds.length > 0) {
+        reportsQuery = reportsQuery.in('department_id', deptIds);
+      }
+
+      const { data: approvedReports, error: reportsError } = await reportsQuery;
 
       if (reportsError) throw reportsError;
 
@@ -391,7 +407,6 @@ export const useGenerateCollegeReport = () => {
       if (entriesError) throw entriesError;
 
       if (entries && entries.length > 0) {
-        // Copy entries to the new college report
         const newEntries = entries.map(entry => ({
           report_id: report.id,
           staff_id: entry.staff_id,

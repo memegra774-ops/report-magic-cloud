@@ -51,21 +51,35 @@ const createChangeRequest = async (params: {
   });
   if (error) console.error('Failed to create change request:', error);
 
-  // Notify system admin
-  await supabase.from('notifications').insert({
-    type: `change_${params.action_type}`,
-    title: `Staff ${params.action_type === 'add' ? 'Addition' : params.action_type === 'update' ? 'Update' : 'Deletion'} Pending`,
-    message: `${params.performed_by_name} wants to ${params.action_type} ${params.staff_name}. Awaiting approval.`,
-    department_id: params.department_id,
-    staff_name: params.staff_name,
-    performed_by: params.performed_by_name,
-    target_role: 'system_admin' as const,
-  });
+  // Notify system admin and AVD
+  const notifications = [
+    {
+      type: `change_${params.action_type}`,
+      title: `Staff ${params.action_type === 'add' ? 'Addition' : params.action_type === 'update' ? 'Update' : 'Deletion'} Pending`,
+      message: `${params.performed_by_name} wants to ${params.action_type} ${params.staff_name}. Awaiting approval.`,
+      department_id: params.department_id,
+      staff_name: params.staff_name,
+      performed_by: params.performed_by_name,
+      target_role: 'system_admin' as const,
+    },
+    {
+      type: `change_${params.action_type}`,
+      title: `Staff ${params.action_type === 'add' ? 'Addition' : params.action_type === 'update' ? 'Update' : 'Deletion'} Pending`,
+      message: `${params.performed_by_name} wants to ${params.action_type} ${params.staff_name}. Awaiting approval.`,
+      department_id: params.department_id,
+      staff_name: params.staff_name,
+      performed_by: params.performed_by_name,
+      target_role: 'avd' as const,
+    },
+  ];
+
+  await supabase.from('notifications').insert(notifications);
 };
 
 export const useStaff = (filters?: {
   category?: StaffCategory;
   departmentId?: string;
+  departmentIds?: string[];
   search?: string;
 }) => {
   return useQuery({
@@ -81,6 +95,8 @@ export const useStaff = (filters?: {
 
       if (filters?.departmentId) {
         query = query.eq('department_id', filters.departmentId);
+      } else if (filters?.departmentIds && filters.departmentIds.length > 0) {
+        query = query.in('department_id', filters.departmentIds);
       }
 
       if (filters?.search) {
@@ -95,15 +111,20 @@ export const useStaff = (filters?: {
   });
 };
 
-export const useDepartments = () => {
+export const useDepartments = (collegeId?: string | null) => {
   return useQuery({
-    queryKey: ['departments'],
+    queryKey: ['departments', collegeId],
     queryFn: async () => {
-      const { data, error } = await supabase
+      let query = supabase
         .from('departments')
         .select('*')
         .order('code');
 
+      if (collegeId) {
+        query = query.eq('college_id', collegeId);
+      }
+
+      const { data, error } = await query;
       if (error) throw error;
       return data;
     },
@@ -406,14 +427,20 @@ export const useStaffStats = (departmentId?: string) => {
   });
 };
 
-export const useDepartmentStats = () => {
+export const useDepartmentStats = (collegeId?: string | null) => {
   return useQuery({
-    queryKey: ['department-stats'],
+    queryKey: ['department-stats', collegeId],
     queryFn: async () => {
-      const { data: departments, error: deptError } = await supabase
+      let deptQuery = supabase
         .from('departments')
         .select('id, code, name')
         .order('code');
+
+      if (collegeId) {
+        deptQuery = deptQuery.eq('college_id', collegeId);
+      }
+
+      const { data: departments, error: deptError } = await deptQuery;
 
       if (deptError) throw deptError;
 

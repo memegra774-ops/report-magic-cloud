@@ -5,6 +5,7 @@ import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { MonthlyReport, MONTHS } from '@/types/staff';
 import { useDepartments } from '@/hooks/useStaff';
+import { useAuth } from '@/contexts/AuthContext';
 
 interface SubmissionStatusDashboardProps {
   reports: MonthlyReport[];
@@ -21,7 +22,9 @@ interface DepartmentStatus {
 }
 
 const SubmissionStatusDashboard = ({ reports, selectedMonth, selectedYear }: SubmissionStatusDashboardProps) => {
-  const { data: departments } = useDepartments();
+  const { role, profile } = useAuth();
+  const collegeId = role === 'avd' ? profile?.college_id : undefined;
+  const { data: departments } = useDepartments(collegeId);
 
   const departmentStatuses = useMemo((): DepartmentStatus[] => {
     if (!departments) return [];

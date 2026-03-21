@@ -56,7 +56,10 @@ const Reports = () => {
   const [rejectDialogOpen, setRejectDialogOpen] = useState<MonthlyReport | null>(null);
   const [rejectionReason, setRejectionReason] = useState('');
 
-  const { data: departments } = useDepartments();
+  // AVD sees only departments under their college
+  const collegeId = role === 'avd' ? profile?.college_id : undefined;
+  const { data: departments } = useDepartments(collegeId);
+  const collegeDeptIds = role === 'avd' && departments ? departments.map(d => d.id) : undefined;
   const { data: reports, isLoading } = useMonthlyReports();
   const createReport = useCreateReport();
   const deleteReport = useDeleteReport();
@@ -164,7 +167,8 @@ const Reports = () => {
   const handleGenerateCollegeReport = async () => {
     await generateCollegeReport.mutateAsync({ 
       month: selectedMonth, 
-      year: selectedYear 
+      year: selectedYear,
+      collegeId: profile?.college_id
     });
   };
 
@@ -209,7 +213,6 @@ const Reports = () => {
   // Filter reports based on role - for AVD's own reports and department heads' reports
   const filteredReports = reports?.filter(report => {
     if (role === 'department_head') {
-      // Department heads only see their own department's reports
       return report.department_id === profile?.department_id;
     }
     if (role === 'avd') {
@@ -220,13 +223,20 @@ const Reports = () => {
     return true;
   });
 
+  // For AVD: filter submitted/approved department reports to only their college's departments
+  const isInCollegeDept = (report: MonthlyReport) => {
+    if (!collegeDeptIds) return true; // system_admin sees all
+    return report.department_id ? collegeDeptIds.includes(report.department_id) : true;
+  };
+
   // For AVD: Get submitted department reports (pending approval) for selected period
   const submittedDepartmentReports = (role === 'avd' || role === 'system_admin') 
     ? reports?.filter(report => 
         report.department_id && 
         report.status === 'submitted' &&
         report.report_month === selectedMonth &&
-        report.report_year === selectedYear
+        report.report_year === selectedYear &&
+        isInCollegeDept(report)
       )
     : [];
 
@@ -236,7 +246,8 @@ const Reports = () => {
         report.department_id && 
         report.status === 'approved' &&
         report.report_month === selectedMonth &&
-        report.report_year === selectedYear
+        report.report_year === selectedYear &&
+        isInCollegeDept(report)
       )
     : [];
 

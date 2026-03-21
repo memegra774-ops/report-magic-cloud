@@ -26,7 +26,7 @@ import { usePendingChanges, useApproveChange, useRejectChange, StaffChange } fro
 import { formatDistanceToNow } from 'date-fns';
 
 const PendingChangesPanel = () => {
-  const { user, role } = useAuth();
+  const { user, role, profile } = useAuth();
   const { data: pendingChanges, isLoading } = usePendingChanges();
   const approveChange = useApproveChange();
   const rejectChange = useRejectChange();
@@ -35,6 +35,8 @@ const PendingChangesPanel = () => {
   const [expanded, setExpanded] = useState(true);
 
   const isAdmin = role === 'system_admin';
+  const isAVD = role === 'avd';
+  const canReview = isAdmin || isAVD;
 
   if (!pendingChanges?.length) return null;
 
@@ -101,7 +103,7 @@ const PendingChangesPanel = () => {
                 <TableHead>Changed By</TableHead>
                 <TableHead>Details</TableHead>
                 <TableHead>Time</TableHead>
-                {isAdmin && <TableHead className="text-right">Actions</TableHead>}
+                {canReview && <TableHead className="text-right">Actions</TableHead>}
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -120,7 +122,7 @@ const PendingChangesPanel = () => {
                   <TableCell className="text-xs text-muted-foreground">
                     {formatDistanceToNow(new Date(change.created_at), { addSuffix: true })}
                   </TableCell>
-                  {isAdmin && (
+                  {canReview && (
                     <TableCell className="text-right">
                       <div className="flex justify-end gap-1">
                         <Button

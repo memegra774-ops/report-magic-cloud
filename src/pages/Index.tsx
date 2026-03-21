@@ -27,10 +27,12 @@ const Index = () => {
   
   // Department heads only see their department's stats
   const departmentId = role === 'department_head' ? profile?.department_id || undefined : undefined;
+  // AVD sees only their college's departments
+  const collegeId = role === 'avd' ? profile?.college_id : undefined;
   
   const { data: stats, isLoading: statsLoading } = useStaffStats(departmentId);
-  const { data: deptStats, isLoading: deptStatsLoading } = useDepartmentStats();
-  const { data: departments } = useDepartments();
+  const { data: deptStats, isLoading: deptStatsLoading } = useDepartmentStats(collegeId);
+  const { data: departments } = useDepartments(collegeId);
 
   const getRoleDisplayName = () => {
     switch (role) {
