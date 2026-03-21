@@ -703,13 +703,13 @@ const ReportLetter = ({ report, department, signatory, collegeName }: ReportLett
           <ul style={{ marginLeft: '30px', listStyleType: 'disc' }}>
             {isDepartmentReport ? (
               <>
-                <li>CoEEC Dean</li>
+                <li>{resolvedCollegeName} Dean</li>
                 <li>{departmentName} Department</li>
               </>
             ) : (
               <>
-                <li>CoEEC Dean</li>
-                <li>CoEEC ADAA</li>
+                <li>{resolvedCollegeName} Dean</li>
+                <li>{resolvedCollegeName} ADAA</li>
               </>
             )}
           </ul>
