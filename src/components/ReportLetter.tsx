@@ -33,7 +33,7 @@ interface CategoryStats {
 
 const FIXED_STATUSES = ['Not On Duty', 'On Duty', 'On Study', 'On Study and Not Reporting', 'Sick'];
 
-const ReportLetter = ({ report, department, signatory }: ReportLetterProps) => {
+const ReportLetter = ({ report, department, signatory, collegeName }: ReportLetterProps) => {
   const { data: entries, isLoading } = useReportEntries(report.id);
   const printRef = useRef<HTMLDivElement>(null);
   const [deptHeadName, setDeptHeadName] = useState<string>('');
@@ -41,6 +41,7 @@ const ReportLetter = ({ report, department, signatory }: ReportLetterProps) => {
 
   const isDepartmentReport = !!report.department_id;
   const departmentName = department?.name || 'Department';
+  const resolvedCollegeName = collegeName || entries?.[0]?.college_name || 'College';
   const [avdName, setAvdName] = useState<string>('');
 
   // Fetch department head name and email from profiles + user_roles
