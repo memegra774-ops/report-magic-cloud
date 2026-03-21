@@ -471,12 +471,12 @@ const ReportLetter = ({ report, department, signatory, collegeName }: ReportLett
           new Paragraph({ children: [new TextRun({ text: 'CC:', bold: true, underline: {}, font: 'Times New Roman', size: 24 })] }),
           ...(isDepartmentReport
             ? [
-                new Paragraph({ children: [new TextRun({ text: `CoEEC Dean`, font: 'Times New Roman', size: 24 })], bullet: { level: 0 } }),
+                new Paragraph({ children: [new TextRun({ text: `${resolvedCollegeName} Dean`, font: 'Times New Roman', size: 24 })], bullet: { level: 0 } }),
                 new Paragraph({ children: [new TextRun({ text: `${departmentName} Department`, font: 'Times New Roman', size: 24 })], bullet: { level: 0 } }),
               ]
             : [
-                new Paragraph({ children: [new TextRun({ text: `CoEEC Dean`, font: 'Times New Roman', size: 24 })], bullet: { level: 0 } }),
-                new Paragraph({ children: [new TextRun({ text: `CoEEC ADAA`, font: 'Times New Roman', size: 24 })], bullet: { level: 0 } }),
+                new Paragraph({ children: [new TextRun({ text: `${resolvedCollegeName} Dean`, font: 'Times New Roman', size: 24 })], bullet: { level: 0 } }),
+                new Paragraph({ children: [new TextRun({ text: `${resolvedCollegeName} ADAA`, font: 'Times New Roman', size: 24 })], bullet: { level: 0 } }),
               ]
           ),
           new Paragraph({ spacing: { after: 200 } }),
