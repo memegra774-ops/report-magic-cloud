@@ -319,12 +319,13 @@ const Reports = () => {
                 <TabsTrigger value="letter">Official Letter</TabsTrigger>
               </TabsList>
               <TabsContent value="report">
-                <ReportView report={viewReport} isDepartmentHead={isDepartmentHead} />
+                <ReportView report={viewReport} isDepartmentHead={isDepartmentHead} collegeName={collegeName} />
               </TabsContent>
               <TabsContent value="letter">
                 <ReportLetter 
                   report={viewReport} 
                   department={departments?.find(d => d.id === viewReport.department_id)}
+                  collegeName={collegeName}
                 />
               </TabsContent>
             </Tabs>
