@@ -26,7 +26,7 @@ import { usePendingChanges, useApproveChange, useRejectChange, StaffChange } fro
 import { formatDistanceToNow } from 'date-fns';
 
 const PendingChangesPanel = () => {
-  const { user, role } = useAuth();
+  const { user, role, profile } = useAuth();
   const { data: pendingChanges, isLoading } = usePendingChanges();
   const approveChange = useApproveChange();
   const rejectChange = useRejectChange();
@@ -35,6 +35,8 @@ const PendingChangesPanel = () => {
   const [expanded, setExpanded] = useState(true);
 
   const isAdmin = role === 'system_admin';
+  const isAVD = role === 'avd';
+  const canReview = isAdmin || isAVD;
 
   if (!pendingChanges?.length) return null;
 
