@@ -212,7 +212,6 @@ const Reports = () => {
   // Filter reports based on role - for AVD's own reports and department heads' reports
   const filteredReports = reports?.filter(report => {
     if (role === 'department_head') {
-      // Department heads only see their own department's reports
       return report.department_id === profile?.department_id;
     }
     if (role === 'avd') {
@@ -222,6 +221,12 @@ const Reports = () => {
     // System admin and management see all
     return true;
   });
+
+  // For AVD: filter submitted/approved department reports to only their college's departments
+  const isInCollegeDept = (report: MonthlyReport) => {
+    if (!collegeDeptIds) return true; // system_admin sees all
+    return report.department_id ? collegeDeptIds.includes(report.department_id) : true;
+  };
 
   // For AVD: Get submitted department reports (pending approval) for selected period
   const submittedDepartmentReports = (role === 'avd' || role === 'system_admin') 
