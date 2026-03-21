@@ -28,7 +28,9 @@ const Staff = () => {
   const [csvImportOpen, setCsvImportOpen] = useState(false);
   const [selectedStaff, setSelectedStaff] = useState<StaffType | null>(null);
 
-  const { data: departments } = useDepartments();
+  // AVD sees only departments under their college
+  const collegeId = role === 'avd' ? profile?.college_id : undefined;
+  const { data: departments } = useDepartments(collegeId);
   
   const departmentId = role === 'department_head' ? profile?.department_id : undefined;
   
