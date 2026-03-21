@@ -214,14 +214,15 @@ const Reports = () => {
   const canDelete = role === 'system_admin' || role === 'avd' || role === 'department_head';
   const canViewLetter = role === 'avd' || role === 'system_admin' || role === 'department_head';
 
-  // Filter reports based on role - for AVD's own reports and department heads' reports
+  // Filter reports based on role
   const filteredReports = reports?.filter(report => {
     if (role === 'department_head') {
       return report.department_id === profile?.department_id;
     }
     if (role === 'avd') {
-      // AVD sees only their own college-level reports in the main grid
-      return !report.department_id;
+      // AVD sees their own college-level reports AND department reports from their college
+      if (!report.department_id) return true; // college-level reports
+      return collegeDeptIds?.includes(report.department_id);
     }
     // System admin and management see all
     return true;
