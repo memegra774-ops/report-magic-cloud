@@ -95,15 +95,20 @@ export const useStaff = (filters?: {
   });
 };
 
-export const useDepartments = () => {
+export const useDepartments = (collegeId?: string | null) => {
   return useQuery({
-    queryKey: ['departments'],
+    queryKey: ['departments', collegeId],
     queryFn: async () => {
-      const { data, error } = await supabase
+      let query = supabase
         .from('departments')
         .select('*')
         .order('code');
 
+      if (collegeId) {
+        query = query.eq('college_id', collegeId);
+      }
+
+      const { data, error } = await query;
       if (error) throw error;
       return data;
     },
