@@ -191,7 +191,7 @@ const ReportView = ({ report, isDepartmentHead = false, collegeName }: ReportVie
       
       // Add header rows
       XLSX.utils.sheet_add_aoa(ws, [['Adama Science & Technology University']], { origin: 'A1' });
-      XLSX.utils.sheet_add_aoa(ws, [['College of Electrical Engineering & Computing']], { origin: 'A2' });
+      XLSX.utils.sheet_add_aoa(ws, [[resolvedCollegeName]], { origin: 'A2' });
       
       let dataStartRow = 4;
       if (isDepartmentHead && departmentInfo) {
