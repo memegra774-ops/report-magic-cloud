@@ -60,7 +60,10 @@ const Reports = () => {
   // AVD sees only departments under their college
   const collegeId = role === 'avd' ? profile?.college_id : undefined;
   const { data: departments } = useDepartments(collegeId);
+  const { data: colleges } = useColleges();
   const collegeDeptIds = role === 'avd' && departments ? departments.map(d => d.id) : undefined;
+  const userCollege = colleges?.find(c => c.id === profile?.college_id);
+  const collegeName = userCollege?.name || departments?.[0]?.college_name || 'College';
   const { data: reports, isLoading } = useMonthlyReports();
   const createReport = useCreateReport();
   const deleteReport = useDeleteReport();
