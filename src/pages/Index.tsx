@@ -30,9 +30,11 @@ const Index = () => {
   // AVD sees only their college's departments
   const collegeId = role === 'avd' ? profile?.college_id : undefined;
   
-  const { data: stats, isLoading: statsLoading } = useStaffStats(departmentId);
-  const { data: deptStats, isLoading: deptStatsLoading } = useDepartmentStats(collegeId);
   const { data: departments } = useDepartments(collegeId);
+  const collegeDeptIds = role === 'avd' && departments ? departments.map(d => d.id) : undefined;
+  
+  const { data: stats, isLoading: statsLoading } = useStaffStats(departmentId, collegeDeptIds);
+  const { data: deptStats, isLoading: deptStatsLoading } = useDepartmentStats(collegeId);
 
   const getRoleDisplayName = () => {
     switch (role) {
