@@ -9,6 +9,7 @@ import { useMonthlyReports, useCreateReport, useDeleteReport, useSubmitReport, u
 import { useCreateNotification } from '@/hooks/useNotifications';
 import { useAuth } from '@/contexts/AuthContext';
 import { useDepartments } from '@/hooks/useStaff';
+import { useColleges } from '@/hooks/useColleges';
 import { MonthlyReport, MONTHS } from '@/types/staff';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
