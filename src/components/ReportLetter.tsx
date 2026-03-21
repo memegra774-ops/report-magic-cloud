@@ -601,7 +601,7 @@ const ReportLetter = ({ report, department, signatory, collegeName }: ReportLett
 
             {/* College & AVD info - right aligned */}
             <div style={{ textAlign: 'right', marginBottom: '5px' }}>
-              <p><strong>College of Electrical Engineering &amp; Computing</strong></p>
+              <p><strong>{resolvedCollegeName}</strong></p>
               <p style={{ marginTop: '5px' }}><strong>Associate Dean for Academic Affairs</strong></p>
               <p style={{ marginTop: '5px' }}><strong>{avdDisplayName}</strong></p>
             </div>
