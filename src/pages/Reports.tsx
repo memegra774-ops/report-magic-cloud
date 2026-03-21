@@ -330,7 +330,7 @@ const Reports = () => {
               </TabsContent>
             </Tabs>
           ) : (
-            <ReportView report={viewReport} isDepartmentHead={isDepartmentHead} />
+            <ReportView report={viewReport} isDepartmentHead={isDepartmentHead} collegeName={collegeName} />
           )}
         </main>
       </div>
