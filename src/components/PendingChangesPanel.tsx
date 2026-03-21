@@ -103,7 +103,7 @@ const PendingChangesPanel = () => {
                 <TableHead>Changed By</TableHead>
                 <TableHead>Details</TableHead>
                 <TableHead>Time</TableHead>
-                {isAdmin && <TableHead className="text-right">Actions</TableHead>}
+                {canReview && <TableHead className="text-right">Actions</TableHead>}
               </TableRow>
             </TableHeader>
             <TableBody>
