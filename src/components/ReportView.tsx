@@ -17,6 +17,7 @@ import {
 interface ReportViewProps {
   report: MonthlyReport;
   isDepartmentHead?: boolean;
+  collegeName?: string;
 }
 
 // Report sections matching the PDF template exactly
@@ -40,7 +41,7 @@ const REPORT_SECTIONS: ReportSection[] = [
   { id: 'astu-sponsor', title: 'ASTU Sponsors Report', categoryFilter: 'ASTU Sponsor' },
 ];
 
-const ReportView = ({ report, isDepartmentHead = false }: ReportViewProps) => {
+const ReportView = ({ report, isDepartmentHead = false, collegeName }: ReportViewProps) => {
   const { data: entries, isLoading } = useReportEntries(report.id);
   const printRef = useRef<HTMLDivElement>(null);
 
@@ -50,6 +51,9 @@ const ReportView = ({ report, isDepartmentHead = false }: ReportViewProps) => {
     : report.departments
       ? { code: report.departments.code, name: report.departments.name }
       : null;
+
+  // Resolve college name: prop > first entry > fallback
+  const resolvedCollegeName = collegeName || entries?.[0]?.college_name || 'College';
 
   const handlePrint = () => {
     const printContent = printRef.current;
