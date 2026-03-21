@@ -545,7 +545,7 @@ const ReportLetter = ({ report, department, signatory, collegeName }: ReportLett
           <>
             <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '5px' }}>
               <div>
-                <p><strong>To: CoEEC Vice Dean for Academic Affairs</strong></p>
+                <p><strong>To: {resolvedCollegeName} Vice Dean for Academic Affairs</strong></p>
               </div>
               <div style={{ textAlign: 'right' }}>
                 <p><strong>Date:</strong> _______________</p>
