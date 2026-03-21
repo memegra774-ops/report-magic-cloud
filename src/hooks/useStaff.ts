@@ -51,16 +51,29 @@ const createChangeRequest = async (params: {
   });
   if (error) console.error('Failed to create change request:', error);
 
-  // Notify system admin
-  await supabase.from('notifications').insert({
-    type: `change_${params.action_type}`,
-    title: `Staff ${params.action_type === 'add' ? 'Addition' : params.action_type === 'update' ? 'Update' : 'Deletion'} Pending`,
-    message: `${params.performed_by_name} wants to ${params.action_type} ${params.staff_name}. Awaiting approval.`,
-    department_id: params.department_id,
-    staff_name: params.staff_name,
-    performed_by: params.performed_by_name,
-    target_role: 'system_admin' as const,
-  });
+  // Notify system admin and AVD
+  const notifications = [
+    {
+      type: `change_${params.action_type}`,
+      title: `Staff ${params.action_type === 'add' ? 'Addition' : params.action_type === 'update' ? 'Update' : 'Deletion'} Pending`,
+      message: `${params.performed_by_name} wants to ${params.action_type} ${params.staff_name}. Awaiting approval.`,
+      department_id: params.department_id,
+      staff_name: params.staff_name,
+      performed_by: params.performed_by_name,
+      target_role: 'system_admin' as const,
+    },
+    {
+      type: `change_${params.action_type}`,
+      title: `Staff ${params.action_type === 'add' ? 'Addition' : params.action_type === 'update' ? 'Update' : 'Deletion'} Pending`,
+      message: `${params.performed_by_name} wants to ${params.action_type} ${params.staff_name}. Awaiting approval.`,
+      department_id: params.department_id,
+      staff_name: params.staff_name,
+      performed_by: params.performed_by_name,
+      target_role: 'avd' as const,
+    },
+  ];
+
+  await supabase.from('notifications').insert(notifications);
 };
 
 export const useStaff = (filters?: {
