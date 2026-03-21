@@ -66,6 +66,7 @@ const createChangeRequest = async (params: {
 export const useStaff = (filters?: {
   category?: StaffCategory;
   departmentId?: string;
+  departmentIds?: string[];
   search?: string;
 }) => {
   return useQuery({
@@ -81,6 +82,8 @@ export const useStaff = (filters?: {
 
       if (filters?.departmentId) {
         query = query.eq('department_id', filters.departmentId);
+      } else if (filters?.departmentIds && filters.departmentIds.length > 0) {
+        query = query.in('department_id', filters.departmentIds);
       }
 
       if (filters?.search) {

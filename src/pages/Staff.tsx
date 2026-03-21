@@ -34,9 +34,13 @@ const Staff = () => {
   
   const departmentId = role === 'department_head' ? profile?.department_id : undefined;
   
+  // Get college department IDs for AVD filtering
+  const collegeDeptIds = role === 'avd' ? departments?.map(d => d.id) : undefined;
+
   const { data: staff, isLoading } = useStaff({
     category: categoryFilter === 'all' ? undefined : categoryFilter,
     departmentId: departmentId || undefined,
+    departmentIds: collegeDeptIds,
     search: search || undefined,
   });
 

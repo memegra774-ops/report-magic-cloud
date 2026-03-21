@@ -122,7 +122,7 @@ const PendingChangesPanel = () => {
                   <TableCell className="text-xs text-muted-foreground">
                     {formatDistanceToNow(new Date(change.created_at), { addSuffix: true })}
                   </TableCell>
-                  {isAdmin && (
+                  {canReview && (
                     <TableCell className="text-right">
                       <div className="flex justify-end gap-1">
                         <Button
