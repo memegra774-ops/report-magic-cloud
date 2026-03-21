@@ -414,14 +414,20 @@ export const useStaffStats = (departmentId?: string) => {
   });
 };
 
-export const useDepartmentStats = () => {
+export const useDepartmentStats = (collegeId?: string | null) => {
   return useQuery({
-    queryKey: ['department-stats'],
+    queryKey: ['department-stats', collegeId],
     queryFn: async () => {
-      const { data: departments, error: deptError } = await supabase
+      let deptQuery = supabase
         .from('departments')
         .select('id, code, name')
         .order('code');
+
+      if (collegeId) {
+        deptQuery = deptQuery.eq('college_id', collegeId);
+      }
+
+      const { data: departments, error: deptError } = await deptQuery;
 
       if (deptError) throw deptError;
 

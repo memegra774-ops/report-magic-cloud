@@ -245,7 +245,8 @@ const Reports = () => {
         report.department_id && 
         report.status === 'approved' &&
         report.report_month === selectedMonth &&
-        report.report_year === selectedYear
+        report.report_year === selectedYear &&
+        isInCollegeDept(report)
       )
     : [];
 
