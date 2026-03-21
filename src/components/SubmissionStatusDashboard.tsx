@@ -5,6 +5,7 @@ import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { MonthlyReport, MONTHS } from '@/types/staff';
 import { useDepartments } from '@/hooks/useStaff';
+import { useAuth } from '@/contexts/AuthContext';
 
 interface SubmissionStatusDashboardProps {
   reports: MonthlyReport[];
