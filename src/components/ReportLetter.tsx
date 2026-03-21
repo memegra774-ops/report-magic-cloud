@@ -12,6 +12,7 @@ interface ReportLetterProps {
   report: MonthlyReport;
   department?: Department | null;
   signatory?: string;
+  collegeName?: string;
 }
 
 interface StatusCount {
