@@ -214,26 +214,43 @@ const StaffForm = ({ open, onClose, staff, defaultDepartmentId }: StaffFormProps
                 )}
               />
 
+              {/* College (read-only display) */}
+              <FormItem>
+                <FormLabel>College</FormLabel>
+                <Input value={resolvedCollegeName} disabled className="bg-muted" />
+              </FormItem>
+
               <FormField
                 control={form.control}
                 name="department_id"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Department</FormLabel>
-                    <Select onValueChange={field.onChange} defaultValue={field.value}>
-                      <FormControl>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select department" />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        {departments?.map((dept) => (
-                          <SelectItem key={dept.id} value={dept.id}>
-                            {dept.code} - {dept.name}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+                    <FormLabel>Department {role === 'department_head' ? '' : '*'}</FormLabel>
+                    {role === 'department_head' ? (
+                      <>
+                        <Input 
+                          value={departments?.find(d => d.id === lockedDepartmentId)?.name || 'Your Department'} 
+                          disabled 
+                          className="bg-muted" 
+                        />
+                        <input type="hidden" {...field} />
+                      </>
+                    ) : (
+                      <Select onValueChange={field.onChange} defaultValue={field.value} disabled={role === 'department_head'}>
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select department" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          {departments?.map((dept) => (
+                            <SelectItem key={dept.id} value={dept.id}>
+                              {dept.code} - {dept.name}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    )}
                     <FormMessage />
                   </FormItem>
                 )}
