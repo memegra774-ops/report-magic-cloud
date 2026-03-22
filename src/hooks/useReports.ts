@@ -64,7 +64,8 @@ export const useCreateReport = () => {
         .insert({ 
           report_month: month, 
           report_year: year,
-          department_id: departmentId || null 
+          department_id: departmentId || null,
+          college_id: collegeId || null,
         })
         .select()
         .single();
