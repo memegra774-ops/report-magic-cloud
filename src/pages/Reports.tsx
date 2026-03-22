@@ -224,7 +224,7 @@ const Reports = () => {
       // AVD sees only reports belonging to their college
       if (!report.department_id) {
         // College-level report: must match this AVD's college
-        return (report as any).college_id === profile?.college_id;
+        return report.college_id === profile?.college_id;
       }
       return collegeDeptIds?.includes(report.department_id);
     }
