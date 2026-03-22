@@ -236,7 +236,7 @@ const StaffForm = ({ open, onClose, staff, defaultDepartmentId }: StaffFormProps
                         <input type="hidden" {...field} />
                       </>
                     ) : (
-                      <Select onValueChange={field.onChange} defaultValue={field.value} disabled={role === 'department_head'}>
+                      <Select onValueChange={field.onChange} defaultValue={field.value}>
                         <FormControl>
                           <SelectTrigger>
                             <SelectValue placeholder="Select department" />
