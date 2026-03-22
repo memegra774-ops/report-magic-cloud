@@ -72,6 +72,7 @@ export type Database = {
       }
       monthly_reports: {
         Row: {
+          college_id: string | null
           created_at: string
           created_by: string | null
           department_id: string | null
@@ -87,6 +88,7 @@ export type Database = {
           version: number
         }
         Insert: {
+          college_id?: string | null
           created_at?: string
           created_by?: string | null
           department_id?: string | null
@@ -102,6 +104,7 @@ export type Database = {
           version?: number
         }
         Update: {
+          college_id?: string | null
           created_at?: string
           created_by?: string | null
           department_id?: string | null
@@ -117,6 +120,13 @@ export type Database = {
           version?: number
         }
         Relationships: [
+          {
+            foreignKeyName: "monthly_reports_college_id_fkey"
+            columns: ["college_id"]
+            isOneToOne: false
+            referencedRelation: "colleges"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "monthly_reports_department_id_fkey"
             columns: ["department_id"]

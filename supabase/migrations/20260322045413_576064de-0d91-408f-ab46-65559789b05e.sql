@@ -1,0 +1,1 @@
+ALTER TABLE public.monthly_reports ADD COLUMN college_id uuid REFERENCES public.colleges(id) ON DELETE SET NULL;
