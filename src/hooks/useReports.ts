@@ -23,7 +23,7 @@ export const useCreateReport = () => {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async ({ month, year, departmentId, regenerate = false }: { month: number; year: number; departmentId?: string | null; regenerate?: boolean }) => {
+    mutationFn: async ({ month, year, departmentId, collegeId, regenerate = false }: { month: number; year: number; departmentId?: string | null; collegeId?: string | null; regenerate?: boolean }) => {
       // Check if a report already exists for this month/year/department
       let existingQuery = supabase
         .from('monthly_reports')
