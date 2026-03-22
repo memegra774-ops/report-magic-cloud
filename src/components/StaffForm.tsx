@@ -4,6 +4,7 @@ import * as z from 'zod';
 import { Staff, StaffCategory, STAFF_CATEGORIES, EDUCATION_LEVELS, ACADEMIC_RANKS, STAFF_STATUSES } from '@/types/staff';
 import { useDepartments, useCreateStaff, useUpdateStaff } from '@/hooks/useStaff';
 import { useAuth } from '@/contexts/AuthContext';
+import { useColleges } from '@/hooks/useColleges';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import {
@@ -32,7 +33,7 @@ const formSchema = z.object({
   staff_id: z.string().optional(),
   full_name: z.string().min(2, 'Name must be at least 2 characters'),
   sex: z.enum(['M', 'F']),
-  college_name: z.string().default('CoEEC'),
+  college_name: z.string().default('College'),
   department_id: z.string().optional(),
   specialization: z.string().optional(),
   education_level: z.enum(['Bsc', 'BSc', 'Msc', 'MSc', 'PHD', 'Dip']),
@@ -55,7 +56,9 @@ interface StaffFormProps {
 const StaffForm = ({ open, onClose, staff, defaultDepartmentId }: StaffFormProps) => {
   const { profile, role, user } = useAuth();
   const isAdmin = role === 'system_admin';
-  const { data: departments } = useDepartments();
+  const collegeId = (role === 'avd') ? profile?.college_id : undefined;
+  const { data: allDepartments } = useDepartments(collegeId);
+  const { data: colleges } = useColleges();
   const createStaff = useCreateStaff();
   const updateStaff = useUpdateStaff({
     isAdmin,
@@ -63,14 +66,39 @@ const StaffForm = ({ open, onClose, staff, defaultDepartmentId }: StaffFormProps
     performedBy: profile?.full_name || profile?.email || 'User',
   });
 
+  // Determine which departments to show based on role
+  const departments = (() => {
+    if (role === 'department_head') {
+      return allDepartments?.filter(d => d.id === profile?.department_id);
+    }
+    // AVD: only departments under their college (already filtered by useDepartments)
+    return allDepartments;
+  })();
+
+  // Locked department for dept heads
+  const lockedDepartmentId = role === 'department_head' ? profile?.department_id : defaultDepartmentId;
+  
+  // Determine college name based on role
+  const userCollege = colleges?.find(c => c.id === profile?.college_id);
+  const resolvedCollegeName = (() => {
+    if (role === 'department_head') {
+      const dept = allDepartments?.find(d => d.id === profile?.department_id);
+      return dept?.college_name || userCollege?.name || 'College';
+    }
+    if (role === 'avd') {
+      return userCollege?.name || 'College';
+    }
+    return staff?.college_name || 'College';
+  })();
+
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
       staff_id: staff?.staff_id || '',
       full_name: staff?.full_name || '',
       sex: staff?.sex || 'M',
-      college_name: staff?.college_name || 'CoEEC',
-      department_id: staff?.department_id || defaultDepartmentId || '',
+      college_name: staff?.college_name || resolvedCollegeName,
+      department_id: staff?.department_id || lockedDepartmentId || '',
       specialization: staff?.specialization || '',
       education_level: staff?.education_level || 'Msc',
       academic_rank: staff?.academic_rank || '',
@@ -85,10 +113,14 @@ const StaffForm = ({ open, onClose, staff, defaultDepartmentId }: StaffFormProps
 
   const onSubmit = async (values: z.infer<typeof formSchema>) => {
     try {
+      const collegeName = resolvedCollegeName;
+      const deptId = values.department_id || lockedDepartmentId || null;
+      
       const data = {
         ...values,
         staff_id: values.staff_id || null,
-        department_id: values.department_id || defaultDepartmentId || null,
+        department_id: deptId,
+        college_name: collegeName,
         specialization: values.specialization || null,
         academic_rank: values.academic_rank || null,
         remark: values.remark || null,
@@ -182,26 +214,43 @@ const StaffForm = ({ open, onClose, staff, defaultDepartmentId }: StaffFormProps
                 )}
               />
 
+              {/* College (read-only display) */}
+              <FormItem>
+                <FormLabel>College</FormLabel>
+                <Input value={resolvedCollegeName} disabled className="bg-muted" />
+              </FormItem>
+
               <FormField
                 control={form.control}
                 name="department_id"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Department</FormLabel>
-                    <Select onValueChange={field.onChange} defaultValue={field.value}>
-                      <FormControl>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select department" />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        {departments?.map((dept) => (
-                          <SelectItem key={dept.id} value={dept.id}>
-                            {dept.code} - {dept.name}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+                    <FormLabel>Department {role === 'department_head' ? '' : '*'}</FormLabel>
+                    {role === 'department_head' ? (
+                      <>
+                        <Input 
+                          value={departments?.find(d => d.id === lockedDepartmentId)?.name || 'Your Department'} 
+                          disabled 
+                          className="bg-muted" 
+                        />
+                        <input type="hidden" {...field} />
+                      </>
+                    ) : (
+                      <Select onValueChange={field.onChange} defaultValue={field.value}>
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select department" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          {departments?.map((dept) => (
+                            <SelectItem key={dept.id} value={dept.id}>
+                              {dept.code} - {dept.name}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    )}
                     <FormMessage />
                   </FormItem>
                 )}

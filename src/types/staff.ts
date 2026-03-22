@@ -57,6 +57,7 @@ export interface MonthlyReport {
   report_year: number;
   version: number;
   department_id: string | null;
+  college_id: string | null;
   status: ReportStatus;
   submitted_at: string | null;
   submitted_by: string | null;
