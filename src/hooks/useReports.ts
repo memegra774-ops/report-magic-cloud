@@ -340,14 +340,19 @@ export const useGenerateCollegeReport = () => {
 
   return useMutation({
     mutationFn: async ({ month, year, collegeId }: { month: number; year: number; collegeId?: string | null }) => {
-      // Check if a college-level report already exists
-      const { data: existingReport } = await supabase
+      // Check if a college-level report already exists for THIS college
+      let existingQuery = supabase
         .from('monthly_reports')
         .select('id')
         .eq('report_month', month)
         .eq('report_year', year)
-        .is('department_id', null)
-        .maybeSingle();
+        .is('department_id', null);
+      
+      if (collegeId) {
+        existingQuery = existingQuery.eq('college_id', collegeId);
+      }
+
+      const { data: existingReport } = await existingQuery.maybeSingle();
 
       if (existingReport) {
         throw new Error('A college-level report already exists for this period.');
