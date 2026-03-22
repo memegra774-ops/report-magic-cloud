@@ -396,6 +396,7 @@ export const useGenerateCollegeReport = () => {
           report_month: month, 
           report_year: year,
           department_id: null,
+          college_id: collegeId || null,
           status: 'approved'
         })
         .select()
