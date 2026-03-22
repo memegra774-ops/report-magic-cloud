@@ -79,7 +79,8 @@ const Reports = () => {
     await createReport.mutateAsync({ 
       month: selectedMonth, 
       year: selectedYear,
-      departmentId: role === 'department_head' ? profile?.department_id : undefined
+      departmentId: role === 'department_head' ? profile?.department_id : undefined,
+      collegeId: profile?.college_id || undefined,
     });
     setCreateDialogOpen(false);
   };
