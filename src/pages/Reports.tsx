@@ -365,8 +365,8 @@ const Reports = () => {
             </p>
           </div>
           <div className="flex gap-2 flex-wrap">
-            {/* Month/Year selector for AVD dashboard */}
-            {(role === 'avd' || role === 'system_admin') && (
+            {/* Month/Year selector for AVD, college_dean, HR, system_admin dashboard */}
+            {(role === 'avd' || role === 'system_admin' || role === 'college_dean' || role === 'hr') && (
               <>
                 <Select value={String(selectedMonth)} onValueChange={(v) => setSelectedMonth(Number(v))}>
                   <SelectTrigger className="w-[130px]">
