@@ -424,8 +424,8 @@ const Reports = () => {
           </div>
         </div>
 
-        {/* Submission Status Dashboard - For AVD */}
-        {(role === 'avd' || role === 'system_admin') && reports && (
+        {/* Submission Status Dashboard */}
+        {(role === 'avd' || role === 'system_admin' || role === 'hr') && reports && (
           <SubmissionStatusDashboard 
             reports={reports} 
             selectedMonth={selectedMonth} 
