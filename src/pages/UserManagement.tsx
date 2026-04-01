@@ -332,7 +332,7 @@ const UserManagement = () => {
                         )}
                       </TableCell>
                       <TableCell>
-                        {user.role === 'avd'
+                        {user.role === 'avd' || user.role === 'college_dean'
                           ? (colleges?.find(c => c.id === user.college_id)?.code || '-')
                           : (user.departments?.code || '-')}
                       </TableCell>
