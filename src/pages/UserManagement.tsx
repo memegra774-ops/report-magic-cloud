@@ -325,7 +325,9 @@ const UserManagement = () => {
                           <Badge variant="secondary">
                             {user.role === 'system_admin' ? 'System Admin' :
                              user.role === 'department_head' ? 'Department Head' :
-                             user.role === 'avd' ? 'AVD' : 'Management'}
+                             user.role === 'avd' ? 'AVD' : 
+                             user.role === 'college_dean' ? 'College Dean' :
+                             user.role === 'hr' ? 'HR' : 'Management'}
                           </Badge>
                         )}
                       </TableCell>
