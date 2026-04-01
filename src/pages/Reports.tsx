@@ -178,6 +178,13 @@ const Reports = () => {
     });
   };
 
+  const handleGenerateUniversityReport = async () => {
+    await generateUniversityReport.mutateAsync({
+      month: selectedMonth,
+      year: selectedYear,
+    });
+  };
+
   const currentYear = new Date().getFullYear();
   const years = Array.from({ length: 5 }, (_, i) => currentYear - 2 + i);
 
