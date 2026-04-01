@@ -535,7 +535,7 @@ const Reports = () => {
               {generateUniversityReport.isPending ? 'Generating...' : 'Generate from Approved College Reports'}
             </Button>
           </div>
-        )
+        )}
 
         {/* Approved Department Reports - For AVD */}
         {(role === 'avd' || role === 'system_admin') && approvedDepartmentReports && approvedDepartmentReports.length > 0 && (
