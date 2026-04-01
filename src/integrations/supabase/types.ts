@@ -511,7 +511,13 @@ export type Database = {
       }
     }
     Enums: {
-      app_role: "system_admin" | "department_head" | "avd" | "management"
+      app_role:
+        | "system_admin"
+        | "department_head"
+        | "avd"
+        | "management"
+        | "college_dean"
+        | "hr"
       education_level: "Bsc" | "BSc" | "Msc" | "MSc" | "PHD" | "Dip"
       sex_type: "M" | "F"
       staff_category:
@@ -649,7 +655,14 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
-      app_role: ["system_admin", "department_head", "avd", "management"],
+      app_role: [
+        "system_admin",
+        "department_head",
+        "avd",
+        "management",
+        "college_dean",
+        "hr",
+      ],
       education_level: ["Bsc", "BSc", "Msc", "MSc", "PHD", "Dip"],
       sex_type: ["M", "F"],
       staff_category: [
