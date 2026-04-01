@@ -49,6 +49,8 @@ import { toast } from 'sonner';
 const ROLES: { value: AppRole; label: string }[] = [
   { value: 'department_head', label: 'Department Head' },
   { value: 'avd', label: 'AVD (Associate Dean)' },
+  { value: 'college_dean', label: 'College Dean' },
+  { value: 'hr', label: 'HR' },
   { value: 'management', label: 'Management' },
 ];
 

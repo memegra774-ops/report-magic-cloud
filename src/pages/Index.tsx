@@ -41,6 +41,8 @@ const Index = () => {
       case 'system_admin': return 'System Administrator';
       case 'department_head': return 'Department Head';
       case 'avd': return 'Associate Vice Dean';
+      case 'college_dean': return 'College Dean';
+      case 'hr': return 'HR Officer';
       case 'management': return 'Management';
       default: return 'User';
     }
