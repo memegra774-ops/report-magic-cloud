@@ -220,15 +220,15 @@ const Reports = () => {
     if (role === 'department_head') {
       return report.department_id === profile?.department_id;
     }
-    if (role === 'avd') {
-      // AVD sees only reports belonging to their college
+    if (role === 'avd' || role === 'college_dean') {
+      // AVD/college_dean sees only reports belonging to their college
       if (!report.department_id) {
-        // College-level report: must match this AVD's college
+        // College-level report: must match this user's college
         return report.college_id === profile?.college_id;
       }
       return collegeDeptIds?.includes(report.department_id);
     }
-    // System admin and management see all
+    // System admin, management, and HR see all
     return true;
   });
 
