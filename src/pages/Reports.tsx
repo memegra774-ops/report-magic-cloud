@@ -518,6 +518,25 @@ const Reports = () => {
           </div>
         )}
 
+        {/* Generate University Report Button - For HR */}
+        {role === 'hr' && (
+          <div className="mb-8 flex items-center gap-4">
+            <h2 className="font-serif text-xl font-semibold flex items-center gap-2">
+              <Building2 className="h-5 w-5" />
+              University-Level Reports
+            </h2>
+            <Button
+              variant="outline"
+              onClick={handleGenerateUniversityReport}
+              disabled={generateUniversityReport.isPending}
+              className="border-primary text-primary hover:bg-primary/5"
+            >
+              <Plus className="h-4 w-4 mr-1" />
+              {generateUniversityReport.isPending ? 'Generating...' : 'Generate from Approved College Reports'}
+            </Button>
+          </div>
+        )
+
         {/* Approved Department Reports - For AVD */}
         {(role === 'avd' || role === 'system_admin') && approvedDepartmentReports && approvedDepartmentReports.length > 0 && (
           <div className="mb-8">
