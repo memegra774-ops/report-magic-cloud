@@ -5,7 +5,7 @@ import ReportView from '@/components/ReportView';
 import ReportLetter from '@/components/ReportLetter';
 import ReportComparison from '@/components/ReportComparison';
 import SubmissionStatusDashboard from '@/components/SubmissionStatusDashboard';
-import { useMonthlyReports, useCreateReport, useDeleteReport, useSubmitReport, useApproveReport, useRejectReport, useResubmitReport, useGenerateCollegeReport, useUndoApproval } from '@/hooks/useReports';
+import { useMonthlyReports, useCreateReport, useDeleteReport, useSubmitReport, useApproveReport, useRejectReport, useResubmitReport, useGenerateCollegeReport, useUndoApproval, useGenerateUniversityReport } from '@/hooks/useReports';
 import { useCreateNotification } from '@/hooks/useNotifications';
 import { useAuth } from '@/contexts/AuthContext';
 import { useDepartments } from '@/hooks/useStaff';
@@ -57,11 +57,11 @@ const Reports = () => {
   const [rejectDialogOpen, setRejectDialogOpen] = useState<MonthlyReport | null>(null);
   const [rejectionReason, setRejectionReason] = useState('');
 
-  // AVD sees only departments under their college
-  const collegeId = role === 'avd' ? profile?.college_id : undefined;
+  // AVD and college_dean see only departments under their college
+  const collegeId = (role === 'avd' || role === 'college_dean') ? profile?.college_id : undefined;
   const { data: departments } = useDepartments(collegeId);
   const { data: colleges } = useColleges();
-  const collegeDeptIds = role === 'avd' && departments ? departments.map(d => d.id) : undefined;
+  const collegeDeptIds = (role === 'avd' || role === 'college_dean') && departments ? departments.map(d => d.id) : undefined;
   const userCollege = colleges?.find(c => c.id === profile?.college_id);
   const collegeName = userCollege?.name || departments?.[0]?.college_name || 'College';
   const { data: reports, isLoading } = useMonthlyReports();
@@ -73,6 +73,7 @@ const Reports = () => {
   const resubmitReport = useResubmitReport();
   const generateCollegeReport = useGenerateCollegeReport();
   const undoApproval = useUndoApproval();
+  const generateUniversityReport = useGenerateUniversityReport();
   const createNotification = useCreateNotification();
 
   const handleCreateReport = async () => {
@@ -177,6 +178,13 @@ const Reports = () => {
     });
   };
 
+  const handleGenerateUniversityReport = async () => {
+    await generateUniversityReport.mutateAsync({
+      month: selectedMonth,
+      year: selectedYear,
+    });
+  };
+
   const currentYear = new Date().getFullYear();
   const years = Array.from({ length: 5 }, (_, i) => currentYear - 2 + i);
 
@@ -210,25 +218,25 @@ const Reports = () => {
     }
   }, [createDialogOpen, selectedYear, existingReportMonths, selectedMonth, firstAvailableMonth]);
 
-  const canCreate = role === 'system_admin' || role === 'department_head' || role === 'avd';
+  const canCreate = role === 'system_admin' || role === 'department_head' || role === 'avd' || role === 'hr';
   // Both AVD and department heads can delete their own reports
-  const canDelete = role === 'system_admin' || role === 'avd' || role === 'department_head';
-  const canViewLetter = role === 'avd' || role === 'system_admin' || role === 'department_head';
+  const canDelete = role === 'system_admin' || role === 'avd' || role === 'department_head' || role === 'hr';
+  const canViewLetter = role === 'avd' || role === 'system_admin' || role === 'department_head' || role === 'college_dean' || role === 'hr';
 
   // Filter reports based on role
   const filteredReports = reports?.filter(report => {
     if (role === 'department_head') {
       return report.department_id === profile?.department_id;
     }
-    if (role === 'avd') {
-      // AVD sees only reports belonging to their college
+    if (role === 'avd' || role === 'college_dean') {
+      // AVD/college_dean sees only reports belonging to their college
       if (!report.department_id) {
-        // College-level report: must match this AVD's college
+        // College-level report: must match this user's college
         return report.college_id === profile?.college_id;
       }
       return collegeDeptIds?.includes(report.department_id);
     }
-    // System admin and management see all
+    // System admin, management, and HR see all
     return true;
   });
 
@@ -357,8 +365,8 @@ const Reports = () => {
             </p>
           </div>
           <div className="flex gap-2 flex-wrap">
-            {/* Month/Year selector for AVD dashboard */}
-            {(role === 'avd' || role === 'system_admin') && (
+            {/* Month/Year selector for AVD, college_dean, HR, system_admin dashboard */}
+            {(role === 'avd' || role === 'system_admin' || role === 'college_dean' || role === 'hr') && (
               <>
                 <Select value={String(selectedMonth)} onValueChange={(v) => setSelectedMonth(Number(v))}>
                   <SelectTrigger className="w-[130px]">
@@ -416,8 +424,8 @@ const Reports = () => {
           </div>
         </div>
 
-        {/* Submission Status Dashboard - For AVD */}
-        {(role === 'avd' || role === 'system_admin') && reports && (
+        {/* Submission Status Dashboard */}
+        {(role === 'avd' || role === 'system_admin' || role === 'hr') && reports && (
           <SubmissionStatusDashboard 
             reports={reports} 
             selectedMonth={selectedMonth} 
@@ -506,6 +514,25 @@ const Reports = () => {
             >
               <Plus className="h-4 w-4 mr-1" />
               {generateCollegeReport.isPending ? 'Generating...' : 'Generate from Approved Reports'}
+            </Button>
+          </div>
+        )}
+
+        {/* Generate University Report Button - For HR */}
+        {role === 'hr' && (
+          <div className="mb-8 flex items-center gap-4">
+            <h2 className="font-serif text-xl font-semibold flex items-center gap-2">
+              <Building2 className="h-5 w-5" />
+              University-Level Reports
+            </h2>
+            <Button
+              variant="outline"
+              onClick={handleGenerateUniversityReport}
+              disabled={generateUniversityReport.isPending}
+              className="border-primary text-primary hover:bg-primary/5"
+            >
+              <Plus className="h-4 w-4 mr-1" />
+              {generateUniversityReport.isPending ? 'Generating...' : 'Generate from Approved College Reports'}
             </Button>
           </div>
         )}

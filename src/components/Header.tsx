@@ -11,9 +11,9 @@ const Header = () => {
   const { user, role, signOut, profile } = useAuth();
 
   const navItems = [
-    { path: '/', label: 'Dashboard', icon: FileText, roles: ['system_admin', 'department_head', 'avd', 'management'] },
-    { path: '/staff', label: 'Staff Directory', icon: Users, roles: ['system_admin', 'department_head', 'avd', 'management'] },
-    { path: '/reports', label: 'Monthly Reports', icon: FileText, roles: ['system_admin', 'department_head', 'avd', 'management'] },
+    { path: '/', label: 'Dashboard', icon: FileText, roles: ['system_admin', 'department_head', 'avd', 'management', 'college_dean', 'hr'] },
+    { path: '/staff', label: 'Staff Directory', icon: Users, roles: ['system_admin', 'department_head', 'avd', 'management', 'college_dean', 'hr'] },
+    { path: '/reports', label: 'Monthly Reports', icon: FileText, roles: ['system_admin', 'department_head', 'avd', 'management', 'college_dean', 'hr'] },
     { path: '/colleges', label: 'Colleges', icon: Building2, roles: ['system_admin'] },
     { path: '/users', label: 'Users', icon: Settings, roles: ['system_admin'] },
   ];

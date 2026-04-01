@@ -28,14 +28,14 @@ const Staff = () => {
   const [csvImportOpen, setCsvImportOpen] = useState(false);
   const [selectedStaff, setSelectedStaff] = useState<StaffType | null>(null);
 
-  // AVD sees only departments under their college
-  const collegeId = role === 'avd' ? profile?.college_id : undefined;
+  // AVD and college_dean see only departments under their college
+  const collegeId = (role === 'avd' || role === 'college_dean') ? profile?.college_id : undefined;
   const { data: departments } = useDepartments(collegeId);
   
   const departmentId = role === 'department_head' ? profile?.department_id : undefined;
   
-  // Get college department IDs for AVD filtering
-  const collegeDeptIds = role === 'avd' ? departments?.map(d => d.id) : undefined;
+  // Get college department IDs for AVD/college_dean filtering
+  const collegeDeptIds = (role === 'avd' || role === 'college_dean') ? departments?.map(d => d.id) : undefined;
 
   const { data: staff, isLoading } = useStaff({
     category: categoryFilter === 'all' ? undefined : categoryFilter,

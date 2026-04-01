@@ -49,6 +49,8 @@ import { toast } from 'sonner';
 const ROLES: { value: AppRole; label: string }[] = [
   { value: 'department_head', label: 'Department Head' },
   { value: 'avd', label: 'AVD (Associate Dean)' },
+  { value: 'college_dean', label: 'College Dean' },
+  { value: 'hr', label: 'HR' },
   { value: 'management', label: 'Management' },
 ];
 
@@ -323,12 +325,14 @@ const UserManagement = () => {
                           <Badge variant="secondary">
                             {user.role === 'system_admin' ? 'System Admin' :
                              user.role === 'department_head' ? 'Department Head' :
-                             user.role === 'avd' ? 'AVD' : 'Management'}
+                             user.role === 'avd' ? 'AVD' : 
+                             user.role === 'college_dean' ? 'College Dean' :
+                             user.role === 'hr' ? 'HR' : 'Management'}
                           </Badge>
                         )}
                       </TableCell>
                       <TableCell>
-                        {user.role === 'avd'
+                        {user.role === 'avd' || user.role === 'college_dean'
                           ? (colleges?.find(c => c.id === user.college_id)?.code || '-')
                           : (user.departments?.code || '-')}
                       </TableCell>
@@ -432,7 +436,7 @@ const UserManagement = () => {
                   </Select>
                 </div>
               )}
-              {formData.role === 'avd' && (
+              {(formData.role === 'avd' || formData.role === 'college_dean') && (
                 <div className="space-y-2">
                   <Label>College</Label>
                   <Select
@@ -520,7 +524,7 @@ const UserManagement = () => {
                   </Select>
                 </div>
               )}
-              {editFormData.role === 'avd' && (
+              {(editFormData.role === 'avd' || editFormData.role === 'college_dean') && (
                 <div className="space-y-2">
                   <Label>College</Label>
                   <Select
