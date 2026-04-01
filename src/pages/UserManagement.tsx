@@ -524,7 +524,7 @@ const UserManagement = () => {
                   </Select>
                 </div>
               )}
-              {editFormData.role === 'avd' && (
+              {(editFormData.role === 'avd' || editFormData.role === 'college_dean') && (
                 <div className="space-y-2">
                   <Label>College</Label>
                   <Select
