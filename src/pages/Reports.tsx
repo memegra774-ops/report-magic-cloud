@@ -210,10 +210,10 @@ const Reports = () => {
     }
   }, [createDialogOpen, selectedYear, existingReportMonths, selectedMonth, firstAvailableMonth]);
 
-  const canCreate = role === 'system_admin' || role === 'department_head' || role === 'avd';
+  const canCreate = role === 'system_admin' || role === 'department_head' || role === 'avd' || role === 'hr';
   // Both AVD and department heads can delete their own reports
-  const canDelete = role === 'system_admin' || role === 'avd' || role === 'department_head';
-  const canViewLetter = role === 'avd' || role === 'system_admin' || role === 'department_head';
+  const canDelete = role === 'system_admin' || role === 'avd' || role === 'department_head' || role === 'hr';
+  const canViewLetter = role === 'avd' || role === 'system_admin' || role === 'department_head' || role === 'college_dean' || role === 'hr';
 
   // Filter reports based on role
   const filteredReports = reports?.filter(report => {
