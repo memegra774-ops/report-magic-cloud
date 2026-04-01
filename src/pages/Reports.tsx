@@ -73,6 +73,7 @@ const Reports = () => {
   const resubmitReport = useResubmitReport();
   const generateCollegeReport = useGenerateCollegeReport();
   const undoApproval = useUndoApproval();
+  const generateUniversityReport = useGenerateUniversityReport();
   const createNotification = useCreateNotification();
 
   const handleCreateReport = async () => {
