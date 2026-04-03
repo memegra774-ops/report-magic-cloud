@@ -366,6 +366,8 @@ const Reports = () => {
             <p className="text-muted-foreground">
               {role === 'avd' 
                 ? 'View and generate combined reports from all departments' 
+                : role === 'hr'
+                ? 'Compile university-level reports from approved college reports'
                 : 'Generate and view monthly staff reports'}
             </p>
           </div>
