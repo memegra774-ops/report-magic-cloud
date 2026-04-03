@@ -5,6 +5,7 @@ import ReportView from '@/components/ReportView';
 import ReportLetter from '@/components/ReportLetter';
 import ReportComparison from '@/components/ReportComparison';
 import SubmissionStatusDashboard from '@/components/SubmissionStatusDashboard';
+import CollegeSubmissionDashboard from '@/components/CollegeSubmissionDashboard';
 import { useMonthlyReports, useCreateReport, useDeleteReport, useSubmitReport, useApproveReport, useRejectReport, useResubmitReport, useGenerateCollegeReport, useUndoApproval, useGenerateUniversityReport } from '@/hooks/useReports';
 import { useCreateNotification } from '@/hooks/useNotifications';
 import { useAuth } from '@/contexts/AuthContext';
