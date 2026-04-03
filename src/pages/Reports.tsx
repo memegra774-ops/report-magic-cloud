@@ -678,7 +678,7 @@ const Reports = () => {
           <div className="space-y-1">
             <div className="hidden md:grid grid-cols-[1fr_1fr_120px_120px_80px_auto] gap-4 px-4 py-2 text-xs font-semibold text-muted-foreground uppercase tracking-wider border-b">
               <span>Report Period</span>
-              <span>Department</span>
+              <span>{role === 'hr' ? 'College' : 'Department'}</span>
               <span>Status</span>
               <span>Date</span>
               <span>Version</span>
@@ -696,6 +696,17 @@ const Reports = () => {
                 if (isRejected) return <Badge variant="destructive" className="text-xs"><XCircle className="h-3 w-3 mr-1" />Rejected</Badge>;
                 return <Badge variant="secondary" className="text-xs">Draft</Badge>;
               };
+
+              const getReportLabel = () => {
+                if (role === 'hr') {
+                  if (!report.college_id && !report.department_id) return 'University-Level';
+                  const college = colleges?.find(c => c.id === report.college_id);
+                  return college?.name || 'College Report';
+                }
+                return report.department_id 
+                  ? departments?.find(d => d.id === report.department_id)?.name || 'Unknown' 
+                  : 'College-Level';
+              };
               
               return (
                 <div 
@@ -706,9 +717,7 @@ const Reports = () => {
                     {MONTHS[report.report_month - 1]} {report.report_year}
                   </div>
                   <div className="text-sm text-muted-foreground">
-                    {report.department_id 
-                      ? departments?.find(d => d.id === report.department_id)?.name || 'Unknown' 
-                      : 'College-Level'}
+                    {getReportLabel()}
                   </div>
                   <div>{getStatusBadge()}</div>
                   <div className="text-xs text-muted-foreground">
