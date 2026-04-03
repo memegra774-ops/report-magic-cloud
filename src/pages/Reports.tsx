@@ -429,12 +429,21 @@ const Reports = () => {
           </div>
         </div>
 
-        {/* Submission Status Dashboard */}
-        {(role === 'avd' || role === 'system_admin' || role === 'hr') && reports && (
+        {/* Department Submission Status Dashboard - For AVD and System Admin */}
+        {(role === 'avd' || role === 'system_admin') && reports && (
           <SubmissionStatusDashboard 
             reports={reports} 
             selectedMonth={selectedMonth} 
             selectedYear={selectedYear} 
+          />
+        )}
+
+        {/* College Submission Status Dashboard - For HR */}
+        {role === 'hr' && reports && (
+          <CollegeSubmissionDashboard
+            reports={reports}
+            selectedMonth={selectedMonth}
+            selectedYear={selectedYear}
           />
         )}
 
