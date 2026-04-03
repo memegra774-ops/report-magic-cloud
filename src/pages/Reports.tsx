@@ -5,6 +5,7 @@ import ReportView from '@/components/ReportView';
 import ReportLetter from '@/components/ReportLetter';
 import ReportComparison from '@/components/ReportComparison';
 import SubmissionStatusDashboard from '@/components/SubmissionStatusDashboard';
+import CollegeSubmissionDashboard from '@/components/CollegeSubmissionDashboard';
 import { useMonthlyReports, useCreateReport, useDeleteReport, useSubmitReport, useApproveReport, useRejectReport, useResubmitReport, useGenerateCollegeReport, useUndoApproval, useGenerateUniversityReport } from '@/hooks/useReports';
 import { useCreateNotification } from '@/hooks/useNotifications';
 import { useAuth } from '@/contexts/AuthContext';
@@ -236,7 +237,11 @@ const Reports = () => {
       }
       return collegeDeptIds?.includes(report.department_id);
     }
-    // System admin, management, and HR see all
+    // HR sees only college-level and university-level reports (not department reports)
+    if (role === 'hr') {
+      return !report.department_id;
+    }
+    // System admin, management see all
     return true;
   });
 
@@ -361,6 +366,8 @@ const Reports = () => {
             <p className="text-muted-foreground">
               {role === 'avd' 
                 ? 'View and generate combined reports from all departments' 
+                : role === 'hr'
+                ? 'Compile university-level reports from approved college reports'
                 : 'Generate and view monthly staff reports'}
             </p>
           </div>
@@ -424,12 +431,21 @@ const Reports = () => {
           </div>
         </div>
 
-        {/* Submission Status Dashboard */}
-        {(role === 'avd' || role === 'system_admin' || role === 'hr') && reports && (
+        {/* Department Submission Status Dashboard - For AVD and System Admin */}
+        {(role === 'avd' || role === 'system_admin') && reports && (
           <SubmissionStatusDashboard 
             reports={reports} 
             selectedMonth={selectedMonth} 
             selectedYear={selectedYear} 
+          />
+        )}
+
+        {/* College Submission Status Dashboard - For HR */}
+        {role === 'hr' && reports && (
+          <CollegeSubmissionDashboard
+            reports={reports}
+            selectedMonth={selectedMonth}
+            selectedYear={selectedYear}
           />
         )}
 
@@ -664,7 +680,7 @@ const Reports = () => {
           <div className="space-y-1">
             <div className="hidden md:grid grid-cols-[1fr_1fr_120px_120px_80px_auto] gap-4 px-4 py-2 text-xs font-semibold text-muted-foreground uppercase tracking-wider border-b">
               <span>Report Period</span>
-              <span>Department</span>
+              <span>{role === 'hr' ? 'College' : 'Department'}</span>
               <span>Status</span>
               <span>Date</span>
               <span>Version</span>
@@ -682,6 +698,17 @@ const Reports = () => {
                 if (isRejected) return <Badge variant="destructive" className="text-xs"><XCircle className="h-3 w-3 mr-1" />Rejected</Badge>;
                 return <Badge variant="secondary" className="text-xs">Draft</Badge>;
               };
+
+              const getReportLabel = () => {
+                if (role === 'hr') {
+                  if (!report.college_id && !report.department_id) return 'University-Level';
+                  const college = colleges?.find(c => c.id === report.college_id);
+                  return college?.name || 'College Report';
+                }
+                return report.department_id 
+                  ? departments?.find(d => d.id === report.department_id)?.name || 'Unknown' 
+                  : 'College-Level';
+              };
               
               return (
                 <div 
@@ -692,9 +719,7 @@ const Reports = () => {
                     {MONTHS[report.report_month - 1]} {report.report_year}
                   </div>
                   <div className="text-sm text-muted-foreground">
-                    {report.department_id 
-                      ? departments?.find(d => d.id === report.department_id)?.name || 'Unknown' 
-                      : 'College-Level'}
+                    {getReportLabel()}
                   </div>
                   <div>{getStatusBadge()}</div>
                   <div className="text-xs text-muted-foreground">
