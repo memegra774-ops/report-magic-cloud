@@ -237,7 +237,11 @@ const Reports = () => {
       }
       return collegeDeptIds?.includes(report.department_id);
     }
-    // System admin, management, and HR see all
+    // HR sees only college-level and university-level reports (not department reports)
+    if (role === 'hr') {
+      return !report.department_id;
+    }
+    // System admin, management see all
     return true;
   });
 
