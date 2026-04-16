@@ -195,7 +195,7 @@ const ReportView = ({ report, isDepartmentHead = false, collegeName, isCollegeLe
       XLSX.utils.sheet_add_aoa(ws, [[resolvedCollegeName]], { origin: 'A2' });
       
       let dataStartRow = 4;
-      if (isDepartmentHead && departmentInfo) {
+      if (report.department_id && departmentInfo) {
         XLSX.utils.sheet_add_aoa(ws, [[`Department: ${departmentInfo.name} (${departmentInfo.code})`]], { origin: 'A3' });
         XLSX.utils.sheet_add_aoa(ws, [[`${section.title} - ${MONTHS[report.report_month - 1]} ${report.report_year}`]], { origin: 'A4' });
         dataStartRow = 6;
