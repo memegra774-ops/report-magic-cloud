@@ -306,7 +306,7 @@ const ReportView = ({ report, isDepartmentHead = false, collegeName, isCollegeLe
                 <h2 style={{ fontFamily: "'Times New Roman', serif", fontSize: '12pt' }}>
                   {resolvedCollegeName}
                 </h2>
-                {departmentInfo && (
+                {departmentInfo && !isCollegeLevelReport && report.department_id && (
                   <h3 style={{ fontFamily: "'Times New Roman', serif", fontSize: '12pt' }}>
                     Department: {departmentInfo.name} ({departmentInfo.code})
                   </h3>
