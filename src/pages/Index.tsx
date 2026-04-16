@@ -125,18 +125,39 @@ const Index = () => {
           <CardContent>
             {deptStatsLoading ? (
               <Skeleton className="h-64 w-full" />
-            ) : (
+            ) : (() => {
+              // Determine if this is CoHSS college (all units except TIM which is dept)
+              const isCoHSS = filteredDeptStats?.some(d => d.code === 'TIM' || d.code === 'Human' || d.code === 'Lang' || d.code === 'Social' || d.code === 'SPSc');
+              
+              const getDeptRowTotal = (dept: typeof filteredDeptStats extends (infer T)[] | undefined ? T : never) => {
+                const g = dept.genderByStatus;
+                return (g?.onDuty?.M || 0) + (g?.onDuty?.F || 0) +
+                  (g?.notOnDuty?.M || 0) + (g?.notOnDuty?.F || 0) +
+                  (g?.onStudy?.M || 0) + (g?.onStudy?.F || 0) +
+                  (g?.sick?.M || 0) + (g?.sick?.F || 0) +
+                  (g?.onStudyNotReporting?.M || 0) + (g?.onStudyNotReporting?.F || 0) +
+                  (g?.onDutyARA?.M || 0) + (g?.onDutyARA?.F || 0);
+              };
+
+              const getFirstColumnLabel = (deptCode: string) => {
+                if (!isCoHSS) return null; // use header label
+                return deptCode === 'TIM' ? 'Dept' : 'Unit';
+              };
+
+              return (
               <div className="overflow-x-auto">
                 <Table>
                   <TableHeader>
                     <TableRow className="bg-primary/5">
-                      <TableHead rowSpan={2} className="align-middle">Department</TableHead>
+                      {isCoHSS && <TableHead rowSpan={2} className="align-middle">Type</TableHead>}
+                      <TableHead rowSpan={2} className="align-middle">{isCoHSS ? 'Name' : 'Department'}</TableHead>
                       <TableHead className="text-center" colSpan={2}>On Duty</TableHead>
                       <TableHead className="text-center" colSpan={2}>Not On Duty</TableHead>
                       <TableHead className="text-center" colSpan={2}>On Study</TableHead>
                       <TableHead className="text-center" colSpan={2}>Sick</TableHead>
                       <TableHead className="text-center" colSpan={2}>On Study & Not Reporting</TableHead>
                       <TableHead className="text-center" colSpan={2}>On Duty ARA</TableHead>
+                      <TableHead rowSpan={2} className="text-center align-middle font-bold">Total</TableHead>
                     </TableRow>
                     <TableRow className="bg-muted/50">
                       <TableHead className="text-center text-info">M</TableHead>
@@ -156,6 +177,7 @@ const Index = () => {
                   <TableBody>
                     {filteredDeptStats?.map((dept) => (
                       <TableRow key={dept.id}>
+                        {isCoHSS && <TableCell className="font-medium text-muted-foreground text-xs">{getFirstColumnLabel(dept.code)}</TableCell>}
                         <TableCell className="font-medium">{dept.code}</TableCell>
                         <TableCell className="text-center text-info font-semibold">{dept.genderByStatus?.onDuty?.M || 0}</TableCell>
                         <TableCell className="text-center text-warning font-semibold">{dept.genderByStatus?.onDuty?.F || 0}</TableCell>
@@ -169,11 +191,13 @@ const Index = () => {
                         <TableCell className="text-center text-warning">{dept.genderByStatus?.onStudyNotReporting?.F || 0}</TableCell>
                         <TableCell className="text-center text-info font-semibold">{dept.genderByStatus?.onDutyARA?.M || 0}</TableCell>
                         <TableCell className="text-center text-warning font-semibold">{dept.genderByStatus?.onDutyARA?.F || 0}</TableCell>
+                        <TableCell className="text-center font-bold">{getDeptRowTotal(dept)}</TableCell>
                       </TableRow>
                     ))}
                     {filteredDeptStats && filteredDeptStats.length > 1 && (
                       <TableRow className="bg-muted font-bold">
-                        <TableCell>Total</TableCell>
+                        {isCoHSS && <TableCell></TableCell>}
+                        <TableCell>Grand Total</TableCell>
                         <TableCell className="text-center text-info">{filteredDeptStats.reduce((sum, d) => sum + (d.genderByStatus?.onDuty?.M || 0), 0)}</TableCell>
                         <TableCell className="text-center text-warning">{filteredDeptStats.reduce((sum, d) => sum + (d.genderByStatus?.onDuty?.F || 0), 0)}</TableCell>
                         <TableCell className="text-center text-info">{filteredDeptStats.reduce((sum, d) => sum + (d.genderByStatus?.notOnDuty?.M || 0), 0)}</TableCell>
@@ -186,12 +210,14 @@ const Index = () => {
                         <TableCell className="text-center text-warning">{filteredDeptStats.reduce((sum, d) => sum + (d.genderByStatus?.onStudyNotReporting?.F || 0), 0)}</TableCell>
                         <TableCell className="text-center text-info">{filteredDeptStats.reduce((sum, d) => sum + (d.genderByStatus?.onDutyARA?.M || 0), 0)}</TableCell>
                         <TableCell className="text-center text-warning">{filteredDeptStats.reduce((sum, d) => sum + (d.genderByStatus?.onDutyARA?.F || 0), 0)}</TableCell>
+                        <TableCell className="text-center font-bold">{filteredDeptStats.reduce((sum, d) => sum + (getDeptRowTotal(d)), 0)}</TableCell>
                       </TableRow>
                     )}
                   </TableBody>
                 </Table>
               </div>
-            )}
+              );
+            })()}
           </CardContent>
         </Card>
 
