@@ -18,6 +18,7 @@ interface ReportViewProps {
   report: MonthlyReport;
   isDepartmentHead?: boolean;
   collegeName?: string;
+  isCollegeLevelReport?: boolean;
 }
 
 // Report sections matching the PDF template exactly
@@ -41,7 +42,7 @@ const REPORT_SECTIONS: ReportSection[] = [
   { id: 'astu-sponsor', title: 'ASTU Sponsors Report', categoryFilter: 'ASTU Sponsor' },
 ];
 
-const ReportView = ({ report, isDepartmentHead = false, collegeName }: ReportViewProps) => {
+const ReportView = ({ report, isDepartmentHead = false, collegeName, isCollegeLevelReport = false }: ReportViewProps) => {
   const { data: entries, isLoading } = useReportEntries(report.id);
   const printRef = useRef<HTMLDivElement>(null);
 
@@ -194,7 +195,7 @@ const ReportView = ({ report, isDepartmentHead = false, collegeName }: ReportVie
       XLSX.utils.sheet_add_aoa(ws, [[resolvedCollegeName]], { origin: 'A2' });
       
       let dataStartRow = 4;
-      if (isDepartmentHead && departmentInfo) {
+      if (report.department_id && departmentInfo) {
         XLSX.utils.sheet_add_aoa(ws, [[`Department: ${departmentInfo.name} (${departmentInfo.code})`]], { origin: 'A3' });
         XLSX.utils.sheet_add_aoa(ws, [[`${section.title} - ${MONTHS[report.report_month - 1]} ${report.report_year}`]], { origin: 'A4' });
         dataStartRow = 6;
@@ -233,7 +234,7 @@ const ReportView = ({ report, isDepartmentHead = false, collegeName }: ReportVie
     XLSX.utils.sheet_add_aoa(summaryWs, [[resolvedCollegeName]], { origin: 'A2' });
     
     let summaryDataStartRow = 4;
-    if (isDepartmentHead && departmentInfo) {
+    if (report.department_id && departmentInfo) {
       XLSX.utils.sheet_add_aoa(summaryWs, [[`Department: ${departmentInfo.name} (${departmentInfo.code})`]], { origin: 'A3' });
       XLSX.utils.sheet_add_aoa(summaryWs, [[`All Staff Summary - ${MONTHS[report.report_month - 1]} ${report.report_year}`]], { origin: 'A4' });
       summaryDataStartRow = 6;
@@ -305,7 +306,7 @@ const ReportView = ({ report, isDepartmentHead = false, collegeName }: ReportVie
                 <h2 style={{ fontFamily: "'Times New Roman', serif", fontSize: '12pt' }}>
                   {resolvedCollegeName}
                 </h2>
-                {departmentInfo && (
+                {departmentInfo && !isCollegeLevelReport && report.department_id && (
                   <h3 style={{ fontFamily: "'Times New Roman', serif", fontSize: '12pt' }}>
                     Department: {departmentInfo.name} ({departmentInfo.code})
                   </h3>
