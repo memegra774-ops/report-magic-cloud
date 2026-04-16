@@ -18,6 +18,7 @@ interface ReportViewProps {
   report: MonthlyReport;
   isDepartmentHead?: boolean;
   collegeName?: string;
+  isCollegeLevelReport?: boolean;
 }
 
 // Report sections matching the PDF template exactly
