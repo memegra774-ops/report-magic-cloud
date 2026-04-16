@@ -518,7 +518,7 @@ export type Database = {
         | "management"
         | "college_dean"
         | "hr"
-      education_level: "Bsc" | "BSc" | "Msc" | "MSc" | "PHD" | "Dip"
+      education_level: "Bsc" | "BSc" | "Msc" | "MSc" | "PHD" | "Dip" | "MA"
       sex_type: "M" | "F"
       staff_category:
         | "Local Instructors"
@@ -663,7 +663,7 @@ export const Constants = {
         "college_dean",
         "hr",
       ],
-      education_level: ["Bsc", "BSc", "Msc", "MSc", "PHD", "Dip"],
+      education_level: ["Bsc", "BSc", "Msc", "MSc", "PHD", "Dip", "MA"],
       sex_type: ["M", "F"],
       staff_category: [
         "Local Instructors",
