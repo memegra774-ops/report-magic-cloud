@@ -42,7 +42,7 @@ const REPORT_SECTIONS: ReportSection[] = [
   { id: 'astu-sponsor', title: 'ASTU Sponsors Report', categoryFilter: 'ASTU Sponsor' },
 ];
 
-const ReportView = ({ report, isDepartmentHead = false, collegeName }: ReportViewProps) => {
+const ReportView = ({ report, isDepartmentHead = false, collegeName, isCollegeLevelReport = false }: ReportViewProps) => {
   const { data: entries, isLoading } = useReportEntries(report.id);
   const printRef = useRef<HTMLDivElement>(null);
 
