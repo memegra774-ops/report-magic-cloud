@@ -322,6 +322,15 @@ const Reports = () => {
   }
 
   if (viewReport) {
+    // Determine if this is a college-level report (no department_id)
+    const isCollegeLevelReport = !viewReport.department_id;
+    
+    // Resolve college name for this specific report
+    const reportCollegeName = viewReport.college_id 
+      ? colleges?.find(c => c.id === viewReport.college_id)?.name 
+      : collegeName;
+    const resolvedReportCollegeName = reportCollegeName || collegeName;
+
     return (
       <div className="min-h-screen bg-background">
         <Header />
@@ -337,18 +346,18 @@ const Reports = () => {
                 <TabsTrigger value="letter">Official Letter</TabsTrigger>
               </TabsList>
               <TabsContent value="report">
-                <ReportView report={viewReport} isDepartmentHead={isDepartmentHead} collegeName={collegeName} />
+                <ReportView report={viewReport} isDepartmentHead={isDepartmentHead} collegeName={resolvedReportCollegeName} isCollegeLevelReport={isCollegeLevelReport} />
               </TabsContent>
               <TabsContent value="letter">
                 <ReportLetter 
                   report={viewReport} 
                   department={departments?.find(d => d.id === viewReport.department_id)}
-                  collegeName={collegeName}
+                  collegeName={resolvedReportCollegeName}
                 />
               </TabsContent>
             </Tabs>
           ) : (
-            <ReportView report={viewReport} isDepartmentHead={isDepartmentHead} collegeName={collegeName} />
+            <ReportView report={viewReport} isDepartmentHead={isDepartmentHead} collegeName={resolvedReportCollegeName} isCollegeLevelReport={isCollegeLevelReport} />
           )}
         </main>
       </div>
