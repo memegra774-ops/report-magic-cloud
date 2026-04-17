@@ -164,6 +164,28 @@ const StaffDetailDialog = ({ staff, open, onClose, canEdit, isAdmin = false }: S
 
         {isEditing ? (
           <div className="space-y-4">
+            {isAdmin && (
+              <>
+                <h3 className="font-semibold text-sm text-muted-foreground uppercase tracking-wide">Core Info (Admin Only)</h3>
+                <div className="grid grid-cols-2 gap-3">
+                  <EditField label="Full Name" field="full_name" icon={User} />
+                  <div className="space-y-1">
+                    <Label className="text-xs flex items-center gap-1.5"><Building2 className="h-3 w-3" />Department</Label>
+                    <Select
+                      value={formData.department_id || ''}
+                      onValueChange={(v) => setFormData(prev => ({ ...prev, department_id: v }))}
+                    >
+                      <SelectTrigger className="h-8 text-sm"><SelectValue placeholder="Select department..." /></SelectTrigger>
+                      <SelectContent>
+                        {departments?.map((d) => (
+                          <SelectItem key={d.id} value={d.id}>{d.name} ({d.code})</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+              </>
+            )}
             <h3 className="font-semibold text-sm text-muted-foreground uppercase tracking-wide">Personal Information</h3>
             <div className="grid grid-cols-2 gap-3">
               <EditField label="Mother's Name" field="mother_name" icon={User} />
