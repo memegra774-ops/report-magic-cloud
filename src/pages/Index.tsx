@@ -69,10 +69,10 @@ const Index = () => {
         </div>
 
         {/* Stats Grid - On Duty by Academic Rank */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6 mb-8">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-6 gap-6 mb-8">
           {statsLoading ? (
             <>
-              {[...Array(5)].map((_, i) => (
+              {[...Array(6)].map((_, i) => (
                 <Skeleton key={i} className="h-32 rounded-xl" />
               ))}
             </>
@@ -83,7 +83,7 @@ const Index = () => {
                 value={stats?.onDutyByRank?.total || 0}
                 icon={Users}
                 variant="primary"
-                description="All on-duty staff"
+                description="Lecturer to Professor"
               />
               <StatsCard
                 title="On Duty Lecturers"
@@ -112,6 +112,13 @@ const Index = () => {
                 icon={GraduationCap}
                 variant="primary"
                 description="Full Professor"
+              />
+              <StatsCard
+                title="On Duty ARA"
+                value={stats?.onDutyARACount || 0}
+                icon={Building2}
+                variant="info"
+                description="Academic Research Assistants"
               />
             </>
           )}
