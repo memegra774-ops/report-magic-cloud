@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Staff } from '@/types/staff';
-import { useUpdateStaff } from '@/hooks/useStaff';
+import { useUpdateStaff, useDepartments } from '@/hooks/useStaff';
+import { useAuth } from '@/contexts/AuthContext';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -8,13 +9,14 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Separator } from '@/components/ui/separator';
 import { Badge } from '@/components/ui/badge';
-import { Pencil, Save, X, User, Phone, Mail, Briefcase, GraduationCap, MapPin, Calendar, Shield, Heart } from 'lucide-react';
+import { Pencil, Save, X, User, Phone, Mail, Briefcase, GraduationCap, MapPin, Calendar, Shield, Heart, Building2 } from 'lucide-react';
 
 interface StaffDetailDialogProps {
   staff: Staff | null;
   open: boolean;
   onClose: () => void;
   canEdit: boolean;
+  isAdmin?: boolean;
 }
 
 const StaffDetailDialog = ({ staff, open, onClose, canEdit }: StaffDetailDialogProps) => {
