@@ -388,6 +388,7 @@ export const useStaffStats = (departmentId?: string, departmentIds?: string[]) =
           assoProf: 0,
           professor: 0,
         },
+        onDutyARACount: 0,
       };
 
       data.forEach((staff) => {
