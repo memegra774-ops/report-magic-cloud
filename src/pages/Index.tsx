@@ -69,10 +69,10 @@ const Index = () => {
         </div>
 
         {/* Stats Grid - On Duty by Academic Rank */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6 mb-8">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-6 gap-6 mb-8">
           {statsLoading ? (
             <>
-              {[...Array(5)].map((_, i) => (
+              {[...Array(6)].map((_, i) => (
                 <Skeleton key={i} className="h-32 rounded-xl" />
               ))}
             </>
@@ -83,7 +83,7 @@ const Index = () => {
                 value={stats?.onDutyByRank?.total || 0}
                 icon={Users}
                 variant="primary"
-                description="All on-duty staff"
+                description="Lecturer to Professor"
               />
               <StatsCard
                 title="On Duty Lecturers"
@@ -112,6 +112,13 @@ const Index = () => {
                 icon={GraduationCap}
                 variant="primary"
                 description="Full Professor"
+              />
+              <StatsCard
+                title="On Duty ARA"
+                value={stats?.onDutyARACount || 0}
+                icon={Building2}
+                variant="info"
+                description="Academic Research Assistants"
               />
             </>
           )}
@@ -400,30 +407,36 @@ const Index = () => {
                       <TableHead className="text-center">Assoc. Prof.</TableHead>
                       <TableHead className="text-center">Professor</TableHead>
                       <TableHead className="text-center">On Duty ARA</TableHead>
+                      <TableHead className="text-center font-bold">Total</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {filteredDeptStats?.map((dept) => (
-                      <TableRow key={dept.id}>
-                        <TableCell className="font-medium">{dept.code}</TableCell>
-                        <TableCell className="text-center font-bold text-success">{dept.onDutyByRank?.total || 0}</TableCell>
-                        <TableCell className="text-center">{dept.onDutyByRank?.lecturer || 0}</TableCell>
-                        <TableCell className="text-center">{dept.onDutyByRank?.asstProf || 0}</TableCell>
-                        <TableCell className="text-center">{dept.onDutyByRank?.assoProf || 0}</TableCell>
-                        <TableCell className="text-center">{dept.onDutyByRank?.professor || 0}</TableCell>
-                        <TableCell className="text-center font-semibold text-primary">{dept.onDutyARACount || 0}</TableCell>
-                      </TableRow>
-                    ))}
+                    {filteredDeptStats?.map((dept) => {
+                      const rowTotal = (dept.onDutyByRank?.total || 0) + (dept.onDutyARACount || 0);
+                      return (
+                        <TableRow key={dept.id}>
+                          <TableCell className="font-medium">{dept.code}</TableCell>
+                          <TableCell className="text-center font-bold text-success">{dept.onDutyByRank?.total || 0}</TableCell>
+                          <TableCell className="text-center">{dept.onDutyByRank?.lecturer || 0}</TableCell>
+                          <TableCell className="text-center">{dept.onDutyByRank?.asstProf || 0}</TableCell>
+                          <TableCell className="text-center">{dept.onDutyByRank?.assoProf || 0}</TableCell>
+                          <TableCell className="text-center">{dept.onDutyByRank?.professor || 0}</TableCell>
+                          <TableCell className="text-center font-semibold text-primary">{dept.onDutyARACount || 0}</TableCell>
+                          <TableCell className="text-center font-bold">{rowTotal}</TableCell>
+                        </TableRow>
+                      );
+                    })}
                     {/* Totals Row */}
                     {filteredDeptStats && filteredDeptStats.length > 1 && (
                       <TableRow className="bg-muted font-bold">
-                        <TableCell>Total</TableCell>
+                        <TableCell>Grand Total</TableCell>
                         <TableCell className="text-center text-success">{filteredDeptStats.reduce((sum, d) => sum + (d.onDutyByRank?.total || 0), 0)}</TableCell>
                         <TableCell className="text-center">{filteredDeptStats.reduce((sum, d) => sum + (d.onDutyByRank?.lecturer || 0), 0)}</TableCell>
                         <TableCell className="text-center">{filteredDeptStats.reduce((sum, d) => sum + (d.onDutyByRank?.asstProf || 0), 0)}</TableCell>
                         <TableCell className="text-center">{filteredDeptStats.reduce((sum, d) => sum + (d.onDutyByRank?.assoProf || 0), 0)}</TableCell>
                         <TableCell className="text-center">{filteredDeptStats.reduce((sum, d) => sum + (d.onDutyByRank?.professor || 0), 0)}</TableCell>
                         <TableCell className="text-center text-primary">{filteredDeptStats.reduce((sum, d) => sum + (d.onDutyARACount || 0), 0)}</TableCell>
+                        <TableCell className="text-center">{filteredDeptStats.reduce((sum, d) => sum + (d.onDutyByRank?.total || 0) + (d.onDutyARACount || 0), 0)}</TableCell>
                       </TableRow>
                     )}
                   </TableBody>

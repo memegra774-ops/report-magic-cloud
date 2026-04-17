@@ -388,6 +388,7 @@ export const useStaffStats = (departmentId?: string, departmentIds?: string[]) =
           assoProf: 0,
           professor: 0,
         },
+        onDutyARACount: 0,
       };
 
       data.forEach((staff) => {
@@ -421,6 +422,10 @@ export const useStaffStats = (departmentId?: string, departmentIds?: string[]) =
         
         if (status === 'On Duty') {
           stats.onDutyByRank.total++;
+        }
+        
+        if ((staff as any).category === 'ARA' && status === 'On Duty') {
+          stats.onDutyARACount++;
         }
       });
 
