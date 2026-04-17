@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Staff } from '@/types/staff';
-import { useUpdateStaff } from '@/hooks/useStaff';
+import { useUpdateStaff, useDepartments } from '@/hooks/useStaff';
+import { useAuth } from '@/contexts/AuthContext';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -8,24 +9,33 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Separator } from '@/components/ui/separator';
 import { Badge } from '@/components/ui/badge';
-import { Pencil, Save, X, User, Phone, Mail, Briefcase, GraduationCap, MapPin, Calendar, Shield, Heart } from 'lucide-react';
+import { Pencil, Save, X, User, Phone, Mail, Briefcase, GraduationCap, MapPin, Calendar, Shield, Heart, Building2 } from 'lucide-react';
 
 interface StaffDetailDialogProps {
   staff: Staff | null;
   open: boolean;
   onClose: () => void;
   canEdit: boolean;
+  isAdmin?: boolean;
 }
 
-const StaffDetailDialog = ({ staff, open, onClose, canEdit }: StaffDetailDialogProps) => {
+const StaffDetailDialog = ({ staff, open, onClose, canEdit, isAdmin = false }: StaffDetailDialogProps) => {
   const [isEditing, setIsEditing] = useState(false);
   const [formData, setFormData] = useState<Record<string, any>>({});
-  const updateStaff = useUpdateStaff();
+  const { user, profile } = useAuth();
+  const updateStaff = useUpdateStaff({
+    isAdmin,
+    userId: user?.id,
+    performedBy: profile?.full_name || profile?.email || 'User',
+  });
+  const { data: departments } = useDepartments();
 
   if (!staff) return null;
 
   const startEditing = () => {
     setFormData({
+      full_name: staff.full_name || '',
+      department_id: staff.department_id || '',
       mother_name: staff.mother_name || '',
       phone_number: staff.phone_number || '',
       fan_number: staff.fan_number || '',
@@ -50,7 +60,7 @@ const StaffDetailDialog = ({ staff, open, onClose, canEdit }: StaffDetailDialogP
   };
 
   const saveChanges = async () => {
-    await updateStaff.mutateAsync({
+    const payload: any = {
       id: staff.id,
       mother_name: formData.mother_name || null,
       phone_number: formData.phone_number || null,
@@ -66,7 +76,16 @@ const StaffDetailDialog = ({ staff, open, onClose, canEdit }: StaffDetailDialogP
       marital_status: formData.marital_status || null,
       emergency_contact_name: formData.emergency_contact_name || null,
       emergency_contact_phone: formData.emergency_contact_phone || null,
-    } as any);
+    };
+    if (isAdmin) {
+      if (formData.full_name && formData.full_name.trim()) {
+        payload.full_name = formData.full_name.trim();
+      }
+      if (formData.department_id) {
+        payload.department_id = formData.department_id;
+      }
+    }
+    await updateStaff.mutateAsync(payload);
     setIsEditing(false);
   };
 
@@ -145,6 +164,28 @@ const StaffDetailDialog = ({ staff, open, onClose, canEdit }: StaffDetailDialogP
 
         {isEditing ? (
           <div className="space-y-4">
+            {isAdmin && (
+              <>
+                <h3 className="font-semibold text-sm text-muted-foreground uppercase tracking-wide">Core Info (Admin Only)</h3>
+                <div className="grid grid-cols-2 gap-3">
+                  <EditField label="Full Name" field="full_name" icon={User} />
+                  <div className="space-y-1">
+                    <Label className="text-xs flex items-center gap-1.5"><Building2 className="h-3 w-3" />Department</Label>
+                    <Select
+                      value={formData.department_id || ''}
+                      onValueChange={(v) => setFormData(prev => ({ ...prev, department_id: v }))}
+                    >
+                      <SelectTrigger className="h-8 text-sm"><SelectValue placeholder="Select department..." /></SelectTrigger>
+                      <SelectContent>
+                        {departments?.map((d) => (
+                          <SelectItem key={d.id} value={d.id}>{d.name} ({d.code})</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+              </>
+            )}
             <h3 className="font-semibold text-sm text-muted-foreground uppercase tracking-wide">Personal Information</h3>
             <div className="grid grid-cols-2 gap-3">
               <EditField label="Mother's Name" field="mother_name" icon={User} />

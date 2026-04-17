@@ -394,23 +394,13 @@ const EditableStaffTable = ({ staff, canEdit = true, canDelete = true }: Editabl
                     </TableCell>
                     <TableCell className="font-medium">
                       <div className="flex items-center gap-1.5">
-                        {isAdmin && editingCell?.staffId === s.id && editingCell?.field === 'full_name' ? (
-                          renderEditableCell(s, 'full_name', s.full_name)
-                        ) : (
-                          <span
-                            className="cursor-pointer text-primary hover:underline"
-                            onClick={() => setSelectedStaff(s)}
-                            onDoubleClick={(e) => {
-                              if (isAdmin) {
-                                e.stopPropagation();
-                                startEditing(s.id, 'full_name', s.full_name);
-                              }
-                            }}
-                            title={isAdmin ? 'Click to view details, double-click to edit name' : 'Click to view details'}
-                          >
-                            {s.full_name}
-                          </span>
-                        )}
+                        <span
+                          className="cursor-pointer text-primary hover:underline"
+                          onClick={() => setSelectedStaff(s)}
+                          title="Click to view details"
+                        >
+                          {s.full_name}
+                        </span>
                         {hasPending && (
                           <Tooltip>
                             <TooltipTrigger>
@@ -537,6 +527,7 @@ const EditableStaffTable = ({ staff, canEdit = true, canDelete = true }: Editabl
           open={!!selectedStaff}
           onClose={() => setSelectedStaff(null)}
           canEdit={canEdit}
+          isAdmin={isAdmin}
         />
       </>
     </TooltipProvider>
