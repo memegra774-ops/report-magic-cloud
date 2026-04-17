@@ -423,6 +423,10 @@ export const useStaffStats = (departmentId?: string, departmentIds?: string[]) =
         if (status === 'On Duty') {
           stats.onDutyByRank.total++;
         }
+        
+        if ((staff as any).category === 'ARA' && status === 'On Duty') {
+          stats.onDutyARACount++;
+        }
       });
 
       return stats;
