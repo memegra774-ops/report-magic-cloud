@@ -418,7 +418,44 @@ const EditableStaffTable = ({ staff, canEdit = true, canDelete = true }: Editabl
                     <TableCell className="text-center">
                       {renderEditableCell(s, 'sex', s.sex, 'select', ['M', 'F'])}
                     </TableCell>
-                    <TableCell>{s.departments?.code || '-'}</TableCell>
+                    <TableCell>
+                      {isAdmin ? (
+                        editingCell?.staffId === s.id && editingCell?.field === 'department_id' ? (
+                          <div className="flex items-center gap-1">
+                            <Select
+                              value={editingCell.value}
+                              onValueChange={(value) => setEditingCell({ ...editingCell, value })}
+                            >
+                              <SelectTrigger className="h-8 text-xs min-w-[120px]">
+                                <SelectValue />
+                              </SelectTrigger>
+                              <SelectContent>
+                                {departments?.map((d) => (
+                                  <SelectItem key={d.id} value={d.id}>
+                                    {d.code} - {d.name}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                            <Button size="sm" variant="ghost" className="h-6 w-6 p-0" onClick={saveEdit}>
+                              <Check className="h-3 w-3 text-success" />
+                            </Button>
+                            <Button size="sm" variant="ghost" className="h-6 w-6 p-0" onClick={cancelEdit}>
+                              <X className="h-3 w-3 text-destructive" />
+                            </Button>
+                          </div>
+                        ) : (
+                          <span
+                            className="cursor-pointer hover:bg-muted/50 px-1 rounded"
+                            onClick={() => setEditingCell({ staffId: s.id, field: 'department_id', value: s.department_id || '' })}
+                          >
+                            {s.departments?.code || '-'}
+                          </span>
+                        )
+                      ) : (
+                        s.departments?.code || '-'
+                      )}
+                    </TableCell>
                     <TableCell className="max-w-[120px]">
                       {renderEditableCell(s, 'specialization', s.specialization || '')}
                     </TableCell>
