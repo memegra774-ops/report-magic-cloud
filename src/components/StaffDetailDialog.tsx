@@ -19,15 +19,23 @@ interface StaffDetailDialogProps {
   isAdmin?: boolean;
 }
 
-const StaffDetailDialog = ({ staff, open, onClose, canEdit }: StaffDetailDialogProps) => {
+const StaffDetailDialog = ({ staff, open, onClose, canEdit, isAdmin = false }: StaffDetailDialogProps) => {
   const [isEditing, setIsEditing] = useState(false);
   const [formData, setFormData] = useState<Record<string, any>>({});
-  const updateStaff = useUpdateStaff();
+  const { user, profile } = useAuth();
+  const updateStaff = useUpdateStaff({
+    isAdmin,
+    userId: user?.id,
+    performedBy: profile?.full_name || profile?.email || 'User',
+  });
+  const { data: departments } = useDepartments();
 
   if (!staff) return null;
 
   const startEditing = () => {
     setFormData({
+      full_name: staff.full_name || '',
+      department_id: staff.department_id || '',
       mother_name: staff.mother_name || '',
       phone_number: staff.phone_number || '',
       fan_number: staff.fan_number || '',
@@ -52,7 +60,7 @@ const StaffDetailDialog = ({ staff, open, onClose, canEdit }: StaffDetailDialogP
   };
 
   const saveChanges = async () => {
-    await updateStaff.mutateAsync({
+    const payload: any = {
       id: staff.id,
       mother_name: formData.mother_name || null,
       phone_number: formData.phone_number || null,
@@ -68,7 +76,16 @@ const StaffDetailDialog = ({ staff, open, onClose, canEdit }: StaffDetailDialogP
       marital_status: formData.marital_status || null,
       emergency_contact_name: formData.emergency_contact_name || null,
       emergency_contact_phone: formData.emergency_contact_phone || null,
-    } as any);
+    };
+    if (isAdmin) {
+      if (formData.full_name && formData.full_name.trim()) {
+        payload.full_name = formData.full_name.trim();
+      }
+      if (formData.department_id) {
+        payload.department_id = formData.department_id;
+      }
+    }
+    await updateStaff.mutateAsync(payload);
     setIsEditing(false);
   };
 
