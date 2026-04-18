@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.88.0";
+import { createRemoteJWKSet, jwtVerify } from "npm:jose@5.9.6";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -10,6 +11,7 @@ const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/
 const ALLOWED_ROLES = ["system_admin", "department_head", "avd", "management", "college_dean", "hr"];
 
 const DEFAULT_RESET_PASSWORD = "12345678";
+const AUTH_VERSION = "jwt-jwks-v2";
 
 serve(async (req: Request) => {
   if (req.method === "OPTIONS") {
@@ -19,26 +21,36 @@ serve(async (req: Request) => {
   try {
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-    const supabaseAnonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
 
     const authHeader = req.headers.get("Authorization");
     if (!authHeader?.startsWith("Bearer ")) {
-      return new Response(JSON.stringify({ error: "Unauthorized" }), {
+      return new Response(JSON.stringify({ error: `Unauthorized (${AUTH_VERSION})` }), {
         status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
-    const userClient = createClient(supabaseUrl, supabaseAnonKey, {
-      global: { headers: { Authorization: authHeader } },
-    });
+
     const token = authHeader.replace("Bearer ", "");
-    const { data: claimsData, error: claimsErr } = await userClient.auth.getClaims(token);
-    if (claimsErr || !claimsData?.claims?.sub) {
-      console.error("[update-user-role] auth error:", claimsErr);
-      return new Response(JSON.stringify({ error: "Unauthorized" }), {
+    let callerId: string;
+
+    try {
+      const jwks = createRemoteJWKSet(new URL(`${supabaseUrl}/auth/v1/.well-known/jwks.json`));
+      const { payload } = await jwtVerify(token, jwks, {
+        issuer: `${supabaseUrl}/auth/v1`,
+        audience: "authenticated",
+      });
+
+      if (typeof payload.sub !== "string") {
+        throw new Error("Missing token subject");
+      }
+
+      callerId = payload.sub;
+      console.log(`[update-user-role] ${AUTH_VERSION} caller=${callerId}`);
+    } catch (authError) {
+      console.error(`[update-user-role] ${AUTH_VERSION} auth error:`, authError);
+      return new Response(JSON.stringify({ error: `Unauthorized (${AUTH_VERSION})` }), {
         status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
-    const callerId = claimsData.claims.sub;
 
     const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey, {
       auth: { autoRefreshToken: false, persistSession: false },
