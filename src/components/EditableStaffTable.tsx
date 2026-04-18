@@ -214,6 +214,32 @@ const EditableStaffTable = ({ staff, canEdit = true, canDelete = true }: Editabl
     });
   };
 
+  const toggleSelect = (id: string) => {
+    setSelectedIds(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
+
+  const toggleSelectAll = (checked: boolean) => {
+    if (checked) {
+      setSelectedIds(new Set(sortedStaff.map(s => s.id)));
+    } else {
+      setSelectedIds(new Set());
+    }
+  };
+
+  const confirmBulkDelete = async () => {
+    await bulkDeleteStaff.mutateAsync({
+      ids: Array.from(selectedIds),
+      performedBy: profile?.full_name || profile?.email || 'System Admin',
+    });
+    setSelectedIds(new Set());
+    setBulkDeleteOpen(false);
+  };
+
   const renderFilterPopover = (
     label: string,
     filterKey: keyof ColumnFilters,
