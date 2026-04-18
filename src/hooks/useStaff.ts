@@ -351,6 +351,47 @@ export const useDeleteStaff = () => {
   });
 };
 
+export const useBulkDeleteStaff = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({ ids, performedBy }: { ids: string[]; performedBy?: string }) => {
+      if (!ids.length) return { count: 0 };
+
+      // Fetch staff details for notifications
+      const { data: staffList, error: fetchError } = await supabase
+        .from('staff')
+        .select('id, full_name, department_id, departments(name)')
+        .in('id', ids);
+      if (fetchError) throw fetchError;
+
+      const { error } = await supabase.from('staff').delete().in('id', ids);
+      if (error) throw error;
+
+      const performer = performedBy || 'System Admin';
+      // Fire-and-forget notifications
+      (staffList || []).forEach((s: any) => {
+        const deptName = s.departments?.name || 'Unknown Department';
+        createAVDNotification('staff_deleted', s.full_name, s.department_id, deptName, performer);
+      });
+
+      return { count: ids.length };
+    },
+    onSuccess: (res) => {
+      queryClient.invalidateQueries({ queryKey: ['staff'] });
+      queryClient.invalidateQueries({ queryKey: ['staff-stats'] });
+      queryClient.invalidateQueries({ queryKey: ['department-stats'] });
+      queryClient.invalidateQueries({ queryKey: ['staff-changes'] });
+      queryClient.invalidateQueries({ queryKey: ['staff-changes-pending-count'] });
+      queryClient.invalidateQueries({ queryKey: ['notifications'] });
+      toast.success(`${res.count} staff member${res.count !== 1 ? 's' : ''} deleted successfully`);
+    },
+    onError: (error) => {
+      toast.error('Failed to delete staff members: ' + error.message);
+    },
+  });
+};
+
 export const useStaffStats = (departmentId?: string, departmentIds?: string[]) => {
   return useQuery({
     queryKey: ['staff-stats', departmentId, departmentIds],
