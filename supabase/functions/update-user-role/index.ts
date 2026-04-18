@@ -9,12 +9,7 @@ const corsHeaders = {
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const ALLOWED_ROLES = ["system_admin", "department_head", "avd", "management", "college_dean", "hr"];
 
-function genTempPassword() {
-  // 16-char URL-safe random password
-  const bytes = new Uint8Array(12);
-  crypto.getRandomValues(bytes);
-  return btoa(String.fromCharCode(...bytes)).replace(/[+/=]/g, "").slice(0, 16) + "Aa1!";
-}
+const DEFAULT_RESET_PASSWORD = "12345678";
 
 serve(async (req: Request) => {
   if (req.method === "OPTIONS") {
@@ -110,7 +105,7 @@ serve(async (req: Request) => {
 
     let tempPassword: string | undefined;
     if (reset_password) {
-      tempPassword = genTempPassword();
+      tempPassword = DEFAULT_RESET_PASSWORD;
       const { error } = await supabaseAdmin.auth.admin.updateUserById(user_id, { password: tempPassword });
       if (error) throw error;
       await supabaseAdmin.from("profiles").update({ password_change_required: true }).eq("id", user_id);
