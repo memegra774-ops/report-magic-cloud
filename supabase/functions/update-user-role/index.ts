@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.88.0";
+import { createRemoteJWKSet, jwtVerify } from "npm:jose@5.9.6";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -19,7 +20,6 @@ serve(async (req: Request) => {
   try {
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-    const supabaseAnonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
 
     const authHeader = req.headers.get("Authorization");
     if (!authHeader?.startsWith("Bearer ")) {
@@ -27,20 +27,28 @@ serve(async (req: Request) => {
         status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
-    const userResponse = await fetch(`${supabaseUrl}/auth/v1/user`, {
-      headers: {
-        Authorization: authHeader,
-        apikey: supabaseAnonKey,
-      },
-    });
-    const userData = userResponse.ok ? await userResponse.json() : null;
-    if (!userResponse.ok || !userData?.id) {
-      console.error("[update-user-role] auth error:", userResponse.status, userData);
+
+    const token = authHeader.replace("Bearer ", "");
+    let callerId: string;
+
+    try {
+      const jwks = createRemoteJWKSet(new URL(`${supabaseUrl}/auth/v1/.well-known/jwks.json`));
+      const { payload } = await jwtVerify(token, jwks, {
+        issuer: `${supabaseUrl}/auth/v1`,
+        audience: "authenticated",
+      });
+
+      if (typeof payload.sub !== "string") {
+        throw new Error("Missing token subject");
+      }
+
+      callerId = payload.sub;
+    } catch (authError) {
+      console.error("[update-user-role] auth error:", authError);
       return new Response(JSON.stringify({ error: "Unauthorized" }), {
         status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
-    const callerId = userData.id;
 
     const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey, {
       auth: { autoRefreshToken: false, persistSession: false },
