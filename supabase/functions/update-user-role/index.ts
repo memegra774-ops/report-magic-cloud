@@ -6,6 +6,16 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+const ALLOWED_ROLES = ["system_admin", "department_head", "avd", "management", "college_dean", "hr"];
+
+function genTempPassword() {
+  // 16-char URL-safe random password
+  const bytes = new Uint8Array(12);
+  crypto.getRandomValues(bytes);
+  return btoa(String.fromCharCode(...bytes)).replace(/[+/=]/g, "").slice(0, 16) + "Aa1!";
+}
+
 serve(async (req: Request) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -14,100 +24,111 @@ serve(async (req: Request) => {
   try {
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-    
+    const supabaseAnonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
+
+    const authHeader = req.headers.get("Authorization");
+    if (!authHeader?.startsWith("Bearer ")) {
+      return new Response(JSON.stringify({ error: "Unauthorized" }), {
+        status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+    const userClient = createClient(supabaseUrl, supabaseAnonKey, {
+      global: { headers: { Authorization: authHeader } },
+    });
+    const token = authHeader.replace("Bearer ", "");
+    const { data: claimsData, error: claimsErr } = await userClient.auth.getClaims(token);
+    if (claimsErr || !claimsData?.claims) {
+      return new Response(JSON.stringify({ error: "Unauthorized" }), {
+        status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+    const callerId = claimsData.claims.sub;
+
     const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey, {
-      auth: {
-        autoRefreshToken: false,
-        persistSession: false,
-      },
+      auth: { autoRefreshToken: false, persistSession: false },
     });
 
-    const { user_id, new_role, department_id, college_id, full_name, reset_password } = await req.json();
-
-    if (!user_id) {
-      throw new Error("user_id is required");
-    }
-
-    // Update role if provided
-    if (new_role) {
-      console.log(`Updating user ${user_id} to role: ${new_role}`);
-      const { data: existingRole } = await supabaseAdmin
-        .from("user_roles")
-        .select("id")
-        .eq("user_id", user_id)
-        .maybeSingle();
-
-      if (existingRole) {
-        const { error: roleError } = await supabaseAdmin
-          .from("user_roles")
-          .update({ role: new_role })
-          .eq("user_id", user_id);
-        if (roleError) throw roleError;
-      } else {
-        const { error: roleError } = await supabaseAdmin
-          .from("user_roles")
-          .insert({ user_id, role: new_role });
-        if (roleError) throw roleError;
-      }
-    }
-
-    // Update profile fields (department, name)
-    const profileUpdate: Record<string, any> = {};
-    if (department_id !== undefined) {
-      profileUpdate.department_id = department_id || null;
-    }
-    if (college_id !== undefined) {
-      profileUpdate.college_id = college_id || null;
-    }
-    if (full_name !== undefined) {
-      profileUpdate.full_name = full_name;
-    }
-    if (Object.keys(profileUpdate).length > 0) {
-      const { error: profileError } = await supabaseAdmin
-        .from("profiles")
-        .update(profileUpdate)
-        .eq("id", user_id);
-      if (profileError) {
-        console.error("Profile update error:", profileError);
-        throw profileError;
-      }
-    }
-
-    // Reset password if requested
-    if (reset_password) {
-      console.log(`Resetting password for user ${user_id}`);
-      const { error: passwordError } = await supabaseAdmin.auth.admin.updateUserById(user_id, {
-        password: "12345678",
+    const { data: isAdmin } = await supabaseAdmin.rpc("has_role", {
+      _user_id: callerId,
+      _role: "system_admin",
+    });
+    if (!isAdmin) {
+      return new Response(JSON.stringify({ error: "Forbidden: system_admin required" }), {
+        status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
-      if (passwordError) {
-        console.error("Password reset error:", passwordError);
-        throw passwordError;
+    }
+
+    const body = await req.json();
+    const { user_id, new_role, department_id, college_id, full_name, reset_password } = body ?? {};
+
+    if (!user_id || typeof user_id !== "string" || !UUID_RE.test(user_id)) {
+      return new Response(JSON.stringify({ error: "Invalid user_id" }), {
+        status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+    if (new_role !== undefined && !ALLOWED_ROLES.includes(new_role)) {
+      return new Response(JSON.stringify({ error: "Invalid role" }), {
+        status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+    if (department_id && (typeof department_id !== "string" || !UUID_RE.test(department_id))) {
+      return new Response(JSON.stringify({ error: "Invalid department_id" }), {
+        status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+    if (college_id && (typeof college_id !== "string" || !UUID_RE.test(college_id))) {
+      return new Response(JSON.stringify({ error: "Invalid college_id" }), {
+        status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+    if (full_name !== undefined && (typeof full_name !== "string" || full_name.length > 200)) {
+      return new Response(JSON.stringify({ error: "Invalid full_name" }), {
+        status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    if (new_role) {
+      const { data: existingRole } = await supabaseAdmin
+        .from("user_roles").select("id").eq("user_id", user_id).maybeSingle();
+      if (existingRole) {
+        const { error } = await supabaseAdmin.from("user_roles").update({ role: new_role }).eq("user_id", user_id);
+        if (error) throw error;
+      } else {
+        const { error } = await supabaseAdmin.from("user_roles").insert({ user_id, role: new_role });
+        if (error) throw error;
       }
-      // Set password_change_required flag
-      await supabaseAdmin
-        .from("profiles")
-        .update({ password_change_required: true })
-        .eq("id", user_id);
+    }
+
+    const profileUpdate: Record<string, any> = {};
+    if (department_id !== undefined) profileUpdate.department_id = department_id || null;
+    if (college_id !== undefined) profileUpdate.college_id = college_id || null;
+    if (full_name !== undefined) profileUpdate.full_name = full_name;
+    if (Object.keys(profileUpdate).length > 0) {
+      const { error } = await supabaseAdmin.from("profiles").update(profileUpdate).eq("id", user_id);
+      if (error) throw error;
+    }
+
+    let tempPassword: string | undefined;
+    if (reset_password) {
+      tempPassword = genTempPassword();
+      const { error } = await supabaseAdmin.auth.admin.updateUserById(user_id, { password: tempPassword });
+      if (error) throw error;
+      await supabaseAdmin.from("profiles").update({ password_change_required: true }).eq("id", user_id);
     }
 
     return new Response(
-      JSON.stringify({ 
-        success: true, 
-        message: reset_password ? "User updated and password reset to default" : "User updated successfully"
+      JSON.stringify({
+        success: true,
+        message: reset_password ? "User updated and password reset" : "User updated successfully",
+        ...(tempPassword ? { temp_password: tempPassword } : {}),
       }),
-      {
-        status: 200,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      }
+      { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   } catch (error: any) {
     console.error("Error updating user:", error);
     return new Response(
-      JSON.stringify({ error: error.message, details: error.details || null }),
-      {
-        status: 400,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      }
+      JSON.stringify({ error: error.message ?? "Internal error" }),
+      { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   }
 });
