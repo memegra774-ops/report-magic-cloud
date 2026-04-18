@@ -28,19 +28,21 @@ serve(async (req: Request) => {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
-    const userClient = createClient(supabaseUrl, supabaseAnonKey, {
-      global: { headers: { Authorization: authHeader } },
+    const userResponse = await fetch(`${supabaseUrl}/auth/v1/user`, {
+      headers: {
+        Authorization: authHeader,
+        apikey: supabaseAnonKey,
+      },
     });
-    const token = authHeader.replace("Bearer ", "");
-    const { data: userData, error: userErr } = await userClient.auth.getUser(token);
-    if (userErr || !userData?.user?.id) {
-      console.error("[create-user] auth error:", userErr);
+    const userData = userResponse.ok ? await userResponse.json() : null;
+    if (!userResponse.ok || !userData?.id) {
+      console.error("[create-user] auth error:", userResponse.status, userData);
       return new Response(JSON.stringify({ error: "Unauthorized" }), {
         status: 401,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
-    const callerId = userData.user.id;
+    const callerId = userData.id;
 
     const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey, {
       auth: { autoRefreshToken: false, persistSession: false },
