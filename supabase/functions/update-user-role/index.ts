@@ -11,6 +11,21 @@ const ALLOWED_ROLES = ["system_admin", "department_head", "avd", "management", "
 
 const DEFAULT_RESET_PASSWORD = "12345678";
 
+const getJwtSubject = (token: string) => {
+  try {
+    const [, payload] = token.split(".");
+    if (!payload) return null;
+
+    const normalized = payload.replace(/-/g, "+").replace(/_/g, "/");
+    const padded = normalized.padEnd(Math.ceil(normalized.length / 4) * 4, "=");
+    const decoded = JSON.parse(atob(padded));
+
+    return typeof decoded?.sub === "string" ? decoded.sub : null;
+  } catch {
+    return null;
+  }
+};
+
 serve(async (req: Request) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -28,23 +43,28 @@ serve(async (req: Request) => {
       });
     }
 
-    const token = authHeader.replace("Bearer ", "");
-    let callerId: string;
+    const token = authHeader.replace("Bearer ", "").trim();
+    const callerId = getJwtSubject(token);
+    if (!callerId || !UUID_RE.test(callerId)) {
+      return new Response(JSON.stringify({ error: "Unauthorized" }), {
+        status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
     const userClient = createClient(supabaseUrl, supabaseAnonKey, {
       auth: { autoRefreshToken: false, persistSession: false },
       global: { headers: { Authorization: authHeader } },
     });
 
-    try {
-      const { data: claimsData, error: claimsError } = await userClient.auth.getClaims(token);
-      if (claimsError || typeof claimsData?.claims?.sub !== "string") {
-        throw new Error("Missing token subject");
-      }
+    const { data: callerRole, error: callerRoleError } = await userClient
+      .from("user_roles")
+      .select("role")
+      .eq("user_id", callerId)
+      .eq("role", "system_admin")
+      .maybeSingle();
 
-      callerId = claimsData.claims.sub;
-      console.log(`[update-user-role] claims caller=${callerId}`);
-    } catch (authError) {
-      console.error("[update-user-role] claims auth error:", authError);
+    if (callerRoleError) {
+      console.error("[update-user-role] caller auth error:", callerRoleError);
       return new Response(JSON.stringify({ error: "Unauthorized" }), {
         status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
@@ -54,11 +74,7 @@ serve(async (req: Request) => {
       auth: { autoRefreshToken: false, persistSession: false },
     });
 
-    const { data: isAdmin } = await supabaseAdmin.rpc("has_role", {
-      _user_id: callerId,
-      _role: "system_admin",
-    });
-    if (!isAdmin) {
+    if (!callerRole) {
       return new Response(JSON.stringify({ error: "Forbidden: system_admin required" }), {
         status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
