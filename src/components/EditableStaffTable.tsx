@@ -82,7 +82,9 @@ const EditableStaffTable = ({ staff, canEdit = true, canDelete = true }: Editabl
   const [selectedStaff, setSelectedStaff] = useState<Staff | null>(null);
   const [columnFilters, setColumnFilters] = useState<ColumnFilters>({});
   const [sortConfig, setSortConfig] = useState<SortConfig>({ field: null, direction: null });
-  
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [bulkDeleteOpen, setBulkDeleteOpen] = useState(false);
+
   const isAdmin = role === 'system_admin';
   const updateStaff = useUpdateStaff({
     isAdmin,
@@ -90,6 +92,7 @@ const EditableStaffTable = ({ staff, canEdit = true, canDelete = true }: Editabl
     performedBy: profile?.full_name || profile?.email || 'User',
   });
   const deleteStaff = useDeleteStaff();
+  const bulkDeleteStaff = useBulkDeleteStaff();
   const { data: departments } = useDepartments();
   const { data: pendingChanges } = usePendingChanges();
 
