@@ -11,6 +11,7 @@ const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/
 const ALLOWED_ROLES = ["system_admin", "department_head", "avd", "management", "college_dean", "hr"];
 
 const DEFAULT_RESET_PASSWORD = "12345678";
+const AUTH_VERSION = "jwt-jwks-v2";
 
 serve(async (req: Request) => {
   if (req.method === "OPTIONS") {
@@ -23,7 +24,7 @@ serve(async (req: Request) => {
 
     const authHeader = req.headers.get("Authorization");
     if (!authHeader?.startsWith("Bearer ")) {
-      return new Response(JSON.stringify({ error: "Unauthorized" }), {
+      return new Response(JSON.stringify({ error: `Unauthorized (${AUTH_VERSION})` }), {
         status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
@@ -43,9 +44,10 @@ serve(async (req: Request) => {
       }
 
       callerId = payload.sub;
+      console.log(`[update-user-role] ${AUTH_VERSION} caller=${callerId}`);
     } catch (authError) {
-      console.error("[update-user-role] auth error:", authError);
-      return new Response(JSON.stringify({ error: "Unauthorized" }), {
+      console.error(`[update-user-role] ${AUTH_VERSION} auth error:`, authError);
+      return new Response(JSON.stringify({ error: `Unauthorized (${AUTH_VERSION})` }), {
         status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
