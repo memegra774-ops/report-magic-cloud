@@ -190,9 +190,6 @@ const Auth = () => {
           </div>
           <div>
             <CardTitle className="font-serif text-2xl">ASTU Staff Report System</CardTitle>
-            <CardDescription className="text-base mt-2">
-              College of Electrical Engineering & Computing
-            </CardDescription>
           </div>
         </CardHeader>
         <CardContent>
