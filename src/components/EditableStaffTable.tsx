@@ -1,12 +1,13 @@
 import { useState, useMemo } from 'react';
 import { Staff, STAFF_CATEGORIES, EDUCATION_LEVELS, STAFF_STATUSES, StaffCategory, EducationLevel, ACADEMIC_RANKS } from '@/types/staff';
-import { useUpdateStaff, useDeleteStaff, useDepartments } from '@/hooks/useStaff';
+import { useUpdateStaff, useDeleteStaff, useDepartments, useBulkDeleteStaff } from '@/hooks/useStaff';
 import { usePendingChanges } from '@/hooks/useStaffChanges';
 import StaffDetailDialog from '@/components/StaffDetailDialog';
 import { useAuth } from '@/contexts/AuthContext';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { Checkbox } from '@/components/ui/checkbox';
 import { Trash2, Check, X, Filter, ArrowUpDown, ArrowUp, ArrowDown, Clock } from 'lucide-react';
 import {
   Select,
