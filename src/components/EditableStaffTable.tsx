@@ -565,7 +565,7 @@ const EditableStaffTable = ({ staff, canEdit = true, canDelete = true }: Editabl
               })}
               {sortedStaff.length === 0 && (
                 <TableRow>
-                  <TableCell colSpan={canDelete ? 12 : 11} className="text-center py-8 text-muted-foreground">
+                  <TableCell colSpan={(canDelete ? 12 : 11) + (isAdmin && canDelete ? 1 : 0)} className="text-center py-8 text-muted-foreground">
                     No staff members found
                   </TableCell>
                 </TableRow>
@@ -589,6 +589,28 @@ const EditableStaffTable = ({ staff, canEdit = true, canDelete = true }: Editabl
               <AlertDialogCancel>Cancel</AlertDialogCancel>
               <AlertDialogAction onClick={confirmDelete} className="bg-destructive hover:bg-destructive/90">
                 {isAdmin ? 'Delete' : 'Submit for Approval'}
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+
+        {/* Bulk Delete Confirmation */}
+        <AlertDialog open={bulkDeleteOpen} onOpenChange={setBulkDeleteOpen}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Delete {selectedIds.size} Staff Members</AlertDialogTitle>
+              <AlertDialogDescription>
+                Are you sure you want to delete <strong>{selectedIds.size}</strong> selected staff member{selectedIds.size !== 1 ? 's' : ''}? This action cannot be undone.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel disabled={bulkDeleteStaff.isPending}>Cancel</AlertDialogCancel>
+              <AlertDialogAction
+                onClick={confirmBulkDelete}
+                disabled={bulkDeleteStaff.isPending}
+                className="bg-destructive hover:bg-destructive/90"
+              >
+                {bulkDeleteStaff.isPending ? 'Deleting...' : `Delete ${selectedIds.size}`}
               </AlertDialogAction>
             </AlertDialogFooter>
           </AlertDialogContent>
