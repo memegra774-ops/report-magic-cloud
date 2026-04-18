@@ -346,6 +346,9 @@ const EditableStaffTable = ({ staff, canEdit = true, canDelete = true }: Editabl
 
   const activeFiltersCount = Object.keys(columnFilters).length;
 
+  const allVisibleSelected = sortedStaff.length > 0 && sortedStaff.every(s => selectedIds.has(s.id));
+  const someVisibleSelected = sortedStaff.some(s => selectedIds.has(s.id)) && !allVisibleSelected;
+
   return (
     <TooltipProvider>
       <>
@@ -357,10 +360,41 @@ const EditableStaffTable = ({ staff, canEdit = true, canDelete = true }: Editabl
             </Button>
           </div>
         )}
+        {isAdmin && canDelete && selectedIds.size > 0 && (
+          <div className="flex items-center justify-between gap-2 mb-2 p-3 rounded-lg border border-destructive/30 bg-destructive/10">
+            <span className="text-sm font-medium">
+              {selectedIds.size} staff member{selectedIds.size !== 1 ? 's' : ''} selected
+            </span>
+            <div className="flex gap-2">
+              <Button variant="ghost" size="sm" onClick={() => setSelectedIds(new Set())}>
+                Clear selection
+              </Button>
+              <Button
+                variant="destructive"
+                size="sm"
+                onClick={() => setBulkDeleteOpen(true)}
+                disabled={bulkDeleteStaff.isPending}
+              >
+                <Trash2 className="h-4 w-4 mr-1" />
+                Delete Selected
+              </Button>
+            </div>
+          </div>
+        )}
         <div className="rounded-lg border overflow-hidden">
           <Table>
             <TableHeader>
               <TableRow className="bg-primary hover:bg-primary">
+                {isAdmin && canDelete && (
+                  <TableHead className="text-primary-foreground w-10">
+                    <Checkbox
+                      checked={allVisibleSelected ? true : someVisibleSelected ? 'indeterminate' : false}
+                      onCheckedChange={(checked) => toggleSelectAll(checked === true)}
+                      aria-label="Select all"
+                      className="border-primary-foreground data-[state=checked]:bg-primary-foreground data-[state=checked]:text-primary"
+                    />
+                  </TableHead>
+                )}
                 <TableHead className="text-primary-foreground w-12">#</TableHead>
                 <TableHead className="text-primary-foreground cursor-pointer select-none" onClick={() => handleSort('staff_id')}>
                   <span className="flex items-center">Staff ID {getSortIcon('staff_id')}</span>
