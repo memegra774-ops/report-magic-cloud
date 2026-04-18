@@ -1,12 +1,13 @@
 import { useState, useMemo } from 'react';
 import { Staff, STAFF_CATEGORIES, EDUCATION_LEVELS, STAFF_STATUSES, StaffCategory, EducationLevel, ACADEMIC_RANKS } from '@/types/staff';
-import { useUpdateStaff, useDeleteStaff, useDepartments } from '@/hooks/useStaff';
+import { useUpdateStaff, useDeleteStaff, useDepartments, useBulkDeleteStaff } from '@/hooks/useStaff';
 import { usePendingChanges } from '@/hooks/useStaffChanges';
 import StaffDetailDialog from '@/components/StaffDetailDialog';
 import { useAuth } from '@/contexts/AuthContext';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { Checkbox } from '@/components/ui/checkbox';
 import { Trash2, Check, X, Filter, ArrowUpDown, ArrowUp, ArrowDown, Clock } from 'lucide-react';
 import {
   Select,
@@ -81,7 +82,9 @@ const EditableStaffTable = ({ staff, canEdit = true, canDelete = true }: Editabl
   const [selectedStaff, setSelectedStaff] = useState<Staff | null>(null);
   const [columnFilters, setColumnFilters] = useState<ColumnFilters>({});
   const [sortConfig, setSortConfig] = useState<SortConfig>({ field: null, direction: null });
-  
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [bulkDeleteOpen, setBulkDeleteOpen] = useState(false);
+
   const isAdmin = role === 'system_admin';
   const updateStaff = useUpdateStaff({
     isAdmin,
@@ -89,6 +92,7 @@ const EditableStaffTable = ({ staff, canEdit = true, canDelete = true }: Editabl
     performedBy: profile?.full_name || profile?.email || 'User',
   });
   const deleteStaff = useDeleteStaff();
+  const bulkDeleteStaff = useBulkDeleteStaff();
   const { data: departments } = useDepartments();
   const { data: pendingChanges } = usePendingChanges();
 
@@ -210,6 +214,32 @@ const EditableStaffTable = ({ staff, canEdit = true, canDelete = true }: Editabl
     });
   };
 
+  const toggleSelect = (id: string) => {
+    setSelectedIds(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
+
+  const toggleSelectAll = (checked: boolean) => {
+    if (checked) {
+      setSelectedIds(new Set(sortedStaff.map(s => s.id)));
+    } else {
+      setSelectedIds(new Set());
+    }
+  };
+
+  const confirmBulkDelete = async () => {
+    await bulkDeleteStaff.mutateAsync({
+      ids: Array.from(selectedIds),
+      performedBy: profile?.full_name || profile?.email || 'System Admin',
+    });
+    setSelectedIds(new Set());
+    setBulkDeleteOpen(false);
+  };
+
   const renderFilterPopover = (
     label: string,
     filterKey: keyof ColumnFilters,
@@ -316,6 +346,9 @@ const EditableStaffTable = ({ staff, canEdit = true, canDelete = true }: Editabl
 
   const activeFiltersCount = Object.keys(columnFilters).length;
 
+  const allVisibleSelected = sortedStaff.length > 0 && sortedStaff.every(s => selectedIds.has(s.id));
+  const someVisibleSelected = sortedStaff.some(s => selectedIds.has(s.id)) && !allVisibleSelected;
+
   return (
     <TooltipProvider>
       <>
@@ -327,10 +360,41 @@ const EditableStaffTable = ({ staff, canEdit = true, canDelete = true }: Editabl
             </Button>
           </div>
         )}
+        {isAdmin && canDelete && selectedIds.size > 0 && (
+          <div className="flex items-center justify-between gap-2 mb-2 p-3 rounded-lg border border-destructive/30 bg-destructive/10">
+            <span className="text-sm font-medium">
+              {selectedIds.size} staff member{selectedIds.size !== 1 ? 's' : ''} selected
+            </span>
+            <div className="flex gap-2">
+              <Button variant="ghost" size="sm" onClick={() => setSelectedIds(new Set())}>
+                Clear selection
+              </Button>
+              <Button
+                variant="destructive"
+                size="sm"
+                onClick={() => setBulkDeleteOpen(true)}
+                disabled={bulkDeleteStaff.isPending}
+              >
+                <Trash2 className="h-4 w-4 mr-1" />
+                Delete Selected
+              </Button>
+            </div>
+          </div>
+        )}
         <div className="rounded-lg border overflow-hidden">
           <Table>
             <TableHeader>
               <TableRow className="bg-primary hover:bg-primary">
+                {isAdmin && canDelete && (
+                  <TableHead className="text-primary-foreground w-10">
+                    <Checkbox
+                      checked={allVisibleSelected ? true : someVisibleSelected ? 'indeterminate' : false}
+                      onCheckedChange={(checked) => toggleSelectAll(checked === true)}
+                      aria-label="Select all"
+                      className="border-primary-foreground data-[state=checked]:bg-primary-foreground data-[state=checked]:text-primary"
+                    />
+                  </TableHead>
+                )}
                 <TableHead className="text-primary-foreground w-12">#</TableHead>
                 <TableHead className="text-primary-foreground cursor-pointer select-none" onClick={() => handleSort('staff_id')}>
                   <span className="flex items-center">Staff ID {getSortIcon('staff_id')}</span>
@@ -387,7 +451,16 @@ const EditableStaffTable = ({ staff, canEdit = true, canDelete = true }: Editabl
               {sortedStaff.map((s, index) => {
                 const hasPending = pendingStaffIds.has(s.id);
                 return (
-                  <TableRow key={s.id} className={`hover:bg-muted/50 ${hasPending ? 'bg-amber-50/40' : ''}`}>
+                  <TableRow key={s.id} className={`hover:bg-muted/50 ${hasPending ? 'bg-amber-50/40' : ''} ${selectedIds.has(s.id) ? 'bg-destructive/5' : ''}`}>
+                    {isAdmin && canDelete && (
+                      <TableCell className="w-10">
+                        <Checkbox
+                          checked={selectedIds.has(s.id)}
+                          onCheckedChange={() => toggleSelect(s.id)}
+                          aria-label={`Select ${s.full_name}`}
+                        />
+                      </TableCell>
+                    )}
                     <TableCell className="font-medium text-muted-foreground">{index + 1}</TableCell>
                     <TableCell className="font-mono text-xs">
                       {renderEditableCell(s, 'staff_id', s.staff_id || '')}
@@ -492,7 +565,7 @@ const EditableStaffTable = ({ staff, canEdit = true, canDelete = true }: Editabl
               })}
               {sortedStaff.length === 0 && (
                 <TableRow>
-                  <TableCell colSpan={canDelete ? 12 : 11} className="text-center py-8 text-muted-foreground">
+                  <TableCell colSpan={(canDelete ? 12 : 11) + (isAdmin && canDelete ? 1 : 0)} className="text-center py-8 text-muted-foreground">
                     No staff members found
                   </TableCell>
                 </TableRow>
@@ -516,6 +589,28 @@ const EditableStaffTable = ({ staff, canEdit = true, canDelete = true }: Editabl
               <AlertDialogCancel>Cancel</AlertDialogCancel>
               <AlertDialogAction onClick={confirmDelete} className="bg-destructive hover:bg-destructive/90">
                 {isAdmin ? 'Delete' : 'Submit for Approval'}
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+
+        {/* Bulk Delete Confirmation */}
+        <AlertDialog open={bulkDeleteOpen} onOpenChange={setBulkDeleteOpen}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Delete {selectedIds.size} Staff Members</AlertDialogTitle>
+              <AlertDialogDescription>
+                Are you sure you want to delete <strong>{selectedIds.size}</strong> selected staff member{selectedIds.size !== 1 ? 's' : ''}? This action cannot be undone.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel disabled={bulkDeleteStaff.isPending}>Cancel</AlertDialogCancel>
+              <AlertDialogAction
+                onClick={confirmBulkDelete}
+                disabled={bulkDeleteStaff.isPending}
+                className="bg-destructive hover:bg-destructive/90"
+              >
+                {bulkDeleteStaff.isPending ? 'Deleting...' : `Delete ${selectedIds.size}`}
               </AlertDialogAction>
             </AlertDialogFooter>
           </AlertDialogContent>
