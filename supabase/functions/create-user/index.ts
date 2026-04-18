@@ -1,6 +1,5 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.88.0";
-import { createRemoteJWKSet, jwtVerify } from "npm:jose@5.9.6";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -18,6 +17,7 @@ serve(async (req: Request) => {
 
   try {
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+    const supabaseAnonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
     const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 
     const authHeader = req.headers.get("Authorization");
@@ -30,19 +30,18 @@ serve(async (req: Request) => {
 
     const token = authHeader.replace("Bearer ", "");
     let callerId: string;
+    const userClient = createClient(supabaseUrl, supabaseAnonKey, {
+      auth: { autoRefreshToken: false, persistSession: false },
+      global: { headers: { Authorization: authHeader } },
+    });
 
     try {
-      const jwks = createRemoteJWKSet(new URL(`${supabaseUrl}/auth/v1/.well-known/jwks.json`));
-      const { payload } = await jwtVerify(token, jwks, {
-        issuer: `${supabaseUrl}/auth/v1`,
-        audience: "authenticated",
-      });
-
-      if (typeof payload.sub !== "string") {
+      const { data: claimsData, error: claimsError } = await userClient.auth.getClaims(token);
+      if (claimsError || typeof claimsData?.claims?.sub !== "string") {
         throw new Error("Missing token subject");
       }
 
-      callerId = payload.sub;
+      callerId = claimsData.claims.sub;
     } catch (authError) {
       console.error("[create-user] auth error:", authError);
       return new Response(JSON.stringify({ error: "Unauthorized" }), {
