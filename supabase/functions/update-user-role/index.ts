@@ -9,7 +9,7 @@ const corsHeaders = {
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const ALLOWED_ROLES = ["system_admin", "department_head", "avd", "management", "college_dean", "hr"];
 
-const DEFAULT_RESET_PASSWORD = "12345678";
+const DEFAULT_RESET_PASSWORD = "ChangeMe@2025!";
 
 const getJwtSubject = (token: string) => {
   try {

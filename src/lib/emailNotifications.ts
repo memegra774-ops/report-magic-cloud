@@ -79,7 +79,7 @@ export const sendInvitationEmail = async (
 Please join the reporting portal using the following login information:
 
 Username: ${email}
-Password: 12345678
+Password: ChangeMe@2025!
 
 Please change your password after your first login.
 

@@ -121,7 +121,7 @@ const UserManagement = () => {
       const { data: result, error } = await supabase.functions.invoke('create-user', {
         body: {
           email: data.email,
-          password: '12345678',
+          password: 'ChangeMe@2025!',
           role: data.role,
           full_name: data.full_name,
           department_id: data.department_id || null,
@@ -144,7 +144,7 @@ const UserManagement = () => {
       if (data?.email_sent) {
         toast.success('User invited successfully. Email notification sent with login credentials.');
       } else {
-        toast.success('User invited successfully. Email could not be sent. Default password: 12345678');
+        toast.success('User invited successfully. Email could not be sent. Default password: ChangeMe@2025!');
       }
     },
     onError: (error) => {
@@ -257,7 +257,7 @@ const UserManagement = () => {
     },
     onSuccess: () => {
       setResetPasswordUserId(null);
-      toast.success('Password reset to default (12345678). User will be prompted to change it on next login.');
+      toast.success('Password reset to default (ChangeMe@2025!). User will be prompted to change it on next login.');
     },
     onError: (error) => {
       toast.error('Failed to reset password: ' + error.message);
@@ -457,7 +457,7 @@ const UserManagement = () => {
                 </div>
               )}
               <p className="text-sm text-muted-foreground">
-                An email will be sent to the user with login credentials. Default password: <code className="bg-muted px-1 rounded">12345678</code>
+                An email will be sent to the user with login credentials. Default password: <code className="bg-muted px-1 rounded">ChangeMe@2025!</code>
               </p>
             </div>
             <DialogFooter>
@@ -583,7 +583,7 @@ const UserManagement = () => {
             <AlertDialogHeader>
               <AlertDialogTitle>Reset User Password</AlertDialogTitle>
               <AlertDialogDescription>
-                This will reset the user's password to the default (<code className="bg-muted px-1 rounded">12345678</code>). The user will be required to change their password on next login.
+                This will reset the user's password to the default (<code className="bg-muted px-1 rounded">ChangeMe@2025!</code>). The user will be required to change their password on next login.
               </AlertDialogDescription>
             </AlertDialogHeader>
             <AlertDialogFooter>
