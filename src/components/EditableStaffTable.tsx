@@ -451,7 +451,16 @@ const EditableStaffTable = ({ staff, canEdit = true, canDelete = true }: Editabl
               {sortedStaff.map((s, index) => {
                 const hasPending = pendingStaffIds.has(s.id);
                 return (
-                  <TableRow key={s.id} className={`hover:bg-muted/50 ${hasPending ? 'bg-amber-50/40' : ''}`}>
+                  <TableRow key={s.id} className={`hover:bg-muted/50 ${hasPending ? 'bg-amber-50/40' : ''} ${selectedIds.has(s.id) ? 'bg-destructive/5' : ''}`}>
+                    {isAdmin && canDelete && (
+                      <TableCell className="w-10">
+                        <Checkbox
+                          checked={selectedIds.has(s.id)}
+                          onCheckedChange={() => toggleSelect(s.id)}
+                          aria-label={`Select ${s.full_name}`}
+                        />
+                      </TableCell>
+                    )}
                     <TableCell className="font-medium text-muted-foreground">{index + 1}</TableCell>
                     <TableCell className="font-mono text-xs">
                       {renderEditableCell(s, 'staff_id', s.staff_id || '')}
