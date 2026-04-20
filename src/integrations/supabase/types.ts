@@ -528,6 +528,7 @@ export type Database = {
         | "MA"
         | "LLM"
         | "MBA"
+        | "BED"
       sex_type: "M" | "F"
       staff_category:
         | "Local Instructors"
@@ -682,6 +683,7 @@ export const Constants = {
         "MA",
         "LLM",
         "MBA",
+        "BED",
       ],
       sex_type: ["M", "F"],
       staff_category: [
