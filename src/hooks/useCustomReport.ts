@@ -12,12 +12,12 @@ export const useCustomReportStaff = () => {
     queryFn: async () => {
       const { data, error } = await supabase
         .from('staff')
-        .select('*, departments(id, code, name, college_id, college_name)')
+        .select('*, departments(*)')
         .order('full_name')
         .limit(5000);
 
       if (error) throw error;
-      return (data || []) as Staff[];
+      return (data || []) as unknown as Staff[];
     },
   });
 };
