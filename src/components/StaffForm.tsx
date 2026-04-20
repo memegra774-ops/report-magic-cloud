@@ -36,7 +36,7 @@ const formSchema = z.object({
   college_name: z.string().default('College'),
   department_id: z.string().optional(),
   specialization: z.string().optional(),
-  education_level: z.enum(['Bsc', 'BSc', 'Msc', 'MSc', 'MA', 'LLM', 'MBA', 'PHD', 'Dip']),
+  education_level: z.enum(['Bsc', 'BSc', 'Msc', 'MSc', 'MA', 'LLM', 'MBA', 'PHD', 'Dip', 'BED']),
   academic_rank: z.string().optional(),
   current_status: z.string().default('On Duty'),
   category: z.enum(['Local Instructors', 'ARA', 'ASTU Sponsor']),
