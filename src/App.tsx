@@ -8,6 +8,7 @@ import ProtectedRoute from "@/components/ProtectedRoute";
 import Index from "./pages/Index";
 import Staff from "./pages/Staff";
 import Reports from "./pages/Reports";
+import CustomReports from "./pages/CustomReports";
 import Auth from "./pages/Auth";
 import UserManagement from "./pages/UserManagement";
 import CollegeManagement from "./pages/CollegeManagement";
@@ -27,6 +28,7 @@ const App = () => (
             <Route path="/" element={<ProtectedRoute><Index /></ProtectedRoute>} />
             <Route path="/staff" element={<ProtectedRoute><Staff /></ProtectedRoute>} />
             <Route path="/reports" element={<ProtectedRoute><Reports /></ProtectedRoute>} />
+            <Route path="/custom-reports" element={<ProtectedRoute allowedRoles={['system_admin', 'avd', 'hr', 'management']}><CustomReports /></ProtectedRoute>} />
             <Route path="/users" element={<ProtectedRoute allowedRoles={['system_admin']}><UserManagement /></ProtectedRoute>} />
             <Route path="/colleges" element={<ProtectedRoute allowedRoles={['system_admin']}><CollegeManagement /></ProtectedRoute>} />
             <Route path="*" element={<NotFound />} />
