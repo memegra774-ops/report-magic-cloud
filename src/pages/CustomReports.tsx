@@ -223,6 +223,10 @@ const CustomReports = () => {
     setter(arr.includes(val) ? arr.filter((x) => x !== val) : [...arr, val]);
   };
 
+  if (role && !ALLOWED_ROLES.includes(role)) {
+    return <Navigate to="/" replace />;
+  }
+
   return (
     <div className="min-h-screen bg-background">
       <Header />
