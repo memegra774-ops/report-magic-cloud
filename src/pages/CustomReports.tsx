@@ -111,10 +111,6 @@ const CustomReports = () => {
     ALL_COLUMNS.slice(0, 10).map((c) => c.key)
   );
 
-  if (role && !ALLOWED_ROLES.includes(role)) {
-    return <Navigate to="/" replace />;
-  }
-
   const departmentsForCollege = useMemo(() => {
     if (collegeId === 'all') return departments || [];
     return (departments || []).filter((d: any) => d.college_id === collegeId);
