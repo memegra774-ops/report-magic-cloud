@@ -5,6 +5,7 @@ import { Staff, StaffCategory, STAFF_CATEGORIES, EDUCATION_LEVELS, ACADEMIC_RANK
 import { useDepartments, useCreateStaff, useUpdateStaff } from '@/hooks/useStaff';
 import { useAuth } from '@/contexts/AuthContext';
 import { useColleges } from '@/hooks/useColleges';
+import { normalizeEducationLevel, normalizeAcademicRank } from '@/lib/normalize';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import {
@@ -36,7 +37,7 @@ const formSchema = z.object({
   college_name: z.string().default('College'),
   department_id: z.string().optional(),
   specialization: z.string().optional(),
-  education_level: z.enum(['Bsc', 'BSc', 'Msc', 'MSc', 'MA', 'LLM', 'MBA', 'PHD', 'Dip', 'BED']),
+  education_level: z.enum(['Bsc', 'Msc', 'MA', 'LLM', 'MBA', 'PHD', 'Dip', 'BED']),
   academic_rank: z.string().optional(),
   current_status: z.string().default('On Duty'),
   category: z.enum(['Local Instructors', 'ARA', 'ASTU Sponsor']),
@@ -122,7 +123,8 @@ const StaffForm = ({ open, onClose, staff, defaultDepartmentId }: StaffFormProps
         department_id: deptId,
         college_name: collegeName,
         specialization: values.specialization || null,
-        academic_rank: values.academic_rank || null,
+        education_level: normalizeEducationLevel(values.education_level) as typeof values.education_level,
+        academic_rank: normalizeAcademicRank(values.academic_rank) || null,
         remark: values.remark || null,
         mother_name: values.mother_name || null,
         phone_number: values.phone_number || null,
