@@ -6,7 +6,7 @@ export type StaffStatus = 'On Duty' | 'On Study' | 'Not On Duty' | 'Sick' | 'On 
 
 export type SexType = 'M' | 'F';
 
-export type EducationLevel = 'Bsc' | 'BSc' | 'Msc' | 'MSc' | 'MA' | 'LLM' | 'MBA' | 'PHD' | 'Dip' | 'BED';
+export type EducationLevel = 'Bsc' | 'Msc' | 'MA' | 'LLM' | 'MBA' | 'PHD' | 'Dip' | 'BED';
 
 export interface Department {
   id: string;
@@ -101,7 +101,7 @@ export const STAFF_STATUSES: StaffStatus[] = [
   'On Study and Not Reporting'
 ];
 
-export const EDUCATION_LEVELS: EducationLevel[] = ['Bsc', 'BSc', 'BED', 'Msc', 'MSc', 'MA', 'LLM', 'MBA', 'PHD', 'Dip'];
+export const EDUCATION_LEVELS: EducationLevel[] = ['Dip', 'Bsc', 'BED', 'Msc', 'MA', 'LLM', 'MBA', 'PHD'];
 
 export const ACADEMIC_RANKS = [
   'GA',
