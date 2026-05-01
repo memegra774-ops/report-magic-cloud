@@ -214,8 +214,13 @@ const CSVImport = ({ open, onClose }: CSVImportProps) => {
             case 'category':
               payload.category = STAFF_CATEGORIES.find(c => c.toLowerCase() === val.toLowerCase()) || 'Local Instructors';
               break;
-            case 'education_level':
-              payload.education_level = EDUCATION_LEVELS.find(e => e.toLowerCase() === val.toLowerCase()) || 'Msc';
+            case 'education_level': {
+              const norm = normalizeEducationLevel(val);
+              payload.education_level = EDUCATION_LEVELS.find(e => e === norm) || 'Msc';
+              break;
+            }
+            case 'academic_rank':
+              payload.academic_rank = normalizeAcademicRank(val) || null;
               break;
             case 'date_of_birth': {
               const parts = val.split('/');

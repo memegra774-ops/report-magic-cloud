@@ -5,6 +5,7 @@ import { Staff, StaffCategory, STAFF_CATEGORIES, EDUCATION_LEVELS, ACADEMIC_RANK
 import { useDepartments, useCreateStaff, useUpdateStaff } from '@/hooks/useStaff';
 import { useAuth } from '@/contexts/AuthContext';
 import { useColleges } from '@/hooks/useColleges';
+import { normalizeEducationLevel, normalizeAcademicRank } from '@/lib/normalize';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import {
