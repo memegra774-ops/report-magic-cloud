@@ -18,6 +18,7 @@ import {
 import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
 import { STAFF_CATEGORIES, EDUCATION_LEVELS, StaffCategory, EducationLevel } from '@/types/staff';
+import { normalizeEducationLevel, normalizeAcademicRank } from '@/lib/normalize';
 import { useUpdateStaff, useCreateStaff, useDepartments } from '@/hooks/useStaff';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
