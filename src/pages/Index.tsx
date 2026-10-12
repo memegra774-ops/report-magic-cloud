@@ -436,7 +436,6 @@ const Index = () => {
                         <TableCell className="text-center">{filteredDeptStats.reduce((sum, d) => sum + (d.onDutyByRank?.assoProf || 0), 0)}</TableCell>
                         <TableCell className="text-center">{filteredDeptStats.reduce((sum, d) => sum + (d.onDutyByRank?.professor || 0), 0)}</TableCell>
                         <TableCell className="text-center text-primary">{filteredDeptStats.reduce((sum, d) => sum + (d.onDutyARACount || 0), 0)}</TableCell>
-                        <TableCell className="text-center">{filteredDeptStats.reduce((sum, d) => sum + (d.onDutyByRank?.total || 0) + (d.onDutyARACount || 0), 0)}</TableCell>
                       </TableRow>
                     )}
                   </TableBody>
