@@ -75,7 +75,8 @@ export const useCreateReport = () => {
       // Then copy all staff into report entries with full snapshot data (filtered by department if applicable)
       let staffQuery = supabase
         .from('staff')
-        .select('id, staff_id, full_name, sex, college_name, department_id, specialization, education_level, academic_rank, category, current_status, remark, departments(code, name)');
+        .select('id, staff_id, full_name, sex, college_name, department_id, specialization, education_level, academic_rank, category, current_status, remark, departments(code, name)')
+        .is('archived_at', null);
       
       if (departmentId) {
         staffQuery = staffQuery.eq('department_id', departmentId);

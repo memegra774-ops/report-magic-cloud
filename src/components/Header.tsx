@@ -1,4 +1,4 @@
-import { FileText, Users, Settings, LogOut, Building2, BarChart3 } from 'lucide-react';
+import { Archive, FileText, Users, Settings, LogOut, Building2, BarChart3 } from 'lucide-react';
 import { Link, useLocation } from 'react-router-dom';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/contexts/AuthContext';
@@ -12,6 +12,7 @@ const Header = () => {
 
   const navItems = [
     { path: '/', label: 'Dashboard', icon: FileText, roles: ['system_admin', 'department_head', 'avd', 'management', 'college_dean', 'hr'] },
+    { path: '/staff-archive', label: 'Archive', icon: Archive, roles: ['system_admin', 'avd', 'management', 'hr'] },
     { path: '/staff', label: 'Staff Directory', icon: Users, roles: ['system_admin', 'department_head', 'avd', 'management', 'college_dean', 'hr'] },
     { path: '/reports', label: 'Monthly Reports', icon: FileText, roles: ['system_admin', 'department_head', 'avd', 'management', 'college_dean', 'hr'] },
     { path: '/custom-reports', label: 'Custom Reports', icon: BarChart3, roles: ['system_admin', 'avd', 'hr', 'management'] },

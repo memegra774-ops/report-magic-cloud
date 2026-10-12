@@ -166,7 +166,7 @@ export const useApproveChange = () => {
       } else if (ch.action_type === 'delete' && ch.staff_id) {
         const { error } = await supabase
           .from('staff')
-          .delete()
+          .update({ archived_at: new Date().toISOString(), archived_by_name: ch.performed_by_name } as any)
           .eq('id', ch.staff_id);
         if (error) throw error;
       }

@@ -13,6 +13,7 @@ export const useCustomReportStaff = () => {
       const { data, error } = await supabase
         .from('staff')
         .select('*, departments(*)')
+        .is('archived_at', null)
         .order('full_name')
         .limit(5000);
 
