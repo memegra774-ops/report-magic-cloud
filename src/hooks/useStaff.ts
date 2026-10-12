@@ -518,6 +518,8 @@ export const useDepartmentStats = (collegeId?: string | null) => {
           const status = staff.current_status;
           const category = (staff as any).category;
           const isARA = category === 'ARA';
+          // ASTU Sponsors are contract staff — excluded from the gender distribution table
+          if (category === 'ASTU Sponsor') return;
           
           if (status === 'On Duty') {
             if (isARA) {
