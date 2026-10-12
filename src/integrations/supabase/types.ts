@@ -306,6 +306,9 @@ export type Database = {
       staff: {
         Row: {
           academic_rank: string | null
+          archive_reason: string | null
+          archived_at: string | null
+          archived_by_name: string | null
           category: Database["public"]["Enums"]["staff_category"]
           college_name: string
           created_at: string
@@ -336,6 +339,9 @@ export type Database = {
         }
         Insert: {
           academic_rank?: string | null
+          archive_reason?: string | null
+          archived_at?: string | null
+          archived_by_name?: string | null
           category?: Database["public"]["Enums"]["staff_category"]
           college_name?: string
           created_at?: string
@@ -366,6 +372,9 @@ export type Database = {
         }
         Update: {
           academic_rank?: string | null
+          archive_reason?: string | null
+          archived_at?: string | null
+          archived_by_name?: string | null
           category?: Database["public"]["Enums"]["staff_category"]
           college_name?: string
           created_at?: string

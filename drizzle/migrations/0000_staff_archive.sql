@@ -1,0 +1,2 @@
+ALTER TABLE public.staff ADD COLUMN IF NOT EXISTS archived_at timestamptz, ADD COLUMN IF NOT EXISTS archived_by_name text, ADD COLUMN IF NOT EXISTS archive_reason text;
+CREATE INDEX IF NOT EXISTS staff_archived_at_idx ON public.staff(archived_at);
