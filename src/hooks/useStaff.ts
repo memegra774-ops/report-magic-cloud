@@ -87,7 +87,8 @@ export const useStaff = (filters?: {
     queryFn: async () => {
       let query = supabase
         .from('staff')
-        .select('*, departments(*)');
+        .select('*, departments(*)')
+        .is('archived_at', null);
 
       if (filters?.category) {
         query = query.eq('category', filters.category);
@@ -327,7 +328,7 @@ export const useDeleteStaff = () => {
       // Admin: delete directly
       const { error } = await supabase
         .from('staff')
-        .delete()
+        .update({ archived_at: new Date().toISOString(), archived_by_name: performer } as any)
         .eq('id', id);
 
       if (error) throw error;
@@ -343,7 +344,7 @@ export const useDeleteStaff = () => {
       queryClient.invalidateQueries({ queryKey: ['staff-changes'] });
       queryClient.invalidateQueries({ queryKey: ['staff-changes-pending-count'] });
       queryClient.invalidateQueries({ queryKey: ['notifications'] });
-      toast.success('Staff member deleted successfully');
+      toast.success('Staff member moved to archive');
     },
     onError: (error) => {
       toast.error('Failed to delete staff member: ' + error.message);
@@ -365,7 +366,7 @@ export const useBulkDeleteStaff = () => {
         .in('id', ids);
       if (fetchError) throw fetchError;
 
-      const { error } = await supabase.from('staff').delete().in('id', ids);
+      const { error } = await supabase.from('staff').update({ archived_at: new Date().toISOString(), archived_by_name: performedBy || 'System Admin' } as any).in('id', ids);
       if (error) throw error;
 
       const performer = performedBy || 'System Admin';
@@ -384,7 +385,7 @@ export const useBulkDeleteStaff = () => {
       queryClient.invalidateQueries({ queryKey: ['staff-changes'] });
       queryClient.invalidateQueries({ queryKey: ['staff-changes-pending-count'] });
       queryClient.invalidateQueries({ queryKey: ['notifications'] });
-      toast.success(`${res.count} staff member${res.count !== 1 ? 's' : ''} deleted successfully`);
+      toast.success(`${res.count} staff member${res.count !== 1 ? 's' : ''} moved to archive`);
     },
     onError: (error) => {
       toast.error('Failed to delete staff members: ' + error.message);
@@ -398,7 +399,8 @@ export const useStaffStats = (departmentId?: string, departmentIds?: string[]) =
     queryFn: async () => {
       let query = supabase
         .from('staff')
-        .select('category, sex, education_level, academic_rank, current_status');
+        .select('category, sex, education_level, academic_rank, current_status')
+        .is('archived_at', null);
       
       if (departmentId) {
         query = query.eq('department_id', departmentId);
@@ -494,7 +496,8 @@ export const useDepartmentStats = (collegeId?: string | null) => {
 
       const { data: staffData, error: staffError } = await supabase
         .from('staff')
-        .select('department_id, current_status, academic_rank, sex, category');
+        .select('department_id, current_status, academic_rank, sex, category')
+        .is('archived_at', null);
 
       if (staffError) throw staffError;
 
@@ -579,5 +582,31 @@ export const useDepartmentStats = (collegeId?: string | null) => {
 
       return deptStats;
     },
+  });
+};
+
+export const useArchivedStaff = () => useQuery({
+  queryKey: ['staff', 'archived'],
+  queryFn: async () => {
+    const { data, error } = await supabase.from('staff').select('*, departments(*)')
+      .not('archived_at', 'is', null).order('archived_at', { ascending: false });
+    if (error) throw error;
+    return data as any[];
+  },
+});
+
+export const useRestoreStaff = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase.from('staff')
+        .update({ archived_at: null, archived_by_name: null, archive_reason: null } as any).eq('id', id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      ['staff', 'staff-stats', 'department-stats'].forEach(k => queryClient.invalidateQueries({ queryKey: [k] }));
+      toast.success('Staff member restored to directory');
+    },
+    onError: (e: any) => toast.error('Failed to restore: ' + e.message),
   });
 };
