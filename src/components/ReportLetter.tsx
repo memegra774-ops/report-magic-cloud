@@ -8,6 +8,7 @@ import { saveAs } from 'file-saver';
 import { supabase } from '@/integrations/supabase/client';
 import letterHeading from '@/assets/astu-letter-heading.png.asset.json';
 import letterFooter from '@/assets/astu-letter-footer.png.asset.json';
+import { useAuth } from '@/contexts/AuthContext';
 
 interface ReportLetterProps {
   report: MonthlyReport;
@@ -35,10 +36,40 @@ interface CategoryStats {
 const FIXED_STATUSES = ['Not On Duty', 'On Duty', 'On Study', 'On Study and Not Reporting', 'Sick'];
 
 const ReportLetter = ({ report, department, signatory, collegeName }: ReportLetterProps) => {
+  const { user, profile } = useAuth();
+  const contactEmail = user?.email || profile?.email || '';
+  const [personalizedHeading, setPersonalizedHeading] = useState<{ email: string; url: string } | null>(null);
+  const headingUrl = personalizedHeading?.email === contactEmail ? personalizedHeading.url : '';
+
+  useEffect(() => {
+    let cancelled = false;
+    if (!contactEmail) return;
+    const image = new Image();
+    image.crossOrigin = 'anonymous';
+    image.onload = () => {
+      const canvas = document.createElement('canvas');
+      canvas.width = image.naturalWidth;
+      canvas.height = image.naturalHeight;
+      const context = canvas.getContext('2d');
+      if (!context) return;
+      context.drawImage(image, 0, 0);
+      // Coordinates refer to the supplied 832 x 126 stationery artwork.
+      const scale = canvas.width / 832;
+      const background = context.getImageData(Math.round(790 * scale), Math.round(10 * scale), 1, 1).data;
+      context.fillStyle = `rgb(${background[0]}, ${background[1]}, ${background[2]})`;
+      context.fillRect(509 * scale, 8 * scale, 286 * scale, 22 * scale);
+      context.fillStyle = '#000000';
+      context.font = `${16 * scale}px Arial`;
+      context.textBaseline = 'middle';
+      context.fillText(`Email: ${contactEmail}`, 512 * scale, 20 * scale, 279 * scale);
+      if (!cancelled) setPersonalizedHeading({ email: contactEmail, url: canvas.toDataURL('image/png') });
+    };
+    image.src = letterHeading.url;
+    return () => { cancelled = true; };
+  }, [contactEmail]);
   const { data: entries, isLoading } = useReportEntries(report.id);
   const printRef = useRef<HTMLDivElement>(null);
   const [deptHeadName, setDeptHeadName] = useState<string>('');
-  const [deptHeadEmail, setDeptHeadEmail] = useState<string>('');
 
   const isDepartmentReport = !!report.department_id;
   const departmentName = department?.name || 'Department';
@@ -67,7 +98,6 @@ const ReportLetter = ({ report, department, signatory, collegeName }: ReportLett
 
           if (roleData) {
             setDeptHeadName(profile.full_name || '');
-            setDeptHeadEmail(profile.email || '');
             break;
           }
         }
@@ -104,7 +134,6 @@ const ReportLetter = ({ report, department, signatory, collegeName }: ReportLett
   }, [isDepartmentReport]);
 
   const headName = signatory || deptHeadName || '<<Department Head name>>';
-  const contactEmail = deptHeadEmail || '<<department email>>';
   const avdDisplayName = avdName || '<<AVD Name>>';
 
   // Calculate statistics with fixed status columns
@@ -158,7 +187,7 @@ const ReportLetter = ({ report, department, signatory, collegeName }: ReportLett
 
   const handlePrint = async () => {
     const printContent = printRef.current;
-    if (!printContent) return;
+    if (!printContent || !headingUrl) return;
 
     const printWindow = window.open('', '_blank');
     if (!printWindow) return;
@@ -261,6 +290,7 @@ const ReportLetter = ({ report, department, signatory, collegeName }: ReportLett
   };
 
   const handleExportWord = async () => {
+    if (!headingUrl) return;
     const monthName = MONTHS[report.report_month - 1];
 
     const createTableRows = () => {
@@ -352,7 +382,7 @@ const ReportLetter = ({ report, department, signatory, collegeName }: ReportLett
       return new Uint8Array(await response.arrayBuffer());
     };
     const [headingData, footerData] = await Promise.all([
-      loadStationery(letterHeading.url),
+      loadStationery(headingUrl),
       loadStationery(letterFooter.url),
     ]);
 
@@ -485,11 +515,11 @@ const ReportLetter = ({ report, department, signatory, collegeName }: ReportLett
           Official Letter - {monthName} {report.report_year}{versionText}
         </h2>
         <div className="flex gap-2">
-          <Button variant="outline" onClick={handleExportWord}>
+          <Button variant="outline" onClick={handleExportWord} disabled={!headingUrl}>
             <FileText className="h-4 w-4 mr-2" />
             Export Word
           </Button>
-          <Button onClick={handlePrint}>
+          <Button onClick={handlePrint} disabled={!headingUrl}>
             <Printer className="h-4 w-4 mr-2" />
             Print Letter
           </Button>
@@ -498,7 +528,7 @@ const ReportLetter = ({ report, department, signatory, collegeName }: ReportLett
 
       <div ref={printRef} className="bg-white text-black p-8 rounded-lg border shadow-sm max-w-4xl mx-auto" style={{ fontFamily: "'Times New Roman', serif", fontSize: '12pt', lineHeight: '1.5' }}>
         <div className="letter-heading mb-5 break-inside-avoid">
-          <img src={letterHeading.url} alt="ASTU letter heading" className="letter-stationery block w-full h-auto" />
+          {headingUrl && <img src={headingUrl} alt="ASTU letter heading" className="letter-stationery block w-full h-auto" />}
         </div>
 
         {/* To / Date / Ref section */}
