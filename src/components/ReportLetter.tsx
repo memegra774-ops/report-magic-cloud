@@ -164,9 +164,16 @@ const ReportLetter = ({ report, department, signatory, collegeName }: ReportLett
     if (!printWindow) return;
 
     const printableContent = printContent.cloneNode(true) as HTMLDivElement;
-    printableContent.querySelectorAll('img').forEach(image => {
-      image.src = new URL(image.getAttribute('src') || '', window.location.origin).href;
-    });
+    await Promise.all(Array.from(printableContent.querySelectorAll('img')).map(async image => {
+      const response = await fetch(new URL(image.getAttribute('src') || '', window.location.origin));
+      const blob = await response.blob();
+      image.src = await new Promise<string>((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => typeof reader.result === 'string' ? resolve(reader.result) : reject(new Error('Unable to load letter image'));
+        reader.onerror = reject;
+        reader.readAsDataURL(blob);
+      });
+    }));
     printWindow.document.write(`
       <html>
         <head>
