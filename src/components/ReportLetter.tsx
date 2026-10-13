@@ -163,6 +163,10 @@ const ReportLetter = ({ report, department, signatory, collegeName }: ReportLett
     const printWindow = window.open('', '_blank');
     if (!printWindow) return;
 
+    const printableContent = printContent.cloneNode(true) as HTMLDivElement;
+    printableContent.querySelectorAll('img').forEach(image => {
+      image.src = new URL(image.getAttribute('src') || '', window.location.origin).href;
+    });
     printWindow.document.write(`
       <html>
         <head>
@@ -238,7 +242,7 @@ const ReportLetter = ({ report, department, signatory, collegeName }: ReportLett
           </style>
         </head>
         <body>
-          ${printContent.innerHTML}
+          ${printableContent.innerHTML}
         </body>
       </html>
     `);
@@ -415,7 +419,7 @@ const ReportLetter = ({ report, department, signatory, collegeName }: ReportLett
             alignment: AlignmentType.CENTER,
         })] }) },
         footers: { default: new Footer({ children: [new Paragraph({
-            children: [new ImageRun({ type: 'png', data: footerData, transformation: { width: 674, height: 23 }, altText: { title: 'ASTU letter footer', description: 'We are dedicated to innovative knowledge!', name: 'ASTU letter footer' } })],
+            children: [new ImageRun({ type: 'png', data: footerData, transformation: { width: 674, height: 21 }, altText: { title: 'ASTU letter footer', description: 'We are dedicated to innovative knowledge!', name: 'ASTU letter footer' } })],
             alignment: AlignmentType.CENTER,
         })] }) },
         children: [
