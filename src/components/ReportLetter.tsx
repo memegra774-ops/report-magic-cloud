@@ -3,10 +3,11 @@ import { MonthlyReport, MONTHS, Department } from '@/types/staff';
 import { useReportEntries } from '@/hooks/useReports';
 import { Button } from '@/components/ui/button';
 import { Printer, FileText } from 'lucide-react';
-import { Document, Packer, Paragraph, Table, TableRow, TableCell, TextRun, WidthType, AlignmentType, BorderStyle } from 'docx';
+import { Document, Packer, Paragraph, Table, TableRow, TableCell, TextRun, WidthType, AlignmentType, Header, Footer, ImageRun } from 'docx';
 import { saveAs } from 'file-saver';
 import { supabase } from '@/integrations/supabase/client';
-import astuLogo from '@/assets/astu-logo.png';
+import letterHeading from '@/assets/astu-letter-heading.png.asset.json';
+import letterFooter from '@/assets/astu-letter-footer.png.asset.json';
 
 interface ReportLetterProps {
   report: MonthlyReport;
@@ -155,19 +156,30 @@ const ReportLetter = ({ report, department, signatory, collegeName }: ReportLett
     total: stats.reduce((acc, row) => acc + row.total, 0),
   };
 
-  const handlePrint = () => {
+  const handlePrint = async () => {
     const printContent = printRef.current;
     if (!printContent) return;
 
     const printWindow = window.open('', '_blank');
     if (!printWindow) return;
 
+    const printableContent = printContent.cloneNode(true) as HTMLDivElement;
+    await Promise.all(Array.from(printableContent.querySelectorAll('img')).map(async image => {
+      const response = await fetch(new URL(image.getAttribute('src') || '', window.location.origin));
+      const blob = await response.blob();
+      image.src = await new Promise<string>((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => typeof reader.result === 'string' ? resolve(reader.result) : reject(new Error('Unable to load letter image'));
+        reader.onerror = reject;
+        reader.readAsDataURL(blob);
+      });
+    }));
     printWindow.document.write(`
       <html>
         <head>
           <title>Staff Report Letter - ${MONTHS[report.report_month - 1]} ${report.report_year}</title>
           <style>
-            @page { size: A4 portrait; margin: 15mm 20mm; }
+            @page { size: A4 portrait; margin: 15mm 20mm 22mm; }
             * { margin: 0; padding: 0; box-sizing: border-box; }
             body { 
               font-family: 'Times New Roman', Times, serif; 
@@ -175,40 +187,10 @@ const ReportLetter = ({ report, department, signatory, collegeName }: ReportLett
               line-height: 1.5;
               color: #000;
             }
-            .contact-bar {
-              background-color: #2c5aa0;
-              color: white;
-              padding: 4px 10px;
-              font-size: 9pt;
-              display: flex;
-              justify-content: space-between;
-              margin-bottom: 0;
-            }
-            .letterhead {
-              display: flex;
-              align-items: center;
-              justify-content: center;
-              gap: 15px;
-              padding: 10px 0;
-              border-bottom: 3px solid #2c5aa0;
-              margin-bottom: 20px;
-            }
-            .letterhead img {
-              height: 60px;
-              width: 60px;
-            }
-            .letterhead-text {
-              text-align: center;
-            }
-            .letterhead-text h1 { 
-              font-size: 16pt; 
-              font-weight: bold;
-              letter-spacing: 1px;
-            }
-            .letterhead-text h2 { 
-              font-size: 13pt;
-              font-weight: normal;
-            }
+            .letter-stationery { display: block; width: 100%; height: auto; }
+            .letter-heading { margin-bottom: 20px; break-inside: avoid; }
+            .letter-cc { margin-top: 25px !important; }
+            table { page-break-inside: avoid; break-inside: avoid; }
             .meta-section {
               display: flex;
               justify-content: space-between;
@@ -255,16 +237,12 @@ const ReportLetter = ({ report, department, signatory, collegeName }: ReportLett
             }
             .cc-section u { text-decoration: underline; font-weight: bold; }
             .cc-section ul { margin-left: 30px; list-style-type: disc; }
-            .footer-line {
+            .letter-footer {
               position: fixed;
-              bottom: 10mm;
+              bottom: 0;
               left: 0;
               right: 0;
-              text-align: center;
-              border-top: 2px solid #000;
-              padding-top: 5px;
-              font-size: 11pt;
-              font-style: italic;
+              margin-top: 0;
             }
             @media print { 
               body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
@@ -272,11 +250,13 @@ const ReportLetter = ({ report, department, signatory, collegeName }: ReportLett
           </style>
         </head>
         <body>
-          ${printContent.innerHTML}
+          ${printableContent.innerHTML}
         </body>
       </html>
     `);
     printWindow.document.close();
+    await Promise.all(Array.from(printWindow.document.images).map(image => image.decode().catch(() => undefined)));
+    await printWindow.document.fonts.ready;
     printWindow.print();
   };
 
@@ -366,7 +346,15 @@ const ReportLetter = ({ report, department, signatory, collegeName }: ReportLett
       ? `The following table shows statistics of Academic staff (Local, Instructors, Academic and Research Assistants & MSc. Sponsored contract Students) on duty, absent, sick and study leave in ${departmentName} for the month of ${monthName} ${report.report_year}. Please kindly find also attached here with ${numberOfPages} pages is detail of the report.`
       : `The following table shows statistics of Academic staff (Local, Instructors, Academic and Research Assistants & MSc. Sponsored contract Students) on duty, absent, sick and study leave in ${resolvedCollegeName} for the month of ${monthName} ${report.report_year}. Please kindly find also attached here with ${numberOfPages} pages is detail of the report.`;
 
-    const wordEmail = isDepartmentReport ? contactEmail : 'adaa.soeec@astu.et';
+    const loadStationery = async (url: string) => {
+      const response = await fetch(url);
+      if (!response.ok) throw new Error('Unable to load letter stationery');
+      return new Uint8Array(await response.arrayBuffer());
+    };
+    const [headingData, footerData] = await Promise.all([
+      loadStationery(letterHeading.url),
+      loadStationery(letterFooter.url),
+    ]);
 
     const metaParagraphs = isDepartmentReport
       ? [
@@ -429,24 +417,20 @@ const ReportLetter = ({ report, department, signatory, collegeName }: ReportLett
     const doc = new Document({
       sections: [{
         properties: {
-          page: { margin: { top: 720, right: 900, bottom: 720, left: 900 } }
+          page: {
+            size: { width: 11906, height: 16838 },
+            margin: { top: 2400, right: 900, bottom: 1000, left: 900, header: 360, footer: 360 },
+          }
         },
+        headers: { default: new Header({ children: [new Paragraph({
+            children: [new ImageRun({ type: 'png', data: headingData, transformation: { width: 674, height: 102 }, altText: { title: 'ASTU letter heading', description: 'Official university letterhead', name: 'ASTU letter heading' } })],
+            alignment: AlignmentType.CENTER,
+        })] }) },
+        footers: { default: new Footer({ children: [new Paragraph({
+            children: [new ImageRun({ type: 'png', data: footerData, transformation: { width: 674, height: 21 }, altText: { title: 'ASTU letter footer', description: 'We are dedicated to innovative knowledge!', name: 'ASTU letter footer' } })],
+            alignment: AlignmentType.CENTER,
+        })] }) },
         children: [
-          new Paragraph({
-            children: [new TextRun({ text: `P.O. Box: 1888   Tele: +251-221-100026  Fax: +251-022-112-01-50    E-mail: ${wordEmail}`, size: 18, font: 'Times New Roman' })],
-            alignment: AlignmentType.CENTER,
-          }),
-          new Paragraph({
-            children: [new TextRun({ text: 'ADAMA SCIENCE AND TECHNOLOGY UNIVERSITY', bold: true, size: 32, font: 'Times New Roman' })],
-            alignment: AlignmentType.CENTER,
-          }),
-          new Paragraph({
-            children: [new TextRun({ text: 'አዳማ ሳይንስ እና ቴክኖሎጂ ዩኒቨርሲቲ', size: 26, font: 'Times New Roman' })],
-            alignment: AlignmentType.CENTER,
-            spacing: { after: 200 },
-            border: { bottom: { color: '2c5aa0', size: 12, style: BorderStyle.SINGLE } },
-          }),
-          new Paragraph({ spacing: { after: 200 } }),
           ...metaParagraphs,
           new Paragraph({ spacing: { after: 200 } }),
           new Paragraph({
@@ -479,12 +463,6 @@ const ReportLetter = ({ report, department, signatory, collegeName }: ReportLett
                 new Paragraph({ children: [new TextRun({ text: `${resolvedCollegeName} ADAA`, font: 'Times New Roman', size: 24 })], bullet: { level: 0 } }),
               ]
           ),
-          new Paragraph({ spacing: { after: 200 } }),
-          new Paragraph({
-            children: [new TextRun({ text: 'We are dedicated to Innovative Knowledge', italics: true, font: 'Times New Roman', size: 22 })],
-            alignment: AlignmentType.CENTER,
-            border: { top: { color: '000000', size: 6, style: BorderStyle.SINGLE } },
-          }),
         ],
       }],
     });
@@ -519,25 +497,8 @@ const ReportLetter = ({ report, department, signatory, collegeName }: ReportLett
       </div>
 
       <div ref={printRef} className="bg-white text-black p-8 rounded-lg border shadow-sm max-w-4xl mx-auto" style={{ fontFamily: "'Times New Roman', serif", fontSize: '12pt', lineHeight: '1.5' }}>
-        {/* Contact bar */}
-        <div style={{ backgroundColor: '#2c5aa0', color: 'white', padding: '4px 10px', fontSize: '9pt', display: 'flex', justifyContent: 'space-between', marginBottom: 0 }}>
-          <span><strong>P.O. Box: 1888</strong></span>
-          <span>Tele: +251-<strong>221</strong>-100026</span>
-          <span>Fax: +251-022-112-01-50</span>
-          <span>E-mail: {isDepartmentReport ? contactEmail : 'adaa.soeec@astu.et'}</span>
-        </div>
-
-        {/* Letterhead with logo */}
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '15px', padding: '10px 0', borderBottom: '3px solid #2c5aa0', marginBottom: '20px' }}>
-          <img src={astuLogo} alt="ASTU Logo" style={{ height: '60px', width: '60px' }} />
-          <div style={{ textAlign: 'center' }}>
-            <h1 style={{ fontSize: '16pt', fontWeight: 'bold', fontFamily: "'Times New Roman', serif", letterSpacing: '1px', margin: 0 }}>
-              ADAMA SCIENCE AND TECHNOLOGY UNIVERSITY
-            </h1>
-            <h2 style={{ fontSize: '13pt', fontWeight: 'normal', fontFamily: "'Times New Roman', serif", margin: 0 }}>
-              አዳማ ሳይንስ እና ቴክኖሎጂ ዩኒቨርሲቲ
-            </h2>
-          </div>
+        <div className="letter-heading mb-5 break-inside-avoid">
+          <img src={letterHeading.url} alt="ASTU letter heading" className="letter-stationery block w-full h-auto" />
         </div>
 
         {/* To / Date / Ref section */}
@@ -698,7 +659,7 @@ const ReportLetter = ({ report, department, signatory, collegeName }: ReportLett
         <p style={{ marginTop: '20px' }}>With regards</p>
 
         {/* CC */}
-        <div style={{ marginTop: '60px' }}>
+        <div className="letter-cc" style={{ marginTop: '60px' }}>
           <p><strong><u>CC:</u></strong></p>
           <ul style={{ marginLeft: '30px', listStyleType: 'disc' }}>
             {isDepartmentReport ? (
@@ -716,8 +677,8 @@ const ReportLetter = ({ report, department, signatory, collegeName }: ReportLett
         </div>
 
         {/* Footer */}
-        <div style={{ marginTop: '40px', borderTop: '2px solid #000', paddingTop: '5px', textAlign: 'center', fontStyle: 'italic', fontSize: '11pt' }}>
-          We are dedicated to Innovative Knowledge
+        <div className="letter-footer mt-10">
+          <img src={letterFooter.url} alt="We are dedicated to innovative knowledge!" className="letter-stationery block w-full h-auto" />
         </div>
       </div>
     </div>
