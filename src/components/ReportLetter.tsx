@@ -189,6 +189,7 @@ const ReportLetter = ({ report, department, signatory, collegeName }: ReportLett
             }
             .letter-stationery { display: block; width: 100%; height: auto; }
             .letter-heading { margin-bottom: 20px; break-inside: avoid; }
+            .letter-cc { margin-top: 25px !important; }
             table { page-break-inside: avoid; break-inside: avoid; }
             .meta-section {
               display: flex;
@@ -658,7 +659,7 @@ const ReportLetter = ({ report, department, signatory, collegeName }: ReportLett
         <p style={{ marginTop: '20px' }}>With regards</p>
 
         {/* CC */}
-        <div style={{ marginTop: '60px' }}>
+        <div className="letter-cc" style={{ marginTop: '60px' }}>
           <p><strong><u>CC:</u></strong></p>
           <ul style={{ marginLeft: '30px', listStyleType: 'disc' }}>
             {isDepartmentReport ? (
