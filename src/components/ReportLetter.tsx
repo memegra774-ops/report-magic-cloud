@@ -238,7 +238,7 @@ const ReportLetter = ({ report, department, signatory, collegeName }: ReportLett
             .cc-section ul { margin-left: 30px; list-style-type: disc; }
             .letter-footer {
               position: fixed;
-              bottom: -14mm;
+              bottom: 0;
               left: 0;
               right: 0;
               margin-top: 0;

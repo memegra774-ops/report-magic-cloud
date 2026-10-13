@@ -1,4 +1,4 @@
 # Tasks
 
-- [ ] Apply supplied heading and footer to all letter previews, printouts, and Word exports.
-- [ ] Verify an existing letter and its exported stationery.
+- [x] Apply supplied heading and footer to all letter previews, printouts, and Word exports.
+- [x] Verify an existing letter and its exported stationery.
