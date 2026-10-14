@@ -567,7 +567,7 @@ const EditableStaffTable = ({ staff, canEdit = true, canDelete = true }: Editabl
               })}
               {sortedStaff.length === 0 && (
                 <TableRow>
-                  <TableCell colSpan={(canDelete ? 12 : 11) + (isAdmin && canDelete ? 1 : 0)} className="text-center py-8 text-muted-foreground">
+                  <TableCell colSpan={(canDelete ? 13 : 12) + (isAdmin && canDelete ? 1 : 0)} className="text-center py-8 text-muted-foreground">
                     No staff members found
                   </TableCell>
                 </TableRow>
