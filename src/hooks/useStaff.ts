@@ -87,7 +87,7 @@ export const useStaff = (filters?: {
     queryFn: async () => {
       let query = supabase
         .from('staff')
-        .select('*, departments(*)')
+        .select('*, departments(*, colleges(name))')
         .is('archived_at', null);
 
       if (filters?.category) {
@@ -107,7 +107,10 @@ export const useStaff = (filters?: {
       const { data, error } = await query.order('full_name');
 
       if (error) throw error;
-      return data as Staff[];
+      return data.map(member => ({
+        ...member,
+        college_name: member.departments?.colleges?.name || member.departments?.college_name || member.college_name,
+      })) as Staff[];
     },
   });
 };

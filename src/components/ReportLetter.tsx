@@ -389,7 +389,7 @@ const ReportLetter = ({ report, department, signatory, collegeName }: ReportLett
     const metaParagraphs = isDepartmentReport
       ? [
           new Paragraph({
-            children: [new TextRun({ text: 'To: CoEEC Vice Dean for Academic Affairs', bold: true, font: 'Times New Roman', size: 24 })],
+            children: [new TextRun({ text: 'To: COEEC Academic Vice Dean', bold: true, font: 'Times New Roman', size: 24 })],
           }),
           new Paragraph({
             children: [new TextRun({ text: `Date: _______________`, font: 'Times New Roman', size: 24 })],
@@ -536,7 +536,7 @@ const ReportLetter = ({ report, department, signatory, collegeName }: ReportLett
           <>
             <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '5px' }}>
               <div>
-                <p><strong>To: {resolvedCollegeName} Vice Dean for Academic Affairs</strong></p>
+                <p><strong>To: COEEC Academic Vice Dean</strong></p>
               </div>
               <div style={{ textAlign: 'right' }}>
                 <p><strong>Date:</strong> _______________</p>

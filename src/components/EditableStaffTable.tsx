@@ -408,6 +408,7 @@ const EditableStaffTable = ({ staff, canEdit = true, canDelete = true }: Editabl
                     {renderFilterPopover('Sex', 'sex', ['M', 'F'])}
                   </span>
                 </TableHead>
+                <TableHead className="text-primary-foreground">College</TableHead>
                 <TableHead className="text-primary-foreground cursor-pointer select-none" onClick={() => handleSort('department')}>
                   <span className="flex items-center">
                     Dept {getSortIcon('department')}
@@ -492,6 +493,7 @@ const EditableStaffTable = ({ staff, canEdit = true, canDelete = true }: Editabl
                     <TableCell className="text-center">
                       {renderEditableCell(s, 'sex', s.sex, 'select', ['M', 'F'])}
                     </TableCell>
+                    <TableCell>{s.college_name || '-'}</TableCell>
                     <TableCell>
                       {isAdmin ? (
                         editingCell?.staffId === s.id && editingCell?.field === 'department_id' ? (
