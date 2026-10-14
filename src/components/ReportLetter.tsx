@@ -9,6 +9,7 @@ import { supabase } from '@/integrations/supabase/client';
 import letterHeading from '@/assets/astu-letter-heading.png.asset.json';
 import letterFooter from '@/assets/astu-letter-footer.png.asset.json';
 import { useAuth } from '@/contexts/AuthContext';
+import { useQuery } from '@tanstack/react-query';
 
 interface ReportLetterProps {
   report: MonthlyReport;
@@ -73,7 +74,33 @@ const ReportLetter = ({ report, department, signatory, collegeName }: ReportLett
 
   const isDepartmentReport = !!report.department_id;
   const departmentName = department?.name || 'Department';
-  const resolvedCollegeName = collegeName || entries?.[0]?.college_name || 'College';
+  // Letter addressing follows the owning college, never staff snapshots or the viewer's college.
+  const { data: letterCollege, isLoading: isCollegeLoading, isError: isCollegeError } = useQuery({
+    queryKey: ['letter-college', report.department_id, report.college_id],
+    queryFn: async () => {
+      if (report.department_id) {
+        const { data, error } = await supabase
+          .from('departments')
+          .select('colleges(id, name, code)')
+          .eq('id', report.department_id)
+          .single();
+        if (error) throw error;
+        if (!data.colleges) throw new Error('Department has no assigned college');
+        return data.colleges;
+      }
+      if (!report.college_id) throw new Error('Report has no assigned college');
+      const { data, error } = await supabase
+        .from('colleges')
+        .select('id, name, code')
+        .eq('id', report.college_id)
+        .single();
+      if (error) throw error;
+      return data;
+    },
+  });
+  const resolvedCollegeName = letterCollege?.name.trim() || '';
+  const collegeLabel = letterCollege?.code.trim() || resolvedCollegeName;
+  const departmentRecipient = `To: ${collegeLabel.toUpperCase()} Academic Vice Dean`;
   const [avdName, setAvdName] = useState<string>('');
 
   // Fetch department head name and email from profiles + user_roles
@@ -187,7 +214,7 @@ const ReportLetter = ({ report, department, signatory, collegeName }: ReportLett
 
   const handlePrint = async () => {
     const printContent = printRef.current;
-    if (!printContent || !headingUrl) return;
+    if (!printContent || !headingUrl || !letterCollege) return;
 
     const printWindow = window.open('', '_blank');
     if (!printWindow) return;
@@ -290,7 +317,7 @@ const ReportLetter = ({ report, department, signatory, collegeName }: ReportLett
   };
 
   const handleExportWord = async () => {
-    if (!headingUrl) return;
+    if (!headingUrl || !letterCollege) return;
     const monthName = MONTHS[report.report_month - 1];
 
     const createTableRows = () => {
@@ -389,7 +416,7 @@ const ReportLetter = ({ report, department, signatory, collegeName }: ReportLett
     const metaParagraphs = isDepartmentReport
       ? [
           new Paragraph({
-            children: [new TextRun({ text: 'To: COEEC Academic Vice Dean', bold: true, font: 'Times New Roman', size: 24 })],
+            children: [new TextRun({ text: departmentRecipient, bold: true, font: 'Times New Roman', size: 24 })],
           }),
           new Paragraph({
             children: [new TextRun({ text: `Date: _______________`, font: 'Times New Roman', size: 24 })],
@@ -485,12 +512,12 @@ const ReportLetter = ({ report, department, signatory, collegeName }: ReportLett
           new Paragraph({ children: [new TextRun({ text: 'CC:', bold: true, underline: {}, font: 'Times New Roman', size: 24 })] }),
           ...(isDepartmentReport
             ? [
-                new Paragraph({ children: [new TextRun({ text: `${resolvedCollegeName} Dean`, font: 'Times New Roman', size: 24 })], bullet: { level: 0 } }),
+                new Paragraph({ children: [new TextRun({ text: `${collegeLabel} Dean`, font: 'Times New Roman', size: 24 })], bullet: { level: 0 } }),
                 new Paragraph({ children: [new TextRun({ text: `${departmentName} Department`, font: 'Times New Roman', size: 24 })], bullet: { level: 0 } }),
               ]
             : [
-                new Paragraph({ children: [new TextRun({ text: `${resolvedCollegeName} Dean`, font: 'Times New Roman', size: 24 })], bullet: { level: 0 } }),
-                new Paragraph({ children: [new TextRun({ text: `${resolvedCollegeName} ADAA`, font: 'Times New Roman', size: 24 })], bullet: { level: 0 } }),
+                new Paragraph({ children: [new TextRun({ text: `${collegeLabel} Dean`, font: 'Times New Roman', size: 24 })], bullet: { level: 0 } }),
+                new Paragraph({ children: [new TextRun({ text: `${collegeLabel} ADAA`, font: 'Times New Roman', size: 24 })], bullet: { level: 0 } }),
               ]
           ),
         ],
@@ -501,8 +528,12 @@ const ReportLetter = ({ report, department, signatory, collegeName }: ReportLett
     saveAs(blob, `Letter_${monthName}_${report.report_year}${isDepartmentReport ? `_${departmentName}` : ''}.docx`);
   };
 
-  if (isLoading) {
+  if (isLoading || isCollegeLoading) {
     return <div className="text-center py-8">Loading report...</div>;
+  }
+
+  if (isCollegeError || !letterCollege) {
+    return <div role="alert" className="text-center text-destructive py-8">Unable to confirm this report’s college. Please check the college assigned to the department or report and try again.</div>;
   }
 
   const monthName = MONTHS[report.report_month - 1];
@@ -536,7 +567,7 @@ const ReportLetter = ({ report, department, signatory, collegeName }: ReportLett
           <>
             <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '5px' }}>
               <div>
-                <p><strong>To: COEEC Academic Vice Dean</strong></p>
+                <p><strong>{departmentRecipient}</strong></p>
               </div>
               <div style={{ textAlign: 'right' }}>
                 <p><strong>Date:</strong> _______________</p>
@@ -694,13 +725,13 @@ const ReportLetter = ({ report, department, signatory, collegeName }: ReportLett
           <ul style={{ marginLeft: '30px', listStyleType: 'disc' }}>
             {isDepartmentReport ? (
               <>
-                <li>{resolvedCollegeName} Dean</li>
+                <li>{collegeLabel} Dean</li>
                 <li>{departmentName} Department</li>
               </>
             ) : (
               <>
-                <li>{resolvedCollegeName} Dean</li>
-                <li>{resolvedCollegeName} ADAA</li>
+                <li>{collegeLabel} Dean</li>
+                <li>{collegeLabel} ADAA</li>
               </>
             )}
           </ul>
