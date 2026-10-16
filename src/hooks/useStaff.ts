@@ -87,7 +87,7 @@ export const useStaff = (filters?: {
     queryFn: async () => {
       let query = supabase
         .from('staff')
-        .select('*, departments(*, colleges(name))')
+        .select('*, departments(*, colleges(code, name))')
         .is('archived_at', null);
 
       if (filters?.category) {
