@@ -109,7 +109,7 @@ export const useStaff = (filters?: {
       if (error) throw error;
       return data.map(member => ({
         ...member,
-        college_name: member.departments?.colleges?.name || member.departments?.college_name || member.college_name,
+        college_name: member.departments?.colleges?.code || member.departments?.colleges?.name || member.departments?.college_name || member.college_name,
       })) as Staff[];
     },
   });
